@@ -326,11 +326,11 @@ export default function CreatorProfilePage() {
               ))}
             </div>
 
-            <div className="flex items-end justify-between gap-4">
-              <div>
+            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+              <div className="min-w-0">
                 <p className="text-[15px] text-slate-500">From</p>
                 <div className="mt-1 flex items-end gap-2">
-                  <span className="text-[58px] font-black leading-none tracking-[-0.06em] text-[#111318]">
+                  <span className="text-[42px] font-black leading-none tracking-[-0.04em] text-[#111318]">
                     {defaults.priceLabel}
                   </span>
                 </div>
@@ -339,7 +339,7 @@ export default function CreatorProfilePage() {
 
               <Button
                 type="button"
-                className="h-16 min-w-[160px] rounded-full bg-[#ff1c1c] px-8 text-[18px] font-semibold text-white shadow-[0_18px_40px_rgba(255,28,28,0.28)] hover:bg-[#e21818]"
+                className="h-14 shrink-0 rounded-full bg-[#ff1c1c] px-8 text-[18px] font-semibold text-white shadow-[0_18px_40px_rgba(255,28,28,0.28)] hover:bg-[#e21818]"
                 onClick={() => openHireSheet()}
               >
                 Hire {creator.name.split(" ")[0]}
@@ -429,22 +429,18 @@ export default function CreatorProfilePage() {
             </div>
 
             <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[13px] font-black uppercase tracking-[0.18em] text-slate-500">Availability</p>
-                  <p className="mt-2 text-[16px] leading-7 text-slate-600">
-                    Need to check dates or confirm timing? Start the booking flow to request availability.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 rounded-full border-slate-200 px-4 text-[14px] font-semibold text-[#111318] hover:bg-slate-50"
-                  onClick={() => openHireSheet(undefined, "availability")}
-                >
-                  Check Availability
-                </Button>
-              </div>
+              <p className="text-[13px] font-black uppercase tracking-[0.18em] text-slate-500">Availability</p>
+              <p className="mt-2 text-[16px] leading-7 text-slate-600">
+                Need to check dates or confirm timing? Start the booking flow to request availability.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 h-11 w-full rounded-full border-slate-200 text-[14px] font-semibold text-[#111318] hover:bg-slate-50"
+                onClick={() => openHireSheet(undefined, "availability")}
+              >
+                Check Availability
+              </Button>
             </div>
           </div>
         </div>
