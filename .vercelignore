@@ -1,0 +1,10 @@
+.git
+.next
+.vercel/output
+node_modules
+.pnpm-store
+.env*
+!.env.example
+*.log
+dev-server*.log
+tsconfig.tsbuildinfo

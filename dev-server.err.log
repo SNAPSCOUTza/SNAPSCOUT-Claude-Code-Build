@@ -1,0 +1,15 @@
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (133kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ⨯ ./components/ui/gradual-blur.tsx:4:1
+Module not found: Can't resolve 'mathjs'
+[0m [90m 2 |[39m[0m
+[0m [90m 3 |[39m [36mimport[39m [33mReact[39m[33m,[39m { [33mCSSProperties[39m[33m,[39m useEffect[33m,[39m useMemo[33m,[39m useRef[33m,[39m useState[33m,[39m [33mPropsWithChildren[39m } [36mfrom[39m [32m"react"[39m[0m
+[0m[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { evaluate } [36mfrom[39m [32m"mathjs"[39m[0m
+[0m [90m   |[39m [31m[1m^[22m[39m[0m
+[0m [90m 5 |[39m [36mimport[39m [32m"./GradualBlur.css"[39m[0m
+[0m [90m 6 |[39m[0m
+[0m [90m 7 |[39m type [33mGradualBlurProps[39m [33m=[39m {[0m
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./components/layout/site-wrapper.tsx

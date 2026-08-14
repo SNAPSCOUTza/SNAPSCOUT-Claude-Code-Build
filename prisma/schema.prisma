@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model UserProfile {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String    @unique @db.Uuid
+  email               String?
+  full_name           String?
+  display_name        String?
+  account_type        String?
+  user_type           String?
+  subscription_status String?
+  bio                 String?
+  profession          String?
+  location            String?
+  city                String?
+  profile_picture     String?
+  availability        String?
+  availability_status String?
+  is_profile_visible  Boolean?
+  instagram           String?
+  linkedin            String?
+  youtube             String?
+  facebook            String?
+  vimeo               String?
+  imdb_profile        String?
+  website             String?
+  portfolio_images    String[]  @default([])
+  skills              String[]  @default([])
+  hourly_rate         String?
+  daily_rate          String?
+  project_rate        String?
+  onboarding_data     Json?
+  created_at          DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime? @db.Timestamptz(6)
+
+  @@map("user_profiles")
+}
+
+model Project {
+  id                     String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  client_id              String               @db.Uuid
+  title                  String?
+  category               String?
+  location               String?
+  province               String?
+  city                   String?
+  project_type           String?
+  duration               String?
+  description            String?
+  requirements           String?
+  equipment_needed       String[]             @default([])
+  experience_level       String?
+  deliverables           String[]             @default([])
+  quantity               String?
+  timeline               String?
+  file_formats           String[]             @default([])
+  rate_type              String?
+  rate_amount            Float?
+  currency               String?
+  payment_terms          String?
+  whats_included         String?
+  status                 String?
+  is_remote              Boolean?
+  shoot_date             DateTime?            @db.Date
+  portfolio_requirements Boolean?
+  revision_rounds        Int?
+  is_negotiable          Boolean?
+  urgent                 Boolean?
+  applications_count     Int?
+  created_at             DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime?            @db.Timestamptz(6)
+  applications           ProjectApplication[]
+
+  @@map("projects")
+}
+
+model ProjectApplication {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  project_id        String    @db.Uuid
+  freelancer_id     String    @db.Uuid
+  status            String?
+  portfolio_samples String[]  @default([])
+  proposed_timeline String?
+  cover_message     String?
+  proposed_rate     Float?
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @db.Timestamptz(6)
+  project           Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@map("project_applications")
+}
