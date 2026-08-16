@@ -48,6 +48,7 @@ export async function updateSession(request: NextRequest) {
     "/stores",
     "/studios-stores",
     "/find-crew",
+    "/explore",
     "/marketplace",
     "/onboarding",
     "/join",
@@ -61,7 +62,11 @@ export async function updateSession(request: NextRequest) {
     "/rate-guidelines",
   ]
 
-  const isPublicRoute = publicRoutes.some((route) => request.nextUrl.pathname.startsWith(route))
+  // "/" must match exactly - matching it as a prefix would make every route
+  // "public" since every pathname starts with "/".
+  const isPublicRoute = publicRoutes.some((route) =>
+    route === "/" ? request.nextUrl.pathname === "/" : request.nextUrl.pathname.startsWith(route),
+  )
 
   // Only redirect to login if user is NOT authenticated AND trying to access protected route
   if (!user && !isPublicRoute) {
