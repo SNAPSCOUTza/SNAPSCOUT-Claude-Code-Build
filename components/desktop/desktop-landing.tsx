@@ -889,7 +889,7 @@ export default function DesktopLanding() {
                 <p className="text-gray-400">© {new Date().getFullYear()} SnapScout. All rights reserved.</p>
                 <div className="mt-4 flex space-x-6 lg:mt-0">
                   <Link
-                    href="#"
+                    href="/privacy"
                     className="text-gray-400 hover:text-white transition-colors duration-300 relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bg-red-500 after:left-0 after:-bottom-1 after:transition-all after:duration-300 hover:after:w-full"
                   >
                     Privacy Policy
