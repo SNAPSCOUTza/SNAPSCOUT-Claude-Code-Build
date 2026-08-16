@@ -10,6 +10,7 @@ interface AhaMomentProps {
   primaryButtonClass: string
   onContinue: () => void
   onBack: () => void
+  loading?: boolean
 }
 
 const fadeUp = {
@@ -23,7 +24,7 @@ const profileImages: Record<string, string> = {
   a3: "/images/janelle-hiroshige-gfG_csFvelY-unsplash.jpg",
 }
 
-export function AhaMoment({ personaLine, onContinue, onBack }: AhaMomentProps) {
+export function AhaMoment({ personaLine, onContinue, onBack, loading = false }: AhaMomentProps) {
   return (
     <motion.section {...fadeUp} className="space-y-4">
       <div className="rounded-[32px] bg-[#111318] p-6 text-white shadow-[0_22px_70px_rgba(17,19,24,0.18)]">
@@ -103,11 +104,12 @@ export function AhaMoment({ personaLine, onContinue, onBack }: AhaMomentProps) {
 
       <div className="sticky bottom-0 -mx-4 border-t border-[#e8edf4] bg-[#f5f2ee]/95 px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-3 backdrop-blur">
         <Button
-          className="h-14 w-full rounded-full bg-[#ff111b] text-[16px] font-extrabold text-white shadow-[0_18px_36px_rgba(255,17,27,0.22)] hover:bg-[#e60012]"
+          className="h-14 w-full rounded-full bg-[#ff111b] text-[16px] font-extrabold text-white shadow-[0_18px_36px_rgba(255,17,27,0.22)] hover:bg-[#e60012] disabled:opacity-70"
           onClick={onContinue}
+          disabled={loading}
         >
-          Create my account
-          <ArrowRight className="ml-2 h-4 w-4" />
+          {loading ? "Checking..." : "Create my account"}
+          {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
         </Button>
         <p className="mt-2 text-center text-[12px] font-medium text-[#667085]">No payment info needed to sign up</p>
       </div>

@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { getPersonaLine, getTrack, roleTheme } from "@/lib/onboarding-config"
 import type { OnboardingAnswers, OnboardingBranch, OnboardingRole } from "@/types/onboarding"
 import { useAuth } from "@/contexts/auth-context"
+import { createClient } from "@/lib/supabase/client"
 import type { OnboardingData as LegacyOnboardingData } from "@/types/onboarding"
 
 type Screen = "goal" | "role" | "studio_store_intro" | "branch" | "questions" | "aha" | "signup" | "tour" | "complete"
@@ -54,8 +55,10 @@ export default function OnboardingPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [signupError, setSignupError] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [verifyingAuth, setVerifyingAuth] = useState(false)
   const [tourStep, setTourStep] = useState(0)
 
+  const supabase = useMemo(() => createClient(), [])
   const track = useMemo(() => getTrack(role, branch), [role, branch])
   const currentQuestion = track?.questions[questionIndex]
   const primaryClass = role ? roleTheme[role].primary : roleTheme.creator.primary
@@ -118,6 +121,20 @@ export default function OnboardingPage() {
     setScreen("branch")
   }
 
+  const handleAhaContinue = async () => {
+    setVerifyingAuth(true)
+    try {
+      // isAuthenticated from context can be stale (based on a locally cached
+      // session that was never revalidated). Confirm with the auth server
+      // before skipping account creation, otherwise an expired/invalid
+      // session silently skips straight past SignupForm.
+      const { data } = supabase ? await supabase.auth.getUser() : { data: { user: null } }
+      setScreen(data.user ? "tour" : "signup")
+    } finally {
+      setVerifyingAuth(false)
+    }
+  }
+
   const handleSignup = async () => {
     if (!role) return
     setSignupError("")
@@ -139,6 +156,17 @@ export default function OnboardingPage() {
         const { error } = await signUp(email, password, displayName, accountType)
         if (error) {
           setSignupError(error.message || "Failed to create account")
+          setSubmitting(false)
+          return
+        }
+
+        // signUp() creates the account but its internal auto-sign-in can
+        // fail silently. Confirm a real session exists before moving on -
+        // otherwise the account exists but the user isn't signed in, and
+        // they'll get bounced to login at the very end of the flow.
+        const { data } = supabase ? await supabase.auth.getUser() : { data: { user: null } }
+        if (!data.user) {
+          setSignupError("Your account was created, but we couldn't sign you in automatically. Please sign in.")
           setSubmitting(false)
           return
         }
@@ -253,8 +281,9 @@ export default function OnboardingPage() {
               <AhaMoment
                 personaLine={getPersonaLine(role, branch, answers)}
                 primaryButtonClass={primaryClass}
-                onContinue={() => setScreen(isAuthenticated ? "tour" : "signup")}
+                onContinue={handleAhaContinue}
                 onBack={() => setScreen("questions")}
+                loading={verifyingAuth}
               />
             ) : null}
 
