@@ -10,9 +10,8 @@ interface Message {
   conversation_id: string
   sender_id: string
   content: string
-  message_type: string
+  read: boolean
   created_at: string
-  is_edited: boolean
   sender?: {
     display_name: string
     profile_picture: string
@@ -21,8 +20,8 @@ interface Message {
 
 interface Conversation {
   id: string
-  title: string
-  type: string
+  participant_1_id: string
+  participant_2_id: string
   last_message_at: string
   created_at: string
   participants?: {
@@ -31,7 +30,6 @@ interface Conversation {
     profile_picture: string
   }[]
   last_message?: Message
-  unread_count?: number
 }
 
 interface MessagingContextType {
@@ -69,6 +67,50 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
   const initializedRef = useRef(false)
 
   const supabase = supabaseRef.current
+
+  const loadConversations = useCallback(
+    async (userId: string) => {
+      // Conversations where the user is either participant
+      const { data: convos } = await supabase
+        .from("conversations")
+        .select("*")
+        .or(`participant_1_id.eq.${userId},participant_2_id.eq.${userId}`)
+        .order("last_message_at", { ascending: false })
+
+      if (!convos?.length) {
+        setConversations([])
+        return
+      }
+
+      const conversationsWithParticipants = await Promise.all(
+        convos.map(async (convo) => {
+          const otherId = convo.participant_1_id === userId ? convo.participant_2_id : convo.participant_1_id
+
+          const { data: profile } = await supabase
+            .from("user_profiles")
+            .select("user_id, display_name, profile_picture")
+            .eq("user_id", otherId)
+            .maybeSingle()
+
+          const { data: lastMessages } = await supabase
+            .from("messages")
+            .select("*")
+            .eq("conversation_id", convo.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+
+          return {
+            ...convo,
+            participants: profile ? [profile] : [],
+            last_message: lastMessages?.[0] || null,
+          }
+        }),
+      )
+
+      setConversations(conversationsWithParticipants)
+    },
+    [supabase],
+  )
 
   useEffect(() => {
     if (initializedRef.current) return
@@ -111,81 +153,13 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
-
-  const loadConversations = async (userId: string) => {
-    // Get conversations where user is a participant
-    const { data: participations } = await supabase
-      .from("conversation_participants")
-      .select("conversation_id")
-      .eq("user_id", userId)
-      .eq("is_active", true)
-
-    if (!participations?.length) {
-      setConversations([])
-      return
-    }
-
-    const conversationIds = participations.map((p) => p.conversation_id)
-
-    // Get conversation details
-    const { data: convos } = await supabase
-      .from("conversations")
-      .select("*")
-      .in("id", conversationIds)
-      .order("last_message_at", { ascending: false })
-
-    if (!convos) {
-      setConversations([])
-      return
-    }
-
-    // Get participants for each conversation
-    const conversationsWithParticipants = await Promise.all(
-      convos.map(async (convo) => {
-        const { data: participants } = await supabase
-          .from("conversation_participants")
-          .select("user_id")
-          .eq("conversation_id", convo.id)
-          .eq("is_active", true)
-
-        // Get profile info for other participants
-        const otherParticipantIds = participants?.filter((p) => p.user_id !== userId).map((p) => p.user_id) || []
-
-        let participantProfiles: any[] = []
-        if (otherParticipantIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from("user_profiles")
-            .select("user_id, display_name, profile_picture")
-            .in("user_id", otherParticipantIds)
-
-          participantProfiles = profiles || []
-        }
-
-        // Get last message
-        const { data: lastMessages } = await supabase
-          .from("messages")
-          .select("*")
-          .eq("conversation_id", convo.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-
-        return {
-          ...convo,
-          participants: participantProfiles,
-          last_message: lastMessages?.[0] || null,
-        }
-      }),
-    )
-
-    setConversations(conversationsWithParticipants)
-  }
+  }, [loadConversations, supabase])
 
   const refreshConversations = useCallback(async () => {
     if (currentUserId) {
       await loadConversations(currentUserId)
     }
-  }, [currentUserId])
+  }, [currentUserId, loadConversations])
 
   const selectConversation = useCallback(
     async (conversationId: string) => {
@@ -229,7 +203,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
         setMessages([])
       }
 
-      // Subscribe to new messages
+      // Subscribe to new messages in this conversation
       const channel = supabase
         .channel(`messages:${conversationId}`)
         .on(
@@ -248,7 +222,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
               .from("user_profiles")
               .select("user_id, display_name, profile_picture")
               .eq("user_id", newMessage.sender_id)
-              .single()
+              .maybeSingle()
 
             setMessages((prev) => [
               ...prev,
@@ -264,13 +238,14 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       setMessagesChannel(channel)
       setLoading(false)
 
-      // Update last_read_at
+      // Mark incoming messages as read
       if (currentUserId) {
         await supabase
-          .from("conversation_participants")
-          .update({ last_read_at: new Date().toISOString() })
+          .from("messages")
+          .update({ read: true })
           .eq("conversation_id", conversationId)
-          .eq("user_id", currentUserId)
+          .neq("sender_id", currentUserId)
+          .eq("read", false)
       }
     },
     [conversations, currentUserId, messagesChannel, supabase],
@@ -285,7 +260,6 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
         conversation_id: currentConversation.id,
         sender_id: userId,
         content: content.trim(),
-        message_type: "text",
       })
 
       // Update last_message_at in background (non-blocking)
@@ -301,35 +275,28 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
   const createConversation = useCallback(
     async (participantId: string): Promise<string | null> => {
       const userId = userIdRef.current
-      if (!userId) return null
+      if (!userId || !participantId || participantId === userId) return null
 
-      const { data: myConversations } = await supabase
-        .from("conversation_participants")
-        .select("conversation_id")
-        .eq("user_id", userId)
+      // The DB's unique constraint on (participant_1_id, participant_2_id) is
+      // directional, so check both orderings before creating a new row.
+      const { data: existingConvo } = await supabase
+        .from("conversations")
+        .select("id")
+        .or(
+          `and(participant_1_id.eq.${userId},participant_2_id.eq.${participantId}),and(participant_1_id.eq.${participantId},participant_2_id.eq.${userId})`,
+        )
+        .maybeSingle()
 
-      if (myConversations?.length) {
-        // Check if any of my conversations include this participant
-        const conversationIds = myConversations.map((c) => c.conversation_id)
-        const { data: existingConvo } = await supabase
-          .from("conversation_participants")
-          .select("conversation_id")
-          .eq("user_id", participantId)
-          .in("conversation_id", conversationIds)
-          .limit(1)
-          .maybeSingle()
-
-        if (existingConvo) {
-          return existingConvo.conversation_id
-        }
+      if (existingConvo) {
+        await refreshConversations()
+        return existingConvo.id
       }
 
-      // Create new conversation
       const { data: newConvo, error } = await supabase
         .from("conversations")
         .insert({
-          type: "direct",
-          title: null,
+          participant_1_id: userId,
+          participant_2_id: participantId,
           last_message_at: new Date().toISOString(),
         })
         .select("id")
@@ -337,16 +304,10 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
 
       if (error || !newConvo) return null
 
-      // Add both participants
-      await supabase.from("conversation_participants").insert([
-        { conversation_id: newConvo.id, user_id: userId, is_active: true },
-        { conversation_id: newConvo.id, user_id: participantId, is_active: true },
-      ])
-
       await refreshConversations()
       return newConvo.id
     },
-    [supabase],
+    [supabase, refreshConversations],
   )
 
   return (

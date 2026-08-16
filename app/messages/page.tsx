@@ -42,8 +42,14 @@ import {
 import { loadMockHireRequests, type MockHireRequest, type MockHireRequestOrigin } from "@/lib/mock-data/hire-request-data"
 import { sanitizeSingleLineInput, sanitizeTextInput } from "@/lib/utils/sanitize"
 import { cn } from "@/lib/utils"
+import { MessagingProvider, useMessaging } from "@/components/messaging/supabase-messaging-provider"
+import { ConversationList } from "@/components/messaging/conversation-list"
+import { ChatView } from "@/components/messaging/chat-view"
+import { NewConversationModal } from "@/components/messaging/new-conversation-modal"
 
 type InboxFilter = "all" | "unread" | "bookings" | "creatives" | "studios"
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const fallbackAvatar =
   "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=400"
@@ -307,19 +313,107 @@ function applyEnquiryCardsToState(
   }
 }
 
-function LiveModeFallback() {
-  return (
-    <div className="grid min-h-[70vh] place-items-center bg-[#fffaf6] p-6">
-      <div className="w-full max-w-md rounded-[28px] border border-[#e8e4de] bg-white p-6 text-center">
-        <p className="text-[21px] font-semibold text-[#111318]">Live Mode</p>
-        <p className="mt-2 text-[14px] leading-6 text-[#5f6672]">
-          Live Supabase chat is still available, but this screen is now optimized for mock messaging and enquiry-card testing.
-        </p>
-        <Button asChild className="mt-5 h-12 rounded-full bg-[#f20d14] text-white hover:bg-[#d9070d]">
-          <Link href="/messages?mock=1">Open Mock Messages</Link>
-        </Button>
+function LiveMessagesInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { conversations, selectConversation, createConversation, currentConversation, currentUserId, loading } =
+    useMessaging()
+
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [newConvoOpen, setNewConvoOpen] = useState(false)
+  const handledRecipientRef = useRef<string | null>(null)
+
+  const recipient = searchParams.get("recipient")
+
+  useEffect(() => {
+    if (!recipient || !currentUserId) return
+    if (handledRecipientRef.current === recipient) return
+    if (!UUID_PATTERN.test(recipient)) return
+    handledRecipientRef.current = recipient
+
+    createConversation(recipient).then((conversationId) => {
+      if (conversationId) {
+        setSelectedId(conversationId)
+        selectConversation(conversationId)
+      }
+    })
+  }, [recipient, currentUserId, createConversation, selectConversation])
+
+  const handleSelect = useCallback(
+    (conversationId: string) => {
+      setSelectedId(conversationId)
+      selectConversation(conversationId)
+    },
+    [selectConversation],
+  )
+
+  const handleBack = useCallback(() => {
+    setSelectedId(null)
+  }, [])
+
+  const hasSelectedConversation = Boolean(selectedId && currentConversation)
+
+  if (!currentUserId && !loading) {
+    return (
+      <div className="grid min-h-[60vh] place-items-center p-6">
+        <div className="w-full max-w-md rounded-[28px] border border-[#e8e4de] bg-white p-6 text-center">
+          <p className="text-[21px] font-semibold text-[#111318]">Sign in to view messages</p>
+          <p className="mt-2 text-[14px] leading-6 text-[#5f6672]">
+            You need to be signed in to send and receive messages on SnapScout.
+          </p>
+          <Button
+            className="mt-5 h-12 rounded-full bg-[#f20d14] text-white hover:bg-[#d9070d]"
+            onClick={() => router.push("/auth/login")}
+          >
+            Sign In
+          </Button>
+        </div>
       </div>
-    </div>
+    )
+  }
+
+  return (
+    <MobileShell
+      title="Messages"
+      hideBottomNav={hasSelectedConversation}
+      disableBottomNavAutoHide={!hasSelectedConversation}
+      lockToViewport={hasSelectedConversation}
+    >
+      <div className={hasSelectedConversation ? "flex h-full min-h-0 flex-1 flex-col" : "h-[calc(100dvh-176px)] min-h-[620px]"}>
+        {hasSelectedConversation ? (
+          <ChatView onBack={handleBack} />
+        ) : (
+          <div className="flex h-full flex-col overflow-hidden rounded-[28px] border border-border bg-card">
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <p className="text-lg font-semibold text-foreground">Conversations</p>
+              <Button size="icon" className="h-10 w-10 rounded-full" onClick={() => setNewConvoOpen(true)}>
+                <Plus className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <ConversationList onSelect={handleSelect} selectedId={selectedId} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <NewConversationModal
+        open={newConvoOpen}
+        onOpenChange={setNewConvoOpen}
+        onConversationCreated={(conversationId) => {
+          setSelectedId(conversationId)
+          selectConversation(conversationId)
+        }}
+      />
+    </MobileShell>
+  )
+}
+
+function LiveMessagesContent() {
+  return (
+    <MessagingProvider>
+      <LiveMessagesInner />
+    </MessagingProvider>
   )
 }
 
@@ -1345,13 +1439,11 @@ function MockMessagesContent() {
 
 export default function MessagesPage() {
   const searchParams = useSearchParams()
-  const mode = searchParams.get("mode")
-  const mock = searchParams.get("mock")
-  const useLiveMode = mode === "live" || mock === "0"
+  const useMockMode = searchParams.get("mock") === "1"
 
-  if (useLiveMode) {
-    return <LiveModeFallback />
+  if (useMockMode) {
+    return <MockMessagesContent />
   }
 
-  return <MockMessagesContent />
+  return <LiveMessagesContent />
 }
