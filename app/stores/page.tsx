@@ -133,6 +133,7 @@ export default function StoresPage() {
                     <img
                       src={selectedStore.profile_picture || "/placeholder.svg"}
                       alt={selectedStore.business_name || selectedStore.display_name}
+                      loading="lazy"
                       className="w-full h-64 object-cover rounded-lg mb-4"
                     />
                   )}
@@ -269,6 +270,7 @@ export default function StoresPage() {
                   <img
                     src={store.profile_picture || "/placeholder.svg"}
                     alt={store.business_name || store.display_name}
+                    loading="lazy"
                     className="w-full h-48 object-cover rounded-lg mb-4"
                   />
                 )}

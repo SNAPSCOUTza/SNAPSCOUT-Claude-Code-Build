@@ -521,7 +521,7 @@ function GalleryPreviewTile({
             </a>
           </div>
         ) : previewImage ? (
-          <img src={previewImage} alt={item.title} className="h-full w-full object-cover" />
+          <img src={previewImage} alt={item.title} loading="lazy" className="h-full w-full object-cover" />
         ) : (
           <div className="grid h-full place-items-center bg-white p-6 text-center">
             <div>
@@ -2620,7 +2620,7 @@ export default function DashboardPage() {
                           <div>
                             <div className="relative aspect-[4/3] overflow-hidden rounded-[22px] border border-gray-200 bg-gray-100">
                               {packageItem.image ? (
-                                <img src={packageItem.image} alt={packageItem.name} className="h-full w-full object-cover" />
+                                <img src={packageItem.image} alt={packageItem.name} loading="lazy" className="h-full w-full object-cover" />
                               ) : (
                                 <div className="grid h-full place-items-center text-gray-400">
                                   <ImageIcon className="h-8 w-8" />

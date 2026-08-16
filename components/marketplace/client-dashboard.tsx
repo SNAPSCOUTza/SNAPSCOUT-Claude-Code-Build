@@ -22,6 +22,7 @@ const ClientDashboard = () => {
                 <img
                   src={application.freelancer?.profile_picture || "/placeholder.svg"}
                   alt={application.freelancer?.display_name}
+                  loading="lazy"
                   className="w-10 h-10 rounded-full object-cover hover:ring-2 hover:ring-red-500 transition-all cursor-pointer"
                 />
               </Link>

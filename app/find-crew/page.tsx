@@ -483,6 +483,7 @@ export default function FindCrewPage() {
                         <img
                           src={member.recent_work || member.profile_picture || "/placeholder.svg"}
                           alt={member.display_name}
+                          loading="lazy"
                           className="h-full w-full object-cover"
                         />
                         <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#111318]">
@@ -1006,6 +1007,7 @@ export default function FindCrewPage() {
                             <img
                               src={member.recent_work || "/placeholder.svg"}
                               alt="Recent work"
+                              loading="lazy"
                               className="w-full h-full object-cover"
                             />
                           </div>
@@ -1188,6 +1190,7 @@ export default function FindCrewPage() {
                       <img
                         src={selectedMember.recent_work || "/placeholder.svg"}
                         alt="Recent work"
+                        loading="lazy"
                         className="w-full h-full object-cover"
                       />
                     </div>

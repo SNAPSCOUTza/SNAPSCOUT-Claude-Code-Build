@@ -376,7 +376,7 @@ export default function AdminResourceManager({ resource }: AdminResourceManagerP
           <div className="mt-2 rounded-[24px] border border-dashed border-[#d7deea] bg-[#fbfcfe] p-3">
             {previewUrl ? (
               <div className="mb-3 overflow-hidden rounded-[20px] border border-[#e1e7f0] bg-white">
-                <img src={previewUrl} alt="" className="h-40 w-full object-cover" />
+                <img src={previewUrl} alt="" loading="lazy" className="h-40 w-full object-cover" />
               </div>
             ) : null}
             <label

@@ -247,6 +247,7 @@ function FreelancerGrid({ favorites, onRemove }: FreelancerGridProps) {
                     <img
                       src={favorite.freelancer.profile_picture || "/placeholder.svg"}
                       alt={favorite.freelancer.display_name}
+                      loading="lazy"
                       className="w-12 h-12 rounded-full object-cover"
                     />
                   ) : (

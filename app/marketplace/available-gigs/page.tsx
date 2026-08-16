@@ -507,6 +507,7 @@ export default function AvailableGigsPage() {
                       <img
                         src={gig.client.profile_image_url || "/placeholder.svg?height=48&width=48&query=professional"}
                         alt={gig.client.full_name || "Client"}
+                        loading="lazy"
                         className="h-12 w-12 rounded-full object-cover"
                       />
                       <div className="min-w-0">

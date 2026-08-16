@@ -489,6 +489,7 @@ export default function GigApplicationPage({ params }: { params: { id: string } 
                       <img
                         src={gig.client.profile_image_url || "/placeholder.svg?height=48&width=48"}
                         alt={gig.client.full_name}
+                        loading="lazy"
                         className="h-12 w-12 rounded-full object-cover"
                       />
                       <div className="min-w-0">
