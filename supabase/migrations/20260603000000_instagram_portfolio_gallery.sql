@@ -100,7 +100,7 @@ alter table public.instagram_media_cache
 update public.instagram_media_cache
 set media_id = coalesce(media_id, instagram_media_id),
     timestamp = coalesce(timestamp, taken_at),
-    user_id = coalesce(user_id, c.user_id)
+    user_id = coalesce(instagram_media_cache.user_id, c.user_id)
 from public.instagram_connections c
 where instagram_media_cache.connection_id = c.id;
 
