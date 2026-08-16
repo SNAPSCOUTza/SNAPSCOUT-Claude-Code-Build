@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { apiError, isApiErrorContext, requireUser, sanitizeText } from "@/lib/crew-pools/api"
-import { PORTFOLIO_BUCKET, PORTFOLIO_DISPLAY_LIMIT, normalizeUploadItem } from "@/lib/portfolio/portfolio-service"
+import { PORTFOLIO_DISPLAY_LIMIT, normalizeUploadItem } from "@/lib/portfolio/portfolio-service"
+import { isR2Configured } from "@/lib/r2/client"
+import { deleteFromR2, uploadToR2 } from "@/lib/r2/storage"
 
 export const runtime = "nodejs"
 
@@ -15,15 +17,6 @@ export const config = {
 function safeFileName(name: string) {
   const extension = name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg"
   return `${crypto.randomUUID()}.${extension.slice(0, 8)}`
-}
-
-function getPublicUrls(supabase: any, path: string) {
-  const { data } = supabase.storage.from(PORTFOLIO_BUCKET).getPublicUrl(path)
-  const publicUrl = data.publicUrl
-  return {
-    imageUrl: publicUrl,
-    thumbnailUrl: `${publicUrl}?width=600&height=600&resize=cover&quality=75`,
-  }
 }
 
 export async function POST(request: Request) {
@@ -50,16 +43,24 @@ export async function POST(request: Request) {
     return apiError(`You can feature up to ${PORTFOLIO_DISPLAY_LIMIT} portfolio images.`, 400, "PORTFOLIO_UPLOAD_LIMIT_REACHED")
   }
 
-  const storagePath = `${user.id}/${safeFileName(file.name)}`
-  const { error: uploadError } = await supabase.storage.from(PORTFOLIO_BUCKET).upload(storagePath, file, {
-    cacheControl: "31536000",
-    upsert: false,
-    contentType: file.type,
-  })
+  if (!isR2Configured()) return apiError("Storage is not configured", 500, "PORTFOLIO_STORAGE_NOT_CONFIGURED")
 
-  if (uploadError) return apiError(uploadError.message, 500, "PORTFOLIO_STORAGE_UPLOAD_FAILED")
+  const storagePath = `portfolio/${user.id}/${safeFileName(file.name)}`
+  const buffer = Buffer.from(await file.arrayBuffer())
 
-  const { imageUrl, thumbnailUrl } = getPublicUrls(supabase, storagePath)
+  let imageUrl: string
+  try {
+    imageUrl = await uploadToR2(storagePath, buffer, file.type)
+  } catch (uploadError: any) {
+    return apiError(uploadError?.message || "Upload failed", 500, "PORTFOLIO_STORAGE_UPLOAD_FAILED")
+  }
+
+  // R2 alone doesn't do on-the-fly resizing (that's the separate Cloudflare
+  // Images product), so the thumbnail is the same file as the full image
+  // for now - next/image still handles responsive sizing/lazy-loading
+  // client-side.
+  const thumbnailUrl = imageUrl
+
   const { data, error } = await supabase
     .from("portfolio_uploads")
     .insert({
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
     .single()
 
   if (error) {
-    await supabase.storage.from(PORTFOLIO_BUCKET).remove([storagePath])
+    await deleteFromR2([storagePath]).catch(() => null)
     return apiError(error.message, 500, "PORTFOLIO_UPLOAD_CREATE_FAILED")
   }
 

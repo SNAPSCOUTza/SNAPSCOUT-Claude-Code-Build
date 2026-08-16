@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { apiError, isApiErrorContext, requireUser } from "@/lib/crew-pools/api"
-import { PORTFOLIO_BUCKET } from "@/lib/portfolio/portfolio-service"
+import { deleteFromR2 } from "@/lib/r2/storage"
 
 export const runtime = "nodejs"
 
@@ -28,7 +28,7 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
   if (deleteError) return apiError(deleteError.message, 500, "PORTFOLIO_UPLOAD_DELETE_FAILED")
 
   if (data.storage_path) {
-    await supabase.storage.from(PORTFOLIO_BUCKET).remove([data.storage_path])
+    await deleteFromR2([data.storage_path]).catch(() => null)
   }
 
   return NextResponse.json({ success: true })

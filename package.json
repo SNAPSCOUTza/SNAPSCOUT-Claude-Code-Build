@@ -7,9 +7,11 @@
     "dev": "next dev",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "start": "next start"
+    "start": "next start",
+    "migrate:portfolio-r2": "node scripts/migrate-portfolio-to-r2.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1111.0",
     "@emotion/is-prop-valid": "latest",
     "@hookform/resolvers": "^3.9.1",
     "@pinia/colada": "latest",
