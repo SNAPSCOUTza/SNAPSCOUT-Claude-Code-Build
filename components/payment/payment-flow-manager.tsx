@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { callPaystackFunction } from "@/lib/paystack-edge"
+import { SUBSCRIPTION_PLANS } from "@/lib/paystack"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -63,10 +64,12 @@ declare global {
   }
 }
 
-const PLAN_PRICING = {
-  "creators-crew": { amount: 60000, label: "SnapScout Creators & Crew", price: "R600" },
-  "studios-stores": { amount: 30000, label: "SnapScout Studios & Stores", price: "R300" },
-}
+// Sourced from the canonical plan list (lib/paystack.ts) instead of being
+// hardcoded here - this used to list two made-up "combined" tiers at R600
+// and R300, which matched neither the real R129/R489 pricing nor any
+// actual Paystack plan code, so subscribing here would have charged the
+// wrong amount as a one-time payment instead of a recurring subscription.
+const PAID_PLANS = SUBSCRIPTION_PLANS.filter((plan) => plan.price > 0)
 
 export default function PaymentFlowManager({ userId, currentPlan, onPaymentSuccess }: PaymentFlowManagerProps) {
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null)
@@ -74,7 +77,7 @@ export default function PaymentFlowManager({ userId, currentPlan, onPaymentSucce
   const [loading, setLoading] = useState(true)
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success" | "failed">("idle")
-  const [selectedPlan, setSelectedPlan] = useState<string>(currentPlan || "creators-crew")
+  const [selectedPlan, setSelectedPlan] = useState<string>(currentPlan || PAID_PLANS[0].id)
   const [error, setError] = useState("")
   const [userEmail, setUserEmail] = useState("")
 
@@ -133,7 +136,7 @@ export default function PaymentFlowManager({ userId, currentPlan, onPaymentSucce
     setPaymentStatus("processing")
 
     try {
-      const planDetails = PLAN_PRICING[planId as keyof typeof PLAN_PRICING]
+      const planDetails = PAID_PLANS.find((plan) => plan.id === planId)
       if (!planDetails) {
         throw new Error("Invalid plan selected")
       }
@@ -144,10 +147,11 @@ export default function PaymentFlowManager({ userId, currentPlan, onPaymentSucce
 
       const response = await callPaystackFunction("paystack-initialize", session?.access_token, {
         email: userEmail,
-        accountType: planId === "creators-crew" ? "Creator" : "Studio",
+        accountType: planDetails.name,
         userId: userId,
-        planId: planId,
-        amount: planDetails.amount,
+        plan: planId,
+        plan_code: planDetails.paystackPlanCode,
+        amount: planDetails.amountInKobo,
       })
 
       const result = await response.json()
@@ -160,7 +164,7 @@ export default function PaymentFlowManager({ userId, currentPlan, onPaymentSucce
         const handler = window.PaystackPop.setup({
           key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
           email: userEmail,
-          amount: planDetails.amount,
+          amount: planDetails.amountInKobo,
           currency: "ZAR",
           ref: result.reference,
           callback: (response) => {
@@ -442,71 +446,40 @@ export default function PaymentFlowManager({ userId, currentPlan, onPaymentSucce
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {Object.entries(PLAN_PRICING).map(([planId, planDetails]) => (
+            {PAID_PLANS.map((plan) => (
               <Card
-                key={planId}
+                key={plan.id}
                 className={`cursor-pointer transition-all ${
-                  selectedPlan === planId ? "border-red-500 bg-red-50" : "border-gray-200 hover:border-gray-300"
+                  selectedPlan === plan.id ? "border-red-500 bg-red-50" : "border-gray-200 hover:border-gray-300"
                 }`}
-                onClick={() => setSelectedPlan(planId)}
+                onClick={() => setSelectedPlan(plan.id)}
               >
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span>{planDetails.label}</span>
-                    {planId === "studios-stores" && <Crown className="h-5 w-5 text-yellow-600" />}
+                    <span>{plan.name}</span>
+                    {(plan.id === "studio-membership" || plan.id === "store-membership") && (
+                      <Crown className="h-5 w-5 text-yellow-600" />
+                    )}
                   </CardTitle>
-                  <div className="text-3xl font-bold text-red-600">{planDetails.price}</div>
+                  <div className="text-3xl font-bold text-red-600">R{plan.price}</div>
                   <p className="text-gray-600">per month</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    {planId === "creators-crew" ? (
-                      <>
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Professional profile visibility</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Unlimited portfolio uploads</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Direct client messaging</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Basic analytics dashboard</span>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Priority search placement</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Team member management</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Advanced analytics</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Custom branding options</span>
-                        </div>
-                      </>
-                    )}
+                    {plan.features.map((feature) => (
+                      <div key={feature} className="flex items-center space-x-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm">{feature}</span>
+                      </div>
+                    ))}
                   </div>
 
                   <Button
-                    onClick={() => initializePayment(planId)}
+                    onClick={() => initializePayment(plan.id)}
                     disabled={paymentLoading || paymentStatus === "processing"}
                     className="w-full bg-red-600 hover:bg-red-700"
                   >
-                    {paymentLoading && selectedPlan === planId ? (
+                    {paymentLoading && selectedPlan === plan.id ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Processing...
