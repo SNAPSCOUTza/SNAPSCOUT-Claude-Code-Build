@@ -16,7 +16,6 @@ import {
   Globe,
   Zap,
   ArrowRight,
-  Sparkles,
   TrendingUp,
   Shield,
 } from "lucide-react"
@@ -133,53 +132,36 @@ export default function SubscriptionSelectionInterface({
 
   return (
     <div className="space-y-8">
-      {/* Header Section */}
-      <div className="text-center space-y-4">
-        <div className="flex items-center justify-center space-x-2 mb-4">
-          <Sparkles className="h-8 w-8 text-red-600" />
-          <h2 className="text-3xl font-bold text-gray-900">Choose Your Plan</h2>
-          <Sparkles className="h-8 w-8 text-red-600" />
-        </div>
-        <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-          Subscribe to make your profile visible to clients and start receiving project invitations. Choose the plan
-          that best fits your professional needs.
-        </p>
-      </div>
-
       {/* Benefits Overview */}
-      <div className="bg-gradient-to-r from-red-50 to-blue-50 rounded-xl p-6 border border-red-100">
-        <div className="text-center mb-6">
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Why Subscribe to SnapScout?</h3>
-          <p className="text-gray-600">Transform your profile from private to professional</p>
-        </div>
-        <div className="grid md:grid-cols-4 gap-4">
+      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+        <div className="grid md:grid-cols-4 gap-6">
           <div className="text-center">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Globe className="h-6 w-6 text-green-600" />
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Globe className="h-6 w-6 text-red-600" />
             </div>
             <h4 className="font-medium text-gray-900">Go Live</h4>
-            <p className="text-sm text-gray-600">Profile becomes visible to clients</p>
+            <p className="text-sm text-gray-600">Be visible to clients</p>
           </div>
           <div className="text-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Users className="h-6 w-6 text-blue-600" />
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Users className="h-6 w-6 text-green-600" />
             </div>
             <h4 className="font-medium text-gray-900">Get Discovered</h4>
-            <p className="text-sm text-gray-600">Clients can find and contact you</p>
+            <p className="text-sm text-gray-600">Find the right opportunities</p>
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <TrendingUp className="h-6 w-6 text-purple-600" />
             </div>
             <h4 className="font-medium text-gray-900">Grow Business</h4>
-            <p className="text-sm text-gray-600">Receive project invitations</p>
+            <p className="text-sm text-gray-600">Receive project invites</p>
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <Shield className="h-6 w-6 text-yellow-600" />
             </div>
             <h4 className="font-medium text-gray-900">Professional</h4>
-            <p className="text-sm text-gray-600">Verified professional badge</p>
+            <p className="text-sm text-gray-600">Verified and trusted</p>
           </div>
         </div>
       </div>

@@ -18,10 +18,13 @@ export default async function SubscriptionPlansPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 text-center">Subscription Plans</h1>
-          <p className="text-gray-600 text-center mt-2">
-            Choose the perfect plan to showcase your professional profile
+        <div className="mb-12 text-center">
+          <p className="text-sm font-bold uppercase tracking-wider text-red-600 mb-3">Subscription Plans</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight text-balance">
+            Choose the plan that powers your <span className="text-red-600">growth.</span>
+          </h1>
+          <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
+            Join SnapScout and get discovered by the right people, win more work, and grow your business.
           </p>
         </div>
 
