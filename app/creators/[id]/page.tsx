@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useMemo, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
@@ -19,18 +19,12 @@ import {
 } from "lucide-react"
 
 import MobileShell from "@/components/mobile/mobile-shell"
-import { AvailabilityCalendar } from "@/components/availability/availability-calendar"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
-import { SaveToPoolButton } from "@/components/crew/SaveToPoolButton"
 import { SaveProfileButton } from "@/components/messaging/save-profile-button"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
-import { PortfolioGrid } from "@/components/portfolio/portfolio-grid"
-import { PortfolioTabs } from "@/components/portfolio/portfolio-tabs"
-import { EnhancedProfileHeader } from "@/components/profile/enhanced-profile-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import type { AvailabilityOwnerType } from "@/lib/availability"
-import { filterByPlatform, getPlatformCounts, mockCreators } from "@/lib/mock-data/portfolio-data"
+import { mockCreators } from "@/lib/mock-data/portfolio-data"
 
 type CreatorDetailDefaults = {
   priceLabel: string
@@ -119,8 +113,6 @@ export default function CreatorProfilePage() {
   const router = useRouter()
   const creator = mockCreators.find((item) => item.id === params.id)
 
-  const [saved, setSaved] = useState(false)
-  const [activeTab, setActiveTab] = useState("all")
   const [hireSheetOpen, setHireSheetOpen] = useState(false)
   const [requestedDate, setRequestedDate] = useState<string | undefined>()
   const [requestOrigin, setRequestOrigin] = useState<"booking" | "availability">("booking")
@@ -158,12 +150,6 @@ export default function CreatorProfilePage() {
     phone: "+27 71 555 0101",
   }
 
-  const ownerType: AvailabilityOwnerType = creator.profession.toLowerCase().includes("video")
-    ? "videographer"
-    : creator.profession.toLowerCase().includes("photo")
-      ? "photographer"
-      : "crew"
-
   const portfolioItems = creator.portfolioItems ?? []
   const heroImages = portfolioItems.length
     ? portfolioItems.map((item) => ({
@@ -171,12 +157,6 @@ export default function CreatorProfilePage() {
         alt: item.title || creator.name,
       }))
     : [{ src: creator.avatar || "/placeholder.svg", alt: creator.name }]
-
-  const platforms = useMemo(() => getPlatformCounts(portfolioItems), [portfolioItems])
-  const filteredItems = useMemo(
-    () => filterByPlatform(portfolioItems, activeTab as "all" | "website" | "instagram" | "tiktok"),
-    [portfolioItems, activeTab]
-  )
 
   const highlightCards = defaults.highlights.map((service) => ({
     title: service,
@@ -197,7 +177,7 @@ export default function CreatorProfilePage() {
     child?.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
   }
 
-  const renderMobileProfile = () => (
+  const renderProfile = () => (
     <div className="px-4 pb-8 pt-4">
       <section className="rounded-[30px] border border-slate-200 bg-white p-3 shadow-[0_18px_55px_rgba(15,23,42,0.08)]">
         <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white">
@@ -448,60 +428,9 @@ export default function CreatorProfilePage() {
     </div>
   )
 
-  const renderDesktopProfile = () => (
-    <div className="mx-auto max-w-7xl px-4 pb-8 pt-6 lg:px-8">
-      <EnhancedProfileHeader
-        name={creator.name}
-        profession={creator.profession}
-        location={creator.location}
-        bio={creator.bio}
-        avatar={creator.avatar}
-        rating={creator.rating}
-        reviews={creator.reviews}
-        portfolioCount={creator.portfolioCount}
-        isOwnProfile={false}
-        onHire={() => openHireSheet()}
-        onMessage={() =>
-          router.push(`/messages?mock=1&as=brad-test-user&conversation=thread-brad-test-user-${creator.id}-${Date.now()}`)
-        }
-        onSave={() => setSaved((value) => !value)}
-        onShare={() => navigator.clipboard.writeText(window.location.href)}
-        isSaved={saved}
-      />
-
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <PortfolioTabs platforms={platforms} activeTab={activeTab} onTabChange={setActiveTab} />
-          <div className="mt-6">
-            <PortfolioGrid items={filteredItems} />
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <SaveToPoolButton
-            profileId={creator.id}
-            profileName={creator.name}
-            className="mb-4 h-12 rounded-full"
-            variant="outline"
-          />
-          <AvailabilityCalendar
-            ownerId={creator.id}
-            ownerType={ownerType}
-            title="Live availability"
-            onRequestDate={(date) => openHireSheet(date, "availability")}
-          />
-        </div>
-      </div>
-    </div>
-  )
-
   return (
     <>
-      <div className="min-h-screen bg-[#f7f5ef] lg:hidden">
-        <MobileShell title="Browse Creatives">{renderMobileProfile()}</MobileShell>
-      </div>
-
-      <div className="hidden min-h-screen bg-[#f7f5ef] lg:block">{renderDesktopProfile()}</div>
+      <MobileShell title="Browse Creatives">{renderProfile()}</MobileShell>
 
       {hireSheetOpen ? (
         <HireRequestSheet
