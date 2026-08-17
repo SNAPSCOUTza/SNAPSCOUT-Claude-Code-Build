@@ -1,9 +1,15 @@
 import { redirect } from "next/navigation"
-import { getCurrentUser } from "@/lib/auth"
+import { createServerClient } from "@/lib/supabase/server"
 import SubscriptionSelectionInterface from "@/components/subscription/subscription-selection-interface"
 
 export default async function SubscriptionPlansPage() {
-  const user = await getCurrentUser()
+  // getCurrentUser() (lib/auth.ts) uses the browser Supabase client, which
+  // has no access to cookies during server-side rendering and always
+  // returns null here - use the server client directly instead.
+  const supabase = await createServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (!user) {
     redirect("/auth/login")
