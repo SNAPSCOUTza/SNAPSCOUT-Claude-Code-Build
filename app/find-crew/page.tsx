@@ -1020,32 +1020,36 @@ export default function FindCrewPage() {
                       )}
 
                       {/* Action Buttons */}
-                      <div className="flex gap-2 mt-4" onClick={(e) => e.stopPropagation()}>
-                        <MessageButton
-                          recipientId={member.user_id}
-                          recipientName={member.display_name}
-                          size="icon"
-                          variant="outline"
-                          className="flex-1"
-                        />
-                        <SaveProfileButton
-                          profileId={member.user_id || member.id}
-                          profileName={member.display_name}
-                          profileRole={member.profession}
-                          profileLocation={[member.city, member.province].filter(Boolean).join(", ")}
-                          profileImage={member.profile_picture || member.recent_work}
-                          profileHref={`/crew/${member.id}`}
-                          category="crew"
-                          size="icon"
-                          variant="outline"
-                        />
-                        <SaveToPoolButton
-                          profileId={member.user_id || member.id}
-                          profileName={member.display_name}
-                          size="icon"
-                          variant="outline"
-                        />
-                        <Link href={`/crew/${member.id}`} className="w-full">
+                      <div className="mt-4 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          <MessageButton
+                            recipientId={member.user_id}
+                            recipientName={member.display_name}
+                            size="icon"
+                            variant="outline"
+                            className="shrink-0"
+                          />
+                          <SaveProfileButton
+                            profileId={member.user_id || member.id}
+                            profileName={member.display_name}
+                            profileRole={member.profession}
+                            profileLocation={[member.city, member.province].filter(Boolean).join(", ")}
+                            profileImage={member.profile_picture || member.recent_work}
+                            profileHref={`/crew/${member.id}`}
+                            category="crew"
+                            size="icon"
+                            variant="outline"
+                            className="shrink-0"
+                          />
+                          <SaveToPoolButton
+                            profileId={member.user_id || member.id}
+                            profileName={member.display_name}
+                            size="icon"
+                            variant="outline"
+                            className="shrink-0"
+                          />
+                        </div>
+                        <Link href={`/crew/${member.id}`} className="block w-full">
                           <Button className="w-full bg-red-700 hover:bg-red-800 text-white">View Full Profile</Button>
                         </Link>
                       </div>
