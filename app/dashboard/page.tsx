@@ -63,6 +63,7 @@ import { getCurrentUser, signOut } from "@/lib/auth"
 import { SubscriptionCard } from "@/components/dashboard/subscription-card"
 import { PortfolioManager } from "@/components/dashboard/portfolio-manager"
 import { calculateProfileCompleteness } from "@/lib/profile-utils"
+import { resizeImageFile } from "@/lib/image-resize"
 import { AvailabilityManager } from "@/components/availability/availability-manager"
 import type { AvailabilityOwnerType } from "@/lib/availability"
 import { IncomingAvailabilityRequests } from "@/components/crew/IncomingAvailabilityRequests"
@@ -1151,8 +1152,10 @@ export default function DashboardPage() {
     setAvatarUploadError(null)
     setAvatarUploading(true)
     try {
+      const resized = await resizeImageFile(file, { maxDimension: 512, quality: 0.85 })
+
       const formData = new FormData()
-      formData.append("file", file)
+      formData.append("file", resized)
 
       const response = await fetch("/api/profile/avatar", {
         method: "POST",
