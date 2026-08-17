@@ -56,10 +56,13 @@ function inferCreatorHighlights(creator: any) {
 
 type CreatorHighlight = ReturnType<typeof inferCreatorHighlights>[number]
 
+const LOCATION_OPTIONS = ["Cape Town", "Johannesburg", "Durban", "Pretoria", "Port Elizabeth"]
+
 export default function CreatorsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("")
+  const [locationFilter, setLocationFilter] = useState("")
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [showMobileSearchFilters, setShowMobileSearchFilters] = useState(true)
   const [creators, setCreators] = useState<any[]>([])
@@ -167,7 +170,8 @@ export default function CreatorsPage() {
       (creator.specializations || creator.skills || []).some(
         (specialization: string) => specialization.toLowerCase() === categoryFilter.toLowerCase(),
       )
-    return matchesSearch && matchesFilter && matchesCategory
+    const matchesLocation = !locationFilter || creator.city?.toLowerCase() === locationFilter.toLowerCase()
+    return matchesSearch && matchesFilter && matchesCategory && matchesLocation
   })
 
   const getOwnerType = (profession?: string): AvailabilityOwnerType => {
@@ -295,6 +299,36 @@ export default function CreatorsPage() {
                         }`}
                       >
                         {category}
+                      </motion.button>
+                    ))}
+                  </MotionRevealItem>
+
+                  <MotionRevealItem className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+                    <motion.button
+                      type="button"
+                      onClick={() => setLocationFilter("")}
+                      whileTap={{ scale: 0.96 }}
+                      className={`whitespace-nowrap rounded-full border px-4 py-2 text-[12px] font-semibold ${
+                        locationFilter === ""
+                          ? "border-[#0d0f13] bg-[#0d0f13] text-white"
+                          : "border-[#e7e0d6] bg-white text-[#20232b]"
+                      }`}
+                    >
+                      All locations
+                    </motion.button>
+                    {LOCATION_OPTIONS.map((location) => (
+                      <motion.button
+                        key={location}
+                        type="button"
+                        onClick={() => setLocationFilter(location)}
+                        whileTap={{ scale: 0.96 }}
+                        className={`whitespace-nowrap rounded-full border px-4 py-2 text-[12px] font-semibold ${
+                          locationFilter === location
+                            ? "border-[#0d0f13] bg-[#0d0f13] text-white"
+                            : "border-[#e7e0d6] bg-white text-[#20232b]"
+                        }`}
+                      >
+                        {location}
                       </motion.button>
                     ))}
                   </MotionRevealItem>
@@ -462,6 +496,7 @@ export default function CreatorsPage() {
                   onClick={() => {
                     setFilterType("")
                     setCategoryFilter("")
+                    setLocationFilter("")
                   }}
                 >
                   Reset Filters
@@ -546,10 +581,20 @@ export default function CreatorsPage() {
                       Videographers
                     </Button>
                     <SelectServiceButtons
+                      label="Category"
                       services={CREATOR_SPECIALIZATION_OPTIONS}
                       selectedService={categoryFilter}
                       onSelectService={(category) => {
                         setCategoryFilter(category)
+                        setMobileFiltersOpen(false)
+                      }}
+                    />
+                    <SelectServiceButtons
+                      label="Location"
+                      services={LOCATION_OPTIONS}
+                      selectedService={locationFilter}
+                      onSelectService={(location) => {
+                        setLocationFilter(location)
                         setMobileFiltersOpen(false)
                       }}
                     />
@@ -672,6 +717,36 @@ export default function CreatorsPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setCategoryFilter("")}
+                  className="h-10 rounded-full text-muted-foreground hover:text-foreground"
+                >
+                  <X className="mr-1 h-3.5 w-3.5" />
+                  Clear
+                </Button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-foreground">Location:</span>
+              <div className="relative">
+                <select
+                  value={locationFilter}
+                  onChange={(event) => setLocationFilter(event.target.value)}
+                  className="h-10 appearance-none rounded-full border border-primary/20 bg-background pl-4 pr-9 text-sm text-foreground transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="">All locations</option>
+                  {LOCATION_OPTIONS.map((location) => (
+                    <option key={location} value={location}>
+                      {location}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
+              {locationFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setLocationFilter("")}
                   className="h-10 rounded-full text-muted-foreground hover:text-foreground"
                 >
                   <X className="mr-1 h-3.5 w-3.5" />
@@ -842,6 +917,7 @@ export default function CreatorsPage() {
               onClick={() => {
                 setFilterType("")
                 setCategoryFilter("")
+                setLocationFilter("")
               }}
             >
               Clear Filters
@@ -868,10 +944,12 @@ export default function CreatorsPage() {
 }
 
 function SelectServiceButtons({
+  label,
   services,
   selectedService,
   onSelectService,
 }: {
+  label: string
   services: string[]
   selectedService: string
   onSelectService: (service: string) => void
@@ -879,7 +957,7 @@ function SelectServiceButtons({
   if (!services.length) return null
   return (
     <div className="mt-1 space-y-2">
-      <p className="px-1 text-[12px] font-semibold text-[#555d68]">Category</p>
+      <p className="px-1 text-[12px] font-semibold text-[#555d68]">{label}</p>
       {services.map((service) => (
         <Button
           key={service}
