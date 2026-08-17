@@ -1,0 +1,17 @@
+# Paystack calls this directly with its own HMAC signature (x-paystack-signature),
+# never a Supabase JWT/anon key - must skip platform-level JWT verification or
+# every webhook delivery gets rejected before our signature check even runs.
+[functions.paystack-webhook]
+verify_jwt = false
+
+# Called from the frontend via supabase.functions.invoke(), which attaches a
+# valid JWT (anon key, or the signed-in user's token) automatically - default
+# verify_jwt = true is correct for these.
+[functions.paystack-initialize]
+verify_jwt = true
+
+[functions.paystack-subscribe]
+verify_jwt = true
+
+[functions.paystack-verify]
+verify_jwt = true
