@@ -647,6 +647,8 @@ export default function DashboardPage() {
 
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error" | "unsaved">("idle")
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null)
 
   const initialProfileRef = useRef<UserProfile | null>(null)
   const initialStudioStoreSettingsRef = useRef<StudioStoreDashboardSettings>(DEFAULT_STUDIO_STORE_SETTINGS)
@@ -1139,18 +1141,36 @@ export default function DashboardPage() {
     handleStudioStoreSettingChange("package_items", nextPackages.length ? nextPackages : DEFAULT_STUDIO_STORE_PACKAGES)
   }
 
-  const handleImageUpload = (file: File, field: "profile_image_url" | "portfolio_images") => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const base64 = e.target?.result as string
-      if (field === "profile_image_url") {
-        handleInputChange("profile_image_url", base64)
-      } else {
-        const updatedImages = [...profileData.portfolio_images, base64]
-        handleInputChange("portfolio_images", updatedImages)
-      }
+  const handleImageUpload = async (file: File, field: "profile_image_url" | "portfolio_images") => {
+    if (field !== "profile_image_url") {
+      // Dead path - no UI element calls handleImageUpload with "portfolio_images".
+      // Real portfolio uploads go through the Portfolio tab's own R2-backed flow.
+      return
     }
-    reader.readAsDataURL(file)
+
+    setAvatarUploadError(null)
+    setAvatarUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/profile/avatar", {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.url) {
+        throw new Error(result?.error || "Failed to upload profile picture")
+      }
+
+      handleInputChange("profile_image_url", result.url)
+    } catch (error: any) {
+      setAvatarUploadError(error?.message || "Failed to upload profile picture")
+    } finally {
+      setAvatarUploading(false)
+    }
   }
 
   const handleStudioPackageImageUpload = (index: number, file: File) => {
@@ -1539,19 +1559,27 @@ export default function DashboardPage() {
                           user?.email?.charAt(0)?.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
+                    {avatarUploading && (
+                      <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+                        <Loader2 className="h-6 w-6 animate-spin text-white" />
+                      </div>
+                    )}
                     <label className="absolute bottom-0 right-0 p-1 bg-red-500 rounded-full cursor-pointer hover:bg-red-600">
                       <Camera className="h-4 w-4 text-white" />
                       <input
                         type="file"
                         className="hidden"
                         accept="image/*"
+                        disabled={avatarUploading}
                         onChange={(e) => {
                           const file = e.target.files?.[0]
                           if (file) handleImageUpload(file, "profile_image_url")
+                          e.target.value = ""
                         }}
                       />
                     </label>
                   </div>
+                  {avatarUploadError && <p className="mt-2 text-sm text-red-600">{avatarUploadError}</p>}
                   <h2 className="mt-4 font-semibold text-gray-900">
                     {profileData.display_name || profileData.full_name || "Your Name"}
                   </h2>
