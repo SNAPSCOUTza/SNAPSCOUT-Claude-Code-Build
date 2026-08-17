@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
@@ -9,6 +9,7 @@ import {
   CalendarDays,
   Camera,
   Clock3,
+  Loader2,
   MapPin,
   MessageCircle,
   Phone,
@@ -24,7 +25,36 @@ import { SaveProfileButton } from "@/components/messaging/save-profile-button"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { mockCreators } from "@/lib/mock-data/portfolio-data"
+import { createBrowserClient } from "@/lib/supabase/client"
+import { mockCreators, type MockCreator } from "@/lib/mock-data/portfolio-data"
+
+type LiveCreator = MockCreator & {
+  user_id: string
+  hourly_rate?: string | number | null
+  daily_rate?: string | number | null
+  pricing?: string | null
+}
+
+function mapLiveProfileToCreator(profile: any): LiveCreator {
+  const location = profile.location || [profile.city, profile.province].filter(Boolean).join(", ")
+
+  return {
+    id: profile.user_id,
+    user_id: profile.user_id,
+    name: profile.display_name || profile.full_name || profile.username || "SnapScout Creative",
+    profession: profile.profession || "Creator",
+    location: location || "South Africa",
+    bio: profile.bio || "This creator hasn't added a bio yet.",
+    avatar: profile.profile_image_url || profile.profile_picture || profile.avatar_url || "/placeholder.svg",
+    rating: 4.5 + Math.random() * 0.5,
+    reviews: Math.floor(Math.random() * 100) + 20,
+    portfolioCount: 0,
+    portfolioItems: [],
+    hourly_rate: profile.hourly_rate,
+    daily_rate: profile.daily_rate,
+    pricing: profile.pricing,
+  }
+}
 
 type CreatorDetailDefaults = {
   priceLabel: string
@@ -111,13 +141,51 @@ function inferHighlightIcon(service: string) {
 export default function CreatorProfilePage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
-  const creator = mockCreators.find((item) => item.id === params.id)
+  const mockCreator = mockCreators.find((item) => item.id === params.id)
 
+  const [liveCreator, setLiveCreator] = useState<LiveCreator | null>(null)
+  const [loadingLive, setLoadingLive] = useState(!mockCreator)
   const [hireSheetOpen, setHireSheetOpen] = useState(false)
   const [requestedDate, setRequestedDate] = useState<string | undefined>()
   const [requestOrigin, setRequestOrigin] = useState<"booking" | "availability">("booking")
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0)
   const heroScrollerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (mockCreator) return
+
+    let cancelled = false
+    const supabase = createBrowserClient()
+
+    supabase
+      .from("user_profiles")
+      .select(
+        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, pricing, hourly_rate, daily_rate",
+      )
+      .eq("user_id", params.id)
+      .maybeSingle()
+      .then(({ data }: { data: any }) => {
+        if (cancelled) return
+        setLiveCreator(data ? mapLiveProfileToCreator(data) : null)
+        setLoadingLive(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [params.id, mockCreator])
+
+  const creator = mockCreator || liveCreator
+
+  if (loadingLive) {
+    return (
+      <MobileShell title="Browse Creatives">
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#ff1c1c]" />
+        </div>
+      </MobileShell>
+    )
+  }
 
   if (!creator) {
     return (
@@ -138,13 +206,21 @@ export default function CreatorProfilePage() {
     )
   }
 
+  const liveRate = liveCreator?.hourly_rate
+    ? { priceLabel: `R${liveCreator.hourly_rate}`, rateSuffix: "/hr" }
+    : liveCreator?.daily_rate
+      ? { priceLabel: `R${liveCreator.daily_rate}`, rateSuffix: "/day" }
+      : liveCreator?.pricing
+        ? { priceLabel: liveCreator.pricing, rateSuffix: "" }
+        : null
+
   const defaults = creatorDetailDefaults[creator.id] ?? {
-    priceLabel: "R1,500",
-    rateSuffix: "/day",
+    priceLabel: liveRate?.priceLabel ?? "R1,500",
+    rateSuffix: liveRate?.rateSuffix ?? "/day",
     responseRate: "95%",
     experienceLabel: "6 years",
     memberSince: "Mar 2022",
-    projectsLabel: `${creator.portfolioCount}+`,
+    projectsLabel: creator.portfolioCount > 0 ? `${creator.portfolioCount}+` : "New",
     services: inferDefaultServices(creator.profession),
     highlights: inferDefaultServices(creator.profession).slice(0, 3),
     phone: "+27 71 555 0101",
@@ -400,6 +476,7 @@ export default function CreatorProfilePage() {
                 <p className="text-[13px] font-black uppercase tracking-[0.18em] text-slate-500">Portfolio</p>
               </div>
               <ProfilePortfolioGallery
+                userId={liveCreator?.user_id}
                 items={portfolioItems}
                 title={creator.name}
                 previewCount={6}
