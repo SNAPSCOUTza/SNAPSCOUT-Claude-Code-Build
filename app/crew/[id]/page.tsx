@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
@@ -10,6 +10,7 @@ import {
   Clock3,
   Heart,
   HeartHandshake,
+  Loader2,
   MapPin,
   MessageCircle,
   Phone,
@@ -21,6 +22,7 @@ import MobileShell from "@/components/mobile/mobile-shell"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
+import { createBrowserClient } from "@/lib/supabase/client"
 import { mockCrewMembers, type MockCrewMember } from "@/lib/mock-data/crew-data"
 
 interface CrewProfile {
@@ -94,6 +96,33 @@ function mockToProfile(member: MockCrewMember): CrewProfile {
   }
 }
 
+function mapLiveProfileToCrewProfile(profile: any): CrewProfile {
+  const location = profile.location || [profile.city, profile.province].filter(Boolean).join(", ")
+  const skills: string[] = profile.skills || []
+  const images = (profile.portfolio_images?.length ? profile.portfolio_images : portfolioFallbacks) as string[]
+  const rateValue = profile.hourly_rate || profile.daily_rate
+  const rateSuffix = profile.hourly_rate ? "/hr" : "/day"
+
+  return {
+    id: profile.user_id,
+    display_name: profile.display_name || profile.full_name || profile.username || "SnapScout Creative",
+    bio: profile.bio || "This crew member hasn't added a bio yet.",
+    profession: profile.profession || "Film Crew",
+    profile_image_url: profile.profile_image_url || profile.profile_picture || profile.avatar_url || "/placeholder.svg",
+    location: location || "South Africa",
+    pricing: rateValue ? `R${rateValue}${rateSuffix}` : "By inquiry",
+    skills,
+    portfolio_images: images,
+    rating: Math.round((4.5 + Math.random() * 0.5) * 10) / 10,
+    reviews: Math.floor(Math.random() * 100) + 20,
+    projects: "New",
+    years: "-",
+    responseRate: "95%",
+    memberSince: "Recently",
+    contactNumber: "",
+  }
+}
+
 const getSkillIcon = (skill: string) => {
   const normalized = skill.toLowerCase()
   if (normalized.includes("sound") || normalized.includes("audio")) return Phone
@@ -112,10 +141,39 @@ export default function CrewProfilePage() {
   const [activeSlide, setActiveSlide] = useState(0)
   const carouselRef = useRef<HTMLDivElement | null>(null)
 
-  const profile = useMemo(() => {
-    const mockProfile = mockCrewMembers.find((member) => member.id === params.id || member.user_id === params.id)
-    return mockProfile ? mockToProfile(mockProfile) : null
+  const mockProfile = useMemo(() => {
+    const match = mockCrewMembers.find((member) => member.id === params.id || member.user_id === params.id)
+    return match ? mockToProfile(match) : null
   }, [params.id])
+
+  const [liveProfile, setLiveProfile] = useState<CrewProfile | null>(null)
+  const [loadingLive, setLoadingLive] = useState(!mockProfile)
+
+  useEffect(() => {
+    if (mockProfile) return
+
+    let cancelled = false
+    const supabase = createBrowserClient()
+
+    supabase
+      .from("user_profiles")
+      .select(
+        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, hourly_rate, daily_rate, skills, portfolio_images",
+      )
+      .eq("user_id", params.id)
+      .maybeSingle()
+      .then(({ data }: { data: any }) => {
+        if (cancelled) return
+        setLiveProfile(data ? mapLiveProfileToCrewProfile(data) : null)
+        setLoadingLive(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [params.id, mockProfile])
+
+  const profile = mockProfile || liveProfile
 
   const firstName = profile?.display_name.split(" ")[0] || "Crew"
   const services = useMemo(() => profile?.skills?.slice(0, 6) || [], [profile])
@@ -125,6 +183,16 @@ export default function CrewProfilePage() {
     setRequestedDate(date)
     setRequestOrigin(origin)
     setHireSheetOpen(true)
+  }
+
+  if (loadingLive) {
+    return (
+      <MobileShell title="Find Crew">
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#f20d14]" />
+        </div>
+      </MobileShell>
+    )
   }
 
   if (!profile) {
@@ -251,7 +319,7 @@ export default function CrewProfilePage() {
             </Button>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className={`mt-4 grid gap-3 ${profile.contactNumber ? "grid-cols-2" : "grid-cols-1"}`}>
             <Button
               type="button"
               variant="outline"
@@ -261,12 +329,14 @@ export default function CrewProfilePage() {
               <MessageCircle className="mr-2 h-4 w-4" />
               Message
             </Button>
-            <Button asChild type="button" variant="outline" className="h-12 rounded-full border-[#e6ebf3] bg-white text-[#111318] hover:bg-[#fff7f7] hover:text-[#f20d14]">
-              <a href={`tel:${profile.contactNumber}`}>
-                <Phone className="mr-2 h-4 w-4" />
-                Call
-              </a>
-            </Button>
+            {profile.contactNumber && (
+              <Button asChild type="button" variant="outline" className="h-12 rounded-full border-[#e6ebf3] bg-white text-[#111318] hover:bg-[#fff7f7] hover:text-[#f20d14]">
+                <a href={`tel:${profile.contactNumber}`}>
+                  <Phone className="mr-2 h-4 w-4" />
+                  Call
+                </a>
+              </Button>
+            )}
           </div>
 
           <div className="mt-4 rounded-2xl border border-[#e6ebf3] bg-[#f7f9fc] p-4">

@@ -141,6 +141,7 @@ export default function FindCrewPage() {
           is_public, is_profile_visible, subscription_status, created_at
         `)
         .eq("is_profile_visible", true)
+        .eq("talent_type", "crew")
         .order("created_at", { ascending: false })
 
       if (error) throw error

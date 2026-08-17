@@ -81,6 +81,7 @@ interface UserProfile {
   full_name: string
   display_name?: string
   account_type?: string
+  talent_type?: string
   email?: string
   bio: string
   profession: string
@@ -634,6 +635,7 @@ export default function DashboardPage() {
 
   const [profileData, setProfileData] = useState<UserProfile>({
     full_name: "",
+    talent_type: "creator",
     bio: "",
     profession: "",
     location: "",
@@ -870,6 +872,7 @@ export default function DashboardPage() {
           full_name: profile.full_name || profile.display_name || "",
           display_name: profile.display_name || profile.full_name || "",
           account_type: profile.account_type || profile.user_type || "creator",
+          talent_type: profile.talent_type || "creator",
           bio: profile.bio || "",
           profession: profile.profession || "",
           location: location || [loadedCity, loadedProvince].filter(Boolean).join(", "),
@@ -1210,6 +1213,7 @@ export default function DashboardPage() {
         display_name: profileData.display_name,
         account_type: profileData.account_type,
         user_type: profileData.account_type,
+        talent_type: profileData.account_type === "creator" ? profileData.talent_type || "creator" : "creator",
         email: user.email,
         bio: profileData.bio,
         profession: profileData.profession || "Creative",
@@ -1733,6 +1737,26 @@ export default function DashboardPage() {
                       </Select>
                       <p className="text-xs text-gray-500 mt-1">Determines how you appear in search results</p>
                     </div>
+                    {profileData.account_type === "creator" && (
+                      <div>
+                        <Label htmlFor="talent_type">I am a...</Label>
+                        <Select
+                          value={profileData.talent_type || "creator"}
+                          onValueChange={(value) => handleInputChange("talent_type", value)}
+                        >
+                          <SelectTrigger className="bg-white">
+                            <SelectValue placeholder="Select talent type" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white">
+                            <SelectItem value="creator">Creator (photographer, videographer, content creator)</SelectItem>
+                            <SelectItem value="crew">Film Crew (director, DOP, sound, gaffer, editor...)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Controls whether you show up on the Creators page or the Find Crew page - not both
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Basic Info */}
@@ -1919,33 +1943,38 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <ChipPicker
-                          label="Specializations"
-                          description="These power creator filters and the tags shown on your profile."
-                          options={CREATOR_SPECIALIZATION_OPTIONS}
-                          value={profileData.specializations}
-                          onChange={(value) => handleInputChange("specializations", value)}
-                        />
+                        {profileData.talent_type === "crew" ? (
+                          <>
+                            <ChipPicker
+                              label="Roles"
+                              description="Shown on your Find Crew profile and used for production searches."
+                              options={CREW_ROLE_OPTIONS}
+                              value={profileData.roles}
+                              onChange={(value) => handleInputChange("roles", value)}
+                            />
+                            <ChipPicker
+                              label="Departments"
+                              description="Helps production teams filter crew by department."
+                              options={DEPARTMENT_OPTIONS}
+                              value={profileData.departments}
+                              onChange={(value) => handleInputChange("departments", value)}
+                            />
+                          </>
+                        ) : (
+                          <ChipPicker
+                            label="Specializations"
+                            description="These power creator filters and the tags shown on your profile."
+                            options={CREATOR_SPECIALIZATION_OPTIONS}
+                            value={profileData.specializations}
+                            onChange={(value) => handleInputChange("specializations", value)}
+                          />
+                        )}
                         <ChipPicker
                           label="Skills"
                           description="Choose the skills clients should recognize immediately."
                           options={SKILL_OPTIONS}
                           value={profileData.skills}
                           onChange={(value) => handleInputChange("skills", value)}
-                        />
-                        <ChipPicker
-                          label="Roles"
-                          description="Useful for film crew and production searches."
-                          options={CREW_ROLE_OPTIONS}
-                          value={profileData.roles}
-                          onChange={(value) => handleInputChange("roles", value)}
-                        />
-                        <ChipPicker
-                          label="Departments"
-                          description="Helps production teams filter crew by department."
-                          options={DEPARTMENT_OPTIONS}
-                          value={profileData.departments}
-                          onChange={(value) => handleInputChange("departments", value)}
                         />
                       </div>
                     </div>

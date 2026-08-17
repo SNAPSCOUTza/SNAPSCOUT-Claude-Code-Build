@@ -127,6 +127,7 @@ export async function POST(request: Request) {
       username: emptyToNull(sanitizeSingleLineInput(profileData.username || profileData.display_name || profileData.full_name, 80)),
       account_type: emptyToNull(sanitizeSingleLineInput(profileData.account_type || profileData.user_type, 40)),
       user_type: emptyToNull(sanitizeSingleLineInput(profileData.account_type || profileData.user_type, 40)),
+      talent_type: profileData.talent_type === "crew" ? "crew" : "creator",
       email: sanitizeSingleLineInput(profileData.email || user.email, 320).toLowerCase(),
       bio: emptyToNull(sanitizeTextInput(profileData.bio, 2000)),
       profession: emptyToNull(sanitizeSingleLineInput(profileData.profession, 120)) || "Creative",
