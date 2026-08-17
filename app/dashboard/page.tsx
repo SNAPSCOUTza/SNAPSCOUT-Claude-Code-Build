@@ -64,6 +64,7 @@ import { SubscriptionCard } from "@/components/dashboard/subscription-card"
 import { PortfolioManager } from "@/components/dashboard/portfolio-manager"
 import { calculateProfileCompleteness } from "@/lib/profile-utils"
 import { resizeImageFile } from "@/lib/image-resize"
+import { CREATOR_SPECIALIZATION_OPTIONS } from "@/lib/creator-specializations"
 import { AvailabilityManager } from "@/components/availability/availability-manager"
 import type { AvailabilityOwnerType } from "@/lib/availability"
 import { IncomingAvailabilityRequests } from "@/components/crew/IncomingAvailabilityRequests"
@@ -217,32 +218,6 @@ const ACCOUNT_TYPE_OPTIONS = [
   { value: "scout", label: "Scout / Client" },
   { value: "studio", label: "Studio Owner" },
   { value: "store", label: "Equipment Store" },
-]
-
-const CREATOR_SPECIALIZATION_OPTIONS = [
-  "Portrait Photography",
-  "Wedding",
-  "Fashion Shoots",
-  "Product",
-  "Food",
-  "Events",
-  "Corporate",
-  "Lifestyle",
-  "Fine Art",
-  "Street",
-  "Real Estate",
-  "Nature",
-  "Family/Newborn",
-  "Boudoir",
-  "Architectural",
-  "Music Videos",
-  "Commercial/Ads",
-  "Documentary",
-  "Drone",
-  "YouTube",
-  "TikTok/Reels",
-  "Live Streaming",
-  "Brand Story",
 ]
 
 const CREW_ROLE_OPTIONS = [

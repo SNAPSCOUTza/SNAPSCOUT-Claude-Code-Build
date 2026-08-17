@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Search,
   MapPin,
@@ -14,6 +14,7 @@ import {
   Camera,
   Video,
   Sparkles,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,6 +29,7 @@ import { SaveProfileButton } from "@/components/messaging/save-profile-button"
 import { SaveToPoolButton } from "@/components/crew/SaveToPoolButton"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { mockCreators } from "@/lib/mock-data/creators-data"
+import { CREATOR_SPECIALIZATION_OPTIONS } from "@/lib/creator-specializations"
 import MobileShell from "@/components/mobile/mobile-shell"
 import { AvailabilityStatusBadge } from "@/components/availability/availability-status-badge"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
@@ -57,7 +59,7 @@ type CreatorHighlight = ReturnType<typeof inferCreatorHighlights>[number]
 export default function CreatorsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("")
-  const [serviceFilter, setServiceFilter] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("")
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [showMobileSearchFilters, setShowMobileSearchFilters] = useState(true)
   const [creators, setCreators] = useState<any[]>([])
@@ -101,7 +103,7 @@ export default function CreatorsPage() {
         .select(`
           id, user_id, full_name, display_name, username, email, profession, bio, location, city, province,
           profile_image_url, profile_picture, avatar_url, availability, availability_status, pricing,
-          hourly_rate, daily_rate, project_rate, skills, social_links, portfolio_images,
+          hourly_rate, daily_rate, project_rate, skills, specializations, social_links, portfolio_images,
           is_public, is_profile_visible, subscription_status, created_at
         `)
         .eq("is_profile_visible", true)
@@ -128,7 +130,7 @@ export default function CreatorsPage() {
           bio: profile.bio,
           availability_status: profile.availability_status || profile.availability || "Available",
           skills: profile.skills || [],
-          specializations: profile.skills || [],
+          specializations: profile.specializations?.length ? profile.specializations : profile.skills || [],
           is_public: profile.is_profile_visible ?? profile.is_public ?? true,
           rating: 4.5 + Math.random() * 0.5,
           reviews: Math.floor(Math.random() * 100) + 20,
@@ -160,23 +162,13 @@ export default function CreatorsPage() {
       creator.specializations?.some((spec: string) => spec.toLowerCase().includes(searchTerm.toLowerCase())) ||
       creator.city?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesFilter = !filterType || creator.profession?.toLowerCase() === filterType.toLowerCase()
-    const matchesService =
-      !serviceFilter ||
-      (creator.specializations || creator.skills || []).some((service: string) =>
-        service.toLowerCase() === serviceFilter.toLowerCase(),
+    const matchesCategory =
+      !categoryFilter ||
+      (creator.specializations || creator.skills || []).some(
+        (specialization: string) => specialization.toLowerCase() === categoryFilter.toLowerCase(),
       )
-    return matchesSearch && matchesFilter && matchesService
+    return matchesSearch && matchesFilter && matchesCategory
   })
-
-  const creatorServices = useMemo(() => {
-    const services = new Set<string>()
-    creators.forEach((creator) => {
-      ;(creator.specializations || creator.skills || []).forEach((service: string) => {
-        if (service) services.add(service)
-      })
-    })
-    return Array.from(services).slice(0, 12)
-  }, [creators])
 
   const getOwnerType = (profession?: string): AvailabilityOwnerType => {
     const value = profession?.toLowerCase() || ""
@@ -280,29 +272,29 @@ export default function CreatorsPage() {
                   <MotionRevealItem className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
                     <motion.button
                       type="button"
-                      onClick={() => setServiceFilter("")}
+                      onClick={() => setCategoryFilter("")}
                       whileTap={{ scale: 0.96 }}
                       className={`whitespace-nowrap rounded-full border px-4 py-2 text-[12px] font-semibold ${
-                        serviceFilter === ""
+                        categoryFilter === ""
                           ? "border-[#0d0f13] bg-[#0d0f13] text-white"
                           : "border-[#e7e0d6] bg-white text-[#20232b]"
                       }`}
                     >
-                      All services
+                      All categories
                     </motion.button>
-                    {creatorServices.map((service: string) => (
+                    {CREATOR_SPECIALIZATION_OPTIONS.map((category) => (
                       <motion.button
-                        key={service}
+                        key={category}
                         type="button"
-                        onClick={() => setServiceFilter(service)}
+                        onClick={() => setCategoryFilter(category)}
                         whileTap={{ scale: 0.96 }}
                         className={`whitespace-nowrap rounded-full border px-4 py-2 text-[12px] font-semibold ${
-                          serviceFilter === service
+                          categoryFilter === category
                             ? "border-[#0d0f13] bg-[#0d0f13] text-white"
                             : "border-[#e7e0d6] bg-white text-[#20232b]"
                         }`}
                       >
-                        {service}
+                        {category}
                       </motion.button>
                     ))}
                   </MotionRevealItem>
@@ -464,7 +456,14 @@ export default function CreatorsPage() {
             {filteredCreators.length === 0 && (
               <div className="py-8">
                 <SnapScoutStateArt variant="empty">
-                <Button variant="outline" className="mt-3 rounded-full border-[#e7e0d6] bg-white" onClick={() => setFilterType("")}>
+                <Button
+                  variant="outline"
+                  className="mt-3 rounded-full border-[#e7e0d6] bg-white"
+                  onClick={() => {
+                    setFilterType("")
+                    setCategoryFilter("")
+                  }}
+                >
                   Reset Filters
                 </Button>
                 </SnapScoutStateArt>
@@ -547,10 +546,10 @@ export default function CreatorsPage() {
                       Videographers
                     </Button>
                     <SelectServiceButtons
-                      services={creatorServices}
-                      selectedService={serviceFilter}
-                      onSelectService={(service) => {
-                        setServiceFilter(service)
+                      services={CREATOR_SPECIALIZATION_OPTIONS}
+                      selectedService={categoryFilter}
+                      onSelectService={(category) => {
+                        setCategoryFilter(category)
                         setMobileFiltersOpen(false)
                       }}
                     />
@@ -649,6 +648,36 @@ export default function CreatorsPage() {
               >
                 Videographers
               </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-foreground">Category:</span>
+              <div className="relative">
+                <select
+                  value={categoryFilter}
+                  onChange={(event) => setCategoryFilter(event.target.value)}
+                  className="h-10 appearance-none rounded-full border border-primary/20 bg-background pl-4 pr-9 text-sm text-foreground transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="">All categories</option>
+                  {CREATOR_SPECIALIZATION_OPTIONS.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
+              {categoryFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCategoryFilter("")}
+                  className="h-10 rounded-full text-muted-foreground hover:text-foreground"
+                >
+                  <X className="mr-1 h-3.5 w-3.5" />
+                  Clear
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -809,7 +838,14 @@ export default function CreatorsPage() {
         {filteredCreators.length === 0 && (
           <div className="py-10">
             <SnapScoutStateArt variant="empty">
-            <Button onClick={() => setFilterType("")}>Clear Filters</Button>
+            <Button
+              onClick={() => {
+                setFilterType("")
+                setCategoryFilter("")
+              }}
+            >
+              Clear Filters
+            </Button>
             </SnapScoutStateArt>
           </div>
         )}
@@ -843,8 +879,8 @@ function SelectServiceButtons({
   if (!services.length) return null
   return (
     <div className="mt-1 space-y-2">
-      <p className="px-1 text-[12px] font-semibold text-[#555d68]">Services</p>
-      {services.slice(0, 10).map((service) => (
+      <p className="px-1 text-[12px] font-semibold text-[#555d68]">Category</p>
+      {services.map((service) => (
         <Button
           key={service}
           variant={selectedService === service ? "default" : "outline"}
