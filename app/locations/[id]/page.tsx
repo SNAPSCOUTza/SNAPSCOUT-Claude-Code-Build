@@ -28,7 +28,6 @@ import MobileShell from "@/components/mobile/mobile-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { SaveProfileButton } from "@/components/messaging/save-profile-button"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import type { ShootLocation, ShootLocationPhoto, ShootLocationReview } from "@/lib/locations/types"
@@ -296,17 +295,21 @@ export default function LocationDetailPage() {
                 >
                   <Share2 className="h-5 w-5" />
                 </button>
-                <SaveProfileButton
-                  profileId={location.id}
-                  profileName={location.name}
-                  profileLocation={[location.city, location.province].filter(Boolean).join(", ")}
-                  profileImage={location.cover_image_url || undefined}
-                  profileHref={`/locations/${location.id}`}
-                  category="location"
-                  variant="ghost"
-                  size="icon"
-                  className="h-11 w-11 rounded-full bg-white/95 text-[#f20d14]"
-                />
+                <button
+                  type="button"
+                  onClick={toggleSave}
+                  disabled={savingLocation}
+                  aria-label={isSaved ? "Remove from saved locations" : "Save this location"}
+                  className={`grid h-11 w-11 place-items-center rounded-full bg-white/95 transition-colors ${
+                    isSaved ? "text-[#f20d14]" : "text-[#111318]"
+                  }`}
+                >
+                  {savingLocation ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Heart className={`h-5 w-5 ${isSaved ? "fill-current" : ""}`} />
+                  )}
+                </button>
               </div>
             </div>
 

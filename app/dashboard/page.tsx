@@ -625,6 +625,8 @@ export default function DashboardPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null)
+  const [uploadingPackageImageIndex, setUploadingPackageImageIndex] = useState<number | null>(null)
+  const [packageImageUploadError, setPackageImageUploadError] = useState<{ index: number; message: string } | null>(null)
 
   const initialProfileRef = useRef<UserProfile | null>(null)
   const initialStudioStoreSettingsRef = useRef<StudioStoreDashboardSettings>(DEFAULT_STUDIO_STORE_SETTINGS)
@@ -1151,13 +1153,30 @@ export default function DashboardPage() {
     }
   }
 
-  const handleStudioPackageImageUpload = (index: number, file: File) => {
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string
-      handleStudioPackageChange(index, "image", base64)
+  const handleStudioPackageImageUpload = async (index: number, file: File) => {
+    setPackageImageUploadError(null)
+    setUploadingPackageImageIndex(index)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/dashboard/studio-package-image", {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.url) {
+        throw new Error(result?.error || "Failed to upload room image")
+      }
+
+      handleStudioPackageChange(index, "image", result.url)
+    } catch (error: any) {
+      setPackageImageUploadError({ index, message: error?.message || "Failed to upload room image" })
+    } finally {
+      setUploadingPackageImageIndex(null)
     }
-    reader.readAsDataURL(file)
   }
 
   const handleSaveProfile = async () => {
@@ -2632,20 +2651,30 @@ export default function DashboardPage() {
                                   <ImageIcon className="h-8 w-8" />
                                 </div>
                               )}
+                              {uploadingPackageImageIndex === index && (
+                                <div className="absolute inset-0 grid place-items-center bg-white/70">
+                                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-red-500" />
+                                </div>
+                              )}
                             </div>
                             <label className="mt-3 flex h-11 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-sm font-semibold text-gray-700 transition hover:border-red-200 hover:text-red-600">
                               <Upload className="mr-2 h-4 w-4" />
-                              Upload room image
+                              {uploadingPackageImageIndex === index ? "Uploading..." : "Upload room image"}
                               <input
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
+                                disabled={uploadingPackageImageIndex === index}
                                 onChange={(event) => {
                                   const file = event.target.files?.[0]
                                   if (file) handleStudioPackageImageUpload(index, file)
+                                  event.target.value = ""
                                 }}
                               />
                             </label>
+                            {packageImageUploadError?.index === index && (
+                              <p className="mt-2 text-xs font-semibold text-red-600">{packageImageUploadError.message}</p>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

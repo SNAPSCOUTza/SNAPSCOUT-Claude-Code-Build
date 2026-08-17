@@ -102,11 +102,6 @@ export default function StudiosStoresPage() {
           }
         >
           <MotionRevealGroup className="rounded-[28px] border border-[#ece4da] bg-white p-4 shadow-[0_14px_34px_rgba(0,0,0,0.05)]">
-            <MotionRevealItem className="mb-3">
-              <Button asChild className="h-10 w-full rounded-full bg-[#f20d14] text-white hover:bg-[#d80a10]">
-                <Link href="/upload-location">Upload Shoot Location</Link>
-              </Button>
-            </MotionRevealItem>
             <MotionRevealItem className="flex items-center gap-2 rounded-2xl border border-[#e7e0d6] bg-white px-3 py-3">
               <Search className="h-4 w-4 text-[#73757d]" />
               <Input
@@ -322,11 +317,6 @@ export default function StudiosStoresPage() {
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Find professional studios and equipment rental stores for your next project
             </p>
-            <div className="mt-4">
-              <Button asChild className="rounded-full bg-red-600 text-white hover:bg-red-700">
-                <Link href="/upload-location">Upload Shoot Location</Link>
-              </Button>
-            </div>
           </div>
 
           {/* Search and Filters */}

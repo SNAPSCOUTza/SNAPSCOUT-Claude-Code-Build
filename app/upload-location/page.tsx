@@ -4,15 +4,17 @@ import { useEffect, useMemo, useState } from "react"
 import type { ChangeEvent, FormEvent } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { createBrowserClient } from "@/lib/supabase/client"
+import MobileShell from "@/components/mobile/mobile-shell"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Crown, Loader2, MapPin, Upload, ShieldCheck } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Crown, ImagePlus, Loader2, MapPin, ShieldCheck, Sparkles, X } from "lucide-react"
 import {
   BATHROOM_ACCESS_OPTIONS,
   FOOD_NEARBY_OPTIONS,
@@ -22,8 +24,37 @@ import {
   POWER_ACCESS_OPTIONS,
 } from "@/lib/locations/types"
 
+const fieldClass =
+  "mt-2 h-12 w-full rounded-2xl border-[#e6ebf3] bg-white px-4 text-[15px] text-[#111318] shadow-none focus-visible:ring-[#f20d14]"
+
+function FieldSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string
+  onChange: (value: string) => void
+  options: string[]
+}) {
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className={fieldClass}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((option) => (
+          <SelectItem key={option} value={option}>
+            {option}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
 export default function UploadLocationPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [checkingAccess, setCheckingAccess] = useState(true)
   const [canUpload, setCanUpload] = useState(false)
 
@@ -76,7 +107,7 @@ export default function UploadLocationPage() {
   }, [user])
 
   const photoPreviews = useMemo(
-    () => photos.map((file) => ({ name: file.name, src: URL.createObjectURL(file) })),
+    () => photos.map((file, index) => ({ index, name: file.name, src: URL.createObjectURL(file) })),
     [photos],
   )
 
@@ -84,7 +115,12 @@ export default function UploadLocationPage() {
     const fileList = event.target.files
     if (!fileList?.length) return
     setSaved(false)
-    setPhotos(Array.from(fileList))
+    setPhotos((current) => [...current, ...Array.from(fileList)])
+    event.target.value = ""
+  }
+
+  const removePhoto = (index: number) => {
+    setPhotos((current) => current.filter((_, i) => i !== index))
   }
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -133,351 +169,268 @@ export default function UploadLocationPage() {
 
   if (!user) {
     return (
-      <main className="min-h-[calc(100vh-110px)] bg-white py-8">
-        <div className="container mx-auto max-w-3xl px-4">
-          <Card className="border border-gray-200">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold">Upload Shoot Location</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-gray-600">Please sign in first to upload shoot locations.</p>
-              <Button asChild className="bg-red-600 hover:bg-red-700 text-white">
-                <Link href="/auth/login">Sign In</Link>
-              </Button>
-            </CardContent>
-          </Card>
+      <MobileShell title="Upload Location">
+        <div className="px-4 pb-10 pt-6 md:mx-auto md:max-w-xl md:px-8">
+          <div className="rounded-[32px] border border-[#eee6db] bg-white px-6 py-10 text-center shadow-[0_18px_50px_rgba(15,23,42,0.07)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#fff0f0] text-[#f20d14]">
+              <MapPin className="h-7 w-7" />
+            </div>
+            <h1 className="mt-4 text-[22px] font-black tracking-[-0.02em] text-[#111318]">Sign in to upload</h1>
+            <p className="mt-2 text-[14px] leading-relaxed text-[#6d7480]">
+              Sign in first so we can confirm your subscription before you publish a location.
+            </p>
+            <Button asChild className="mt-6 h-12 w-full rounded-full bg-[#f20d14] text-[15px] font-semibold text-white hover:bg-[#d80a10]">
+              <Link href="/auth/login">Sign In</Link>
+            </Button>
+          </div>
         </div>
-      </main>
+      </MobileShell>
     )
   }
 
   if (checkingAccess) {
     return (
-      <main className="flex min-h-[calc(100vh-110px)] items-center justify-center bg-white">
-        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
-      </main>
+      <MobileShell title="Upload Location">
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#f20d14]" />
+        </div>
+      </MobileShell>
     )
   }
 
   if (!canUpload) {
     return (
-      <main className="min-h-[calc(100vh-110px)] bg-white py-8">
-        <div className="container mx-auto max-w-3xl px-4">
-          <Card className="border border-gray-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-2xl font-bold">
-                <Crown className="h-6 w-6 text-red-600" />
-                Premium Feature
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-gray-600">Uploading shoot locations is available to active subscribers only.</p>
-              <div className="flex flex-wrap gap-2">
-                <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Creator Pro</Badge>
-                <Badge className="bg-violet-100 text-violet-700 hover:bg-violet-100">Studio / Store</Badge>
-              </div>
-              <Button asChild className="bg-red-600 hover:bg-red-700 text-white">
-                <Link href="/subscribe/plans">Upgrade Plan</Link>
-              </Button>
-            </CardContent>
-          </Card>
+      <MobileShell title="Upload Location">
+        <div className="px-4 pb-10 pt-6 md:mx-auto md:max-w-xl md:px-8">
+          <div className="rounded-[32px] border border-[#eee6db] bg-white px-6 py-10 text-center shadow-[0_18px_50px_rgba(15,23,42,0.07)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#fff0f0] text-[#f20d14]">
+              <Crown className="h-7 w-7" />
+            </div>
+            <h1 className="mt-4 text-[22px] font-black tracking-[-0.02em] text-[#111318]">Premium feature</h1>
+            <p className="mt-2 text-[14px] leading-relaxed text-[#6d7480]">
+              Uploading shoot locations is available to active Creator, Crew, Studio, or Store subscribers only.
+            </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <Badge className="rounded-full bg-[#fff0f0] px-3 py-1 text-[12px] font-semibold text-[#f20d14] hover:bg-[#fff0f0]">
+                Creator / Crew
+              </Badge>
+              <Badge className="rounded-full bg-[#f3eefc] px-3 py-1 text-[12px] font-semibold text-[#7c4fd1] hover:bg-[#f3eefc]">
+                Studio / Store
+              </Badge>
+            </div>
+            <Button asChild className="mt-6 h-12 w-full rounded-full bg-[#f20d14] text-[15px] font-semibold text-white hover:bg-[#d80a10]">
+              <Link href="/subscribe/plans">Upgrade Plan</Link>
+            </Button>
+          </div>
         </div>
-      </main>
+      </MobileShell>
     )
   }
 
   return (
-    <main className="min-h-[calc(100vh-110px)] bg-white py-8">
-      <div className="container mx-auto max-w-5xl px-4">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <MobileShell title="Upload Location">
+      <div className="px-4 pb-12 pt-6 md:mx-auto md:max-w-3xl md:px-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Upload Shoot Location</h1>
-            <p className="mt-1 text-gray-600">
-              Add discoverable locations for paid members with safety and production metadata.
-            </p>
+            <p className="text-[12px] font-black uppercase tracking-[0.2em] text-[#f20d14]">Share a Scout</p>
+            <h1 className="mt-2 text-[30px] font-black leading-[1.02] tracking-[-0.03em] text-[#111318] md:text-[38px]">
+              Upload Shoot Location
+            </h1>
           </div>
-          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-            <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+          <Badge className="rounded-full bg-emerald-50 px-3 py-1.5 text-[12px] font-semibold text-emerald-700 hover:bg-emerald-50">
+            <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
             Premium Only
           </Badge>
         </div>
 
-        <Card className="border border-gray-200">
-          <CardContent className="p-6">
-            <form onSubmit={onSubmit} className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="photos">Upload photos</Label>
-                <Input id="photos" type="file" accept="image/*" multiple onChange={onFilesSelected} />
-              </div>
+        <form onSubmit={onSubmit} className="mt-6 space-y-5">
+          <section className="rounded-[32px] border border-[#eee6db] bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.07)]">
+            <Label className="text-[13px] font-semibold text-[#111318]">Photos</Label>
+            <p className="mt-1 text-[13px] text-[#6d7480]">Add a few photos so scouts know what to expect.</p>
 
-              {photoPreviews.length > 0 && (
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:col-span-2">
-                  {photoPreviews.map((preview) => (
-                    <div key={preview.name} className="overflow-hidden rounded-xl border border-gray-200">
-                      <div className="relative aspect-[4/3] bg-gray-100">
-                        <Image src={preview.src} alt={preview.name} fill className="object-cover" unoptimized />
-                      </div>
-                    </div>
-                  ))}
+            <div className="mt-3 grid grid-cols-3 gap-2 md:grid-cols-4">
+              {photoPreviews.map((preview) => (
+                <div key={preview.index} className="group relative aspect-square overflow-hidden rounded-2xl bg-[#f3f5f8]">
+                  <Image src={preview.src} alt={preview.name} fill className="object-cover" unoptimized />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(preview.index)}
+                    aria-label="Remove photo"
+                    className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-              )}
+              ))}
+              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-[#e6ebf3] bg-[#f9fafc] text-[#9aa0ab] transition-colors hover:border-[#f20d14] hover:text-[#f20d14]">
+                <ImagePlus className="h-6 w-6" />
+                <span className="text-[11px] font-semibold">Add photos</span>
+                <input type="file" accept="image/*" multiple onChange={onFilesSelected} className="hidden" />
+              </label>
+            </div>
+          </section>
 
-              <div className="space-y-2">
-                <Label htmlFor="locationName">Location name</Label>
-                <Input
-                  id="locationName"
-                  value={locationName}
-                  onChange={(e) => setLocationName(e.target.value)}
-                  placeholder="Urban Loft Studio"
-                  required
-                />
+          <section className="space-y-4 rounded-[32px] border border-[#eee6db] bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.07)]">
+            <div>
+              <Label htmlFor="locationName" className="text-[13px] font-semibold text-[#111318]">
+                Location name
+              </Label>
+              <Input
+                id="locationName"
+                value={locationName}
+                onChange={(e) => setLocationName(e.target.value)}
+                placeholder="Urban Loft Studio"
+                required
+                className={fieldClass}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">Location type</Label>
+                <FieldSelect value={locationType} onChange={setLocationType} options={LOCATION_TYPE_OPTIONS.map((o) => o.value)} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="locationType">Location type</Label>
-                <select
-                  id="locationType"
-                  value={locationType}
-                  onChange={(e) => setLocationType(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  {LOCATION_TYPE_OPTIONS.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.value}
-                    </option>
-                  ))}
-                </select>
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">Province</Label>
+                <FieldSelect value={province} onChange={setProvince} options={[...LOCATION_PROVINCE_OPTIONS]} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="province">Province</Label>
-                <select
-                  id="province"
-                  value={province}
-                  onChange={(e) => setProvince(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  {LOCATION_PROVINCE_OPTIONS.map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">City</Label>
+                <FieldSelect value={city} onChange={setCity} options={[...LOCATION_CITY_OPTIONS]} />
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <select
-                  id="city"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  {LOCATION_CITY_OPTIONS.map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
+            <div>
+              <Label htmlFor="details" className="text-[13px] font-semibold text-[#111318]">
+                Location details
+              </Label>
+              <Input
+                id="details"
+                value={locationDetails}
+                onChange={(e) => setLocationDetails(e.target.value)}
+                placeholder="88 Sir Lowry Road, Woodstock, Cape Town"
+                className={fieldClass}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="description" className="text-[13px] font-semibold text-[#111318]">
+                Description
+              </Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe the space, lighting conditions, noise levels, and production suitability."
+                className="mt-2 min-h-28 rounded-2xl border-[#e6ebf3] bg-white px-4 py-3 text-[15px] text-[#111318] shadow-none focus-visible:ring-[#f20d14]"
+              />
+            </div>
+          </section>
+
+          <section className="rounded-[32px] border border-[#eee6db] bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.07)]">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-[#f20d14]" />
+              <p className="text-[13px] font-semibold uppercase tracking-[0.1em] text-[#6d7480]">Production notes</p>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">Safety rating</Label>
+                <FieldSelect value={safetyRating} onChange={setSafetyRating} options={["Low", "Medium", "High"]} />
               </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="details">Location details</Label>
-                <Input
-                  id="details"
-                  value={locationDetails}
-                  onChange={(e) => setLocationDetails(e.target.value)}
-                  placeholder="88 Sir Lowry Road, Woodstock, Cape Town"
-                />
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">Security level</Label>
+                <FieldSelect value={securityLevel} onChange={setSecurityLevel} options={["Basic", "Standard", "High Security"]} />
               </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe the space, lighting conditions, noise levels, and production suitability."
-                  className="min-h-28"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="safetyRating">Safety rating</Label>
-                <select
-                  id="safetyRating"
-                  value={safetyRating}
-                  onChange={(e) => setSafetyRating(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option>Low</option>
-                  <option>Medium</option>
-                  <option>High</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="securityLevel">Security level</Label>
-                <select
-                  id="securityLevel"
-                  value={securityLevel}
-                  onChange={(e) => setSecurityLevel(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option>Basic</option>
-                  <option>Standard</option>
-                  <option>High Security</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bestShootingTimes">Best shooting times</Label>
-                <select
-                  id="bestShootingTimes"
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">Best shooting times</Label>
+                <FieldSelect
                   value={bestShootingTimes}
-                  onChange={(e) => setBestShootingTimes(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option>Early Morning</option>
-                  <option>Morning</option>
-                  <option>Midday</option>
-                  <option>Golden Hour</option>
-                  <option>Night Shoots</option>
-                </select>
+                  onChange={setBestShootingTimes}
+                  options={["Early Morning", "Morning", "Midday", "Golden Hour", "Night Shoots"]}
+                />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="parkingAvailability">Parking availability</Label>
-                <select
-                  id="parkingAvailability"
-                  value={parkingAvailability}
-                  onChange={(e) => setParkingAvailability(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option>None</option>
-                  <option>Limited</option>
-                  <option>Ample</option>
-                </select>
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">Parking availability</Label>
+                <FieldSelect value={parkingAvailability} onChange={setParkingAvailability} options={["None", "Limited", "Ample"]} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="crowdLevels">Crowd levels</Label>
-                <select
-                  id="crowdLevels"
-                  value={crowdLevels}
-                  onChange={(e) => setCrowdLevels(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option>Quiet</option>
-                  <option>Moderate</option>
-                  <option>Busy</option>
-                </select>
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">Crowd levels</Label>
+                <FieldSelect value={crowdLevels} onChange={setCrowdLevels} options={["Quiet", "Moderate", "Busy"]} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="indoorOutdoor">Indoor / Outdoor</Label>
-                <select
-                  id="indoorOutdoor"
-                  value={indoorOutdoor}
-                  onChange={(e) => setIndoorOutdoor(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option>Indoor</option>
-                  <option>Outdoor</option>
-                  <option>Mixed</option>
-                </select>
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">Indoor / Outdoor</Label>
+                <FieldSelect value={indoorOutdoor} onChange={setIndoorOutdoor} options={["Indoor", "Outdoor", "Mixed"]} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="powerAccess">Power</Label>
-                <select
-                  id="powerAccess"
-                  value={powerAccess}
-                  onChange={(e) => setPowerAccess(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  {POWER_ACCESS_OPTIONS.map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">Power</Label>
+                <FieldSelect value={powerAccess} onChange={setPowerAccess} options={[...POWER_ACCESS_OPTIONS]} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bathroomAccess">Bathrooms</Label>
-                <select
-                  id="bathroomAccess"
-                  value={bathroomAccess}
-                  onChange={(e) => setBathroomAccess(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  {BATHROOM_ACCESS_OPTIONS.map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">Bathrooms</Label>
+                <FieldSelect value={bathroomAccess} onChange={setBathroomAccess} options={[...BATHROOM_ACCESS_OPTIONS]} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="foodNearby">Food</Label>
-                <select
-                  id="foodNearby"
-                  value={foodNearby}
-                  onChange={(e) => setFoodNearby(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  {FOOD_NEARBY_OPTIONS.map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">Food nearby</Label>
+                <FieldSelect value={foodNearby} onChange={setFoodNearby} options={[...FOOD_NEARBY_OPTIONS]} />
               </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="accessRules">Access rules</Label>
-                <select
-                  id="accessRules"
+              <div>
+                <Label className="text-[13px] font-semibold text-[#111318]">Access rules</Label>
+                <FieldSelect
                   value={accessRules}
-                  onChange={(e) => setAccessRules(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option>Open access during business hours</option>
-                  <option>Permit required after 18:00</option>
-                  <option>Pre-approval required for all shoots</option>
-                  <option>Escort required on site</option>
-                  <option>Members-only access</option>
-                </select>
+                  onChange={setAccessRules}
+                  options={[
+                    "Open access during business hours",
+                    "Permit required after 18:00",
+                    "Pre-approval required for all shoots",
+                    "Escort required on site",
+                    "Members-only access",
+                  ]}
+                />
               </div>
+            </div>
+          </section>
 
-              {saveError && (
-                <div className="md:col-span-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{saveError}</div>
-              )}
+          {saveError && (
+            <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-[14px] font-semibold text-red-700">
+              {saveError}
+            </div>
+          )}
 
-              <div className="md:col-span-2 flex flex-wrap items-center gap-3 pt-2">
-                <Button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700 text-white">
-                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                  {saving ? "Saving..." : "Publish Location"}
-                </Button>
-                {saved && (
-                  <p className="text-sm text-emerald-700">
-                    Location published.{" "}
-                    <Link href="/locations" className="font-semibold underline">
-                      View it on the Locations page
-                    </Link>
-                    .
-                  </p>
-                )}
+          <div className="space-y-3">
+            <Button
+              type="submit"
+              disabled={saving}
+              className="h-14 w-full rounded-full bg-[#f20d14] text-[16px] font-semibold text-white hover:bg-[#d80a10]"
+            >
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {saving ? "Publishing..." : "Publish Location"}
+            </Button>
+            {saved && (
+              <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-center text-[14px] font-semibold text-emerald-700">
+                Location published.{" "}
+                <Link href="/locations" className="underline underline-offset-2" onClick={() => router.refresh()}>
+                  View it on the Locations page
+                </Link>
+                .
               </div>
-            </form>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+        </form>
 
-        <Card className="border border-gray-200 mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <MapPin className="h-5 w-5 text-red-600" />
-              Discoverability Rules
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-gray-600">
-            <p>Uploaded shoot locations go live on the Locations page immediately for everyone to browse.</p>
-            <p>Only accounts with an active subscription can publish a new location listing.</p>
-          </CardContent>
-        </Card>
+        <div className="mt-5 rounded-[28px] bg-[#f7f9fc] p-5">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-[#f20d14]" />
+            <p className="text-[13px] font-semibold uppercase tracking-[0.1em] text-[#6d7480]">Discoverability rules</p>
+          </div>
+          <p className="mt-3 text-[13px] leading-relaxed text-[#6d7480]">
+            Uploaded shoot locations go live on the Locations page immediately for everyone to browse.
+          </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-[#6d7480]">
+            Only accounts with an active subscription can publish a new location listing.
+          </p>
+        </div>
       </div>
-    </main>
+    </MobileShell>
   )
 }

@@ -1,20 +1,14 @@
 import { NextResponse } from "next/server"
 import { getAdminContext, writeAdminActivity } from "@/lib/admin/server"
+import { isR2Configured } from "@/lib/r2/client"
+import { uploadToR2 } from "@/lib/r2/storage"
 
 export const dynamic = "force-dynamic"
-
-const ADMIN_ASSET_BUCKET = "admin-assets"
+export const runtime = "nodejs"
 
 function safeFileName(name: string) {
-  const extension = name.split(".").pop()?.toLowerCase() || "jpg"
-  const base = name
-    .replace(/\.[^/.]+$/, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 48)
-
-  return `${base || "snapscout-admin-asset"}-${Date.now()}.${extension}`
+  const extension = name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg"
+  return `${crypto.randomUUID()}.${extension.slice(0, 8)}`
 }
 
 export async function POST(request: Request) {
@@ -36,24 +30,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Please upload an image smaller than 8 MB." }, { status: 400 })
   }
 
-  const path = `${user.id}/${resource}/${field}/${safeFileName(file.name)}`
-  const { error: uploadError } = await supabase.storage.from(ADMIN_ASSET_BUCKET).upload(path, file, {
-    contentType: file.type,
-    upsert: false,
-  })
-
-  if (uploadError) {
-    return NextResponse.json({ error: uploadError.message }, { status: 500 })
+  if (!isR2Configured()) {
+    return NextResponse.json({ error: "Storage is not configured." }, { status: 500 })
   }
 
-  const { data } = supabase.storage.from(ADMIN_ASSET_BUCKET).getPublicUrl(path)
+  const path = `admin/${resource}/${field}/${safeFileName(file.name)}`
+  const buffer = Buffer.from(await file.arrayBuffer())
 
-  await writeAdminActivity(supabase, user.id, "uploaded admin image", "storage.objects", null, {
-    bucket: ADMIN_ASSET_BUCKET,
+  let url: string
+  try {
+    url = await uploadToR2(path, buffer, file.type)
+  } catch (uploadError: any) {
+    return NextResponse.json({ error: uploadError?.message || "Upload failed" }, { status: 500 })
+  }
+
+  await writeAdminActivity(supabase, user.id, "uploaded admin image", "r2.objects", null, {
     path,
     resource,
     field,
   })
 
-  return NextResponse.json({ url: data.publicUrl, path })
+  return NextResponse.json({ url, path })
 }

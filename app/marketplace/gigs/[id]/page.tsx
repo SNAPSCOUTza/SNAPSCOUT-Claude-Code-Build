@@ -10,12 +10,15 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MapPin, Clock, DollarSign, Users, ArrowLeft, CheckCircle, AlertCircle, Briefcase, Home, Send } from "lucide-react"
+import { MapPin, Clock, DollarSign, Users, ArrowLeft, CheckCircle, AlertCircle, Briefcase, Home, Send, Crown, X } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
 import MobileShell from "@/components/mobile/mobile-shell"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { sanitizeSingleLineInput, sanitizeTextInput } from "@/lib/utils/sanitize"
+
+type ApplyBlockReason = "signed_out" | "no_subscription" | "scout"
 
 // Mock gig for fallback
 const mockGig = {
@@ -79,6 +82,9 @@ export default function GigApplicationPage({ params }: { params: { id: string } 
   const [error, setError] = useState<string | null>(null)
   const [alreadyApplied, setAlreadyApplied] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [blockReason, setBlockReason] = useState<ApplyBlockReason | null>(null)
+  const [checkingEligibility, setCheckingEligibility] = useState(true)
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
 
   // Prevent duplicate submissions
   const submitAttemptedRef = useRef(false)
@@ -107,7 +113,30 @@ export default function GigApplicationPage({ params }: { params: { id: string } 
         } = await supabase.auth.getSession()
         if (session?.user) {
           setCurrentUserId(session.user.id)
+
+          const [{ data: profileRow }, { data: subscriptionRow }] = await Promise.all([
+            supabase.from("user_profiles").select("account_type, user_type").eq("user_id", session.user.id).maybeSingle(),
+            supabase
+              .from("user_subscriptions")
+              .select("id")
+              .eq("user_id", session.user.id)
+              .eq("status", "active")
+              .limit(1)
+              .maybeSingle(),
+          ])
+
+          const accountType = (profileRow?.account_type || profileRow?.user_type || "").toLowerCase()
+          if (accountType === "scout") {
+            setBlockReason("scout")
+          } else if (!subscriptionRow) {
+            setBlockReason("no_subscription")
+          } else {
+            setBlockReason(null)
+          }
+        } else {
+          setBlockReason("signed_out")
         }
+        setCheckingEligibility(false)
 
         // Check if using mock ID
         if (params.id.startsWith("mock-")) {
@@ -165,8 +194,9 @@ export default function GigApplicationPage({ params }: { params: { id: string } 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Prevent duplicate submissions
-    if (submitting || submitAttemptedRef.current || alreadyApplied) return
+    // Prevent duplicate submissions, and re-check eligibility server-side isn't
+    // available here, so this client-side guard mirrors the UI gating above.
+    if (submitting || submitAttemptedRef.current || alreadyApplied || blockReason) return
     submitAttemptedRef.current = true
     setSubmitting(true)
     setError(null)
@@ -520,6 +550,34 @@ export default function GigApplicationPage({ params }: { params: { id: string } 
                 )}
               </CardHeader>
               <CardContent className="p-5 pt-0">
+                {checkingEligibility ? (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-black/10 border-b-[#f20d14]" />
+                  </div>
+                ) : blockReason ? (
+                  <div className="rounded-[24px] bg-[#f7f7f4] p-6 text-center">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-[#f20d14]">
+                      <Crown className="h-7 w-7" />
+                    </div>
+                    <h3 className="mt-4 text-lg font-black text-black">
+                      {blockReason === "scout" ? "Scout accounts can't apply" : "Paid subscription required"}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-neutral-600">
+                      {blockReason === "signed_out"
+                        ? "Sign in with a paid subscription to apply for this gig."
+                        : blockReason === "scout"
+                          ? "Scout accounts can post gigs to hire talent, but can't apply for them yourself."
+                          : "Gigs can only be applied for by users with a paid subscription."}
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => setShowUpgradePrompt(true)}
+                      className="mt-5 h-[52px] w-full rounded-full bg-[#f20d14] text-[15px] font-bold text-white hover:bg-[#d9070d]"
+                    >
+                      Apply for this Gig
+                    </Button>
+                  </div>
+                ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {error && (
                     <div className="rounded-[22px] border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>
@@ -616,11 +674,74 @@ export default function GigApplicationPage({ params }: { params: { id: string } 
                     </Button>
                   </div>
                 </form>
+                )}
               </CardContent>
             </Card>
           </motion.div>
         </div>
       </div>
+
+      <Dialog open={showUpgradePrompt} onOpenChange={setShowUpgradePrompt}>
+        <DialogContent
+          unstyled
+          showCloseButton={false}
+          overlayClassName="fixed inset-0 z-[169] bg-black/35 backdrop-blur-[6px]"
+          className="fixed inset-x-0 bottom-0 top-auto z-[170] mx-0 w-full max-w-none gap-0 overflow-hidden rounded-b-none rounded-t-[30px] border-x-0 border-b-0 border-t border-[#e8dfd3] bg-white p-0 text-[#111318] shadow-[0_-24px_64px_rgba(15,23,42,0.18)] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        >
+          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-[#d7dce6]" />
+          <div className="flex items-center justify-between border-b border-[#e8dfd3] px-5 pb-4 pt-4">
+            <p className="text-[18px] font-semibold text-[#111318]">Apply for this gig</p>
+            <button
+              type="button"
+              onClick={() => setShowUpgradePrompt(false)}
+              aria-label="Close"
+              className="grid h-10 w-10 place-items-center rounded-full border border-[#e7e0d6] bg-white"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
+          </div>
+
+          <div className="px-5 py-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-[#f20d14]">
+              <Crown className="h-8 w-8" />
+            </div>
+            <h2 className="mt-4 text-xl font-black text-black">
+              {blockReason === "scout" ? "Scout accounts can't apply" : "Paid subscription required"}
+            </h2>
+            <p className="mt-3 text-[15px] leading-6 text-neutral-600">
+              {blockReason === "signed_out"
+                ? "Gigs can only be applied for by users with a paid subscription. Sign in (or create a free account) and subscribe to send an application."
+                : blockReason === "scout"
+                  ? "Scout accounts are free and built for posting gigs to hire talent. To apply for gigs yourself, you'll need a Creator or Crew account with an active subscription."
+                  : "Gigs can only be applied for by users with a paid subscription - Studio, Store, Creator, or Crew."}
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3">
+              {blockReason === "signed_out" ? (
+                <Button asChild className="h-[52px] rounded-full bg-[#f20d14] text-[15px] font-bold text-white hover:bg-[#d9070d]">
+                  <Link href="/auth/login">Sign In</Link>
+                </Button>
+              ) : blockReason === "no_subscription" ? (
+                <Button asChild className="h-[52px] rounded-full bg-[#f20d14] text-[15px] font-bold text-white hover:bg-[#d9070d]">
+                  <Link href="/subscribe/plans">Upgrade Plan</Link>
+                </Button>
+              ) : (
+                <Button asChild className="h-[52px] rounded-full bg-[#f20d14] text-[15px] font-bold text-white hover:bg-[#d9070d]">
+                  <Link href="/marketplace/post-gig">Post a Gig Instead</Link>
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowUpgradePrompt(false)}
+                className="h-[52px] rounded-full border-neutral-200 text-[15px] font-bold"
+              >
+                Not Now
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </MobileShell>
   )
 }

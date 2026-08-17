@@ -3,23 +3,28 @@
 import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { MapPin, Plus, Search, ShieldCheck, Star } from "lucide-react"
+import { Bookmark, Heart, Loader2, MapPin, Plus, Search, ShieldCheck, Star } from "lucide-react"
 import MobileShell from "@/components/mobile/mobile-shell"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SaveProfileButton } from "@/components/messaging/save-profile-button"
 import { SnapScoutStateArt } from "@/components/mobile/snapscout-state-art"
 import { MotionRevealGroup, MotionRevealItem } from "@/components/ui/motion-reveal"
 import { createBrowserClient } from "@/lib/supabase/client"
+import { useAuth } from "@/contexts/auth-context"
 import { LOCATION_TYPE_OPTIONS, type ShootLocation } from "@/lib/locations/types"
 
 export default function LocationsBrowsePage() {
+  const { user } = useAuth()
+  const router = useRouter()
   const [locations, setLocations] = useState<ShootLocation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [category, setCategory] = useState<string>("")
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const [savingId, setSavingId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -41,6 +46,55 @@ export default function LocationsBrowsePage() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!user) {
+      setSavedIds(new Set())
+      return
+    }
+
+    let cancelled = false
+    const supabase = createBrowserClient()
+
+    supabase
+      .from("shoot_location_saves")
+      .select("location_id")
+      .eq("user_id", user.id)
+      .then(({ data }: { data: { location_id: string }[] | null }) => {
+        if (cancelled) return
+        setSavedIds(new Set((data || []).map((row) => row.location_id)))
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  const toggleSave = async (locationId: string) => {
+    if (!user) {
+      router.push("/auth/login")
+      return
+    }
+
+    const isSaved = savedIds.has(locationId)
+    setSavingId(locationId)
+    try {
+      const response = await fetch(`/api/locations/${locationId}/save`, {
+        method: isSaved ? "DELETE" : "POST",
+      })
+      if (!response.ok) throw new Error("Could not update saved locations")
+      setSavedIds((current) => {
+        const next = new Set(current)
+        if (isSaved) next.delete(locationId)
+        else next.add(locationId)
+        return next
+      })
+    } catch {
+      window.alert("Could not update saved locations. Please try again.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
   const filteredLocations = useMemo(() => {
     return locations.filter((location) => {
       const matchesCategory = !category || location.location_type === category
@@ -54,18 +108,7 @@ export default function LocationsBrowsePage() {
   }, [locations, category, searchTerm])
 
   return (
-    <MobileShell
-      title="Locations"
-      rightAction={
-        <Link
-          href="/upload-location"
-          className="grid h-10 w-10 place-items-center rounded-full bg-[#f20d14] text-white shadow-[0_10px_24px_rgba(242,13,20,0.24)]"
-          aria-label="Add a location"
-        >
-          <Plus className="h-5 w-5" />
-        </Link>
-      }
-    >
+    <MobileShell title="Locations">
       <div className="px-4 pb-10 pt-6 md:mx-auto md:max-w-6xl md:px-8">
         <MotionRevealGroup className="space-y-5">
           <div>
@@ -116,6 +159,23 @@ export default function LocationsBrowsePage() {
               </button>
             ))}
           </MotionRevealItem>
+
+          <MotionRevealItem className="flex flex-wrap gap-2">
+            <Link
+              href="/upload-location"
+              className="inline-flex items-center gap-2 rounded-full bg-[#f20d14] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(242,13,20,0.24)] transition-colors hover:bg-[#d80a10]"
+            >
+              <Plus className="h-4 w-4" />
+              Add Location
+            </Link>
+            <Link
+              href="/locations/saved"
+              className="inline-flex items-center gap-2 rounded-full border border-[#e7e0d6] bg-white px-5 py-2.5 text-[13px] font-semibold text-[#111318] transition-colors hover:border-[#f20d14] hover:text-[#f20d14]"
+            >
+              <Bookmark className="h-4 w-4" />
+              My Saved Locations
+            </Link>
+          </MotionRevealItem>
         </MotionRevealGroup>
 
         {loading ? (
@@ -142,17 +202,27 @@ export default function LocationsBrowsePage() {
                       </Badge>
                     </div>
                     <div className="pointer-events-auto absolute right-3 top-3">
-                      <SaveProfileButton
-                        profileId={location.id}
-                        profileName={location.name}
-                        profileLocation={[location.city, location.province].filter(Boolean).join(", ")}
-                        profileImage={location.cover_image_url || undefined}
-                        profileHref={`/locations/${location.id}`}
-                        category="location"
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 rounded-full border border-[#e7e0d6] bg-white/95 text-[#111318]"
-                      />
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          toggleSave(location.id)
+                        }}
+                        disabled={savingId === location.id}
+                        aria-label={savedIds.has(location.id) ? `Remove ${location.name} from saved locations` : `Save ${location.name}`}
+                        className={`grid h-10 w-10 place-items-center rounded-full border bg-white/95 shadow-sm transition-colors ${
+                          savedIds.has(location.id)
+                            ? "border-[#f20d14] text-[#f20d14]"
+                            : "border-[#e7e0d6] text-[#111318] hover:text-[#f20d14]"
+                        }`}
+                      >
+                        {savingId === location.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Heart className={`h-4 w-4 ${savedIds.has(location.id) ? "fill-current" : ""}`} />
+                        )}
+                      </button>
                     </div>
                   </Link>
 
