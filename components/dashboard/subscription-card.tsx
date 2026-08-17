@@ -19,6 +19,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
+import { callPaystackFunction } from "@/lib/paystack-edge"
 
 interface Subscription {
   id: string
@@ -221,23 +222,23 @@ export function SubscriptionCard({ subscription, userEmail, onSubscriptionChange
         email: userEmail,
       })
 
-      const response = await fetch("/api/paystack/initialize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: userEmail,
-          amount: selectedPlan.priceInKobo,
-          plan: selectedPlan.planId,
-          plan_code: selectedPlan.planCode,
-          accountType: selectedPlan.id,
-          userId: currentUserId,
-          metadata: {
-            user_id: currentUserId,
-            plan_id: selectedPlan.planId,
-            plan_name: selectedPlan.name,
-          },
-          callback_url: `${window.location.origin}/dashboard?payment=success&plan=${selectedPlan.id}`,
-        }),
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession()
+
+      const response = await callPaystackFunction("paystack-initialize", currentSession?.access_token, {
+        email: userEmail,
+        amount: selectedPlan.priceInKobo,
+        plan: selectedPlan.planId,
+        plan_code: selectedPlan.planCode,
+        accountType: selectedPlan.id,
+        userId: currentUserId,
+        metadata: {
+          user_id: currentUserId,
+          plan_id: selectedPlan.planId,
+          plan_name: selectedPlan.name,
+        },
+        callback_url: `${window.location.origin}/dashboard?payment=success&plan=${selectedPlan.id}`,
       })
 
       const data = await response.json()

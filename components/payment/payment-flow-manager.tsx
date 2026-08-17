@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { callPaystackFunction } from "@/lib/paystack-edge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -137,18 +138,16 @@ export default function PaymentFlowManager({ userId, currentPlan, onPaymentSucce
         throw new Error("Invalid plan selected")
       }
 
-      const response = await fetch("/api/paystack/initialize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: userEmail,
-          accountType: planId === "creators-crew" ? "Creator" : "Studio",
-          userId: userId,
-          planId: planId,
-          amount: planDetails.amount,
-        }),
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      const response = await callPaystackFunction("paystack-initialize", session?.access_token, {
+        email: userEmail,
+        accountType: planId === "creators-crew" ? "Creator" : "Studio",
+        userId: userId,
+        planId: planId,
+        amount: planDetails.amount,
       })
 
       const result = await response.json()
@@ -189,13 +188,18 @@ export default function PaymentFlowManager({ userId, currentPlan, onPaymentSucce
 
   const verifyPayment = async (reference: string) => {
     try {
-      const response = await fetch("/api/paystack/verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ reference }),
-      })
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        setPaymentStatus("failed")
+        setError("Please log in to verify this payment.")
+        setPaymentLoading(false)
+        return
+      }
+
+      const response = await callPaystackFunction("paystack-verify", session.access_token, { reference })
 
       const result = await response.json()
 

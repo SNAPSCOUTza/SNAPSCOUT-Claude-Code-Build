@@ -9,6 +9,7 @@ import { CreditCard, CheckCircle, XCircle, Loader2 } from "lucide-react"
 import type { OnboardingData } from "@/types/account-types"
 import { supabase } from "@/lib/auth"
 import { SUBSCRIPTION_PLANS, getPlanById } from "@/lib/paystack"
+import { callPaystackFunction } from "@/lib/paystack-edge"
 
 interface PaymentStepProps {
   onNext: () => void
@@ -118,16 +119,14 @@ export default function PaymentStep({ onNext, onPrev, data, updateData }: Paymen
         return
       }
 
-      const response = await fetch("/api/paystack/subscribe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          planId: currentPlan.id,
-          email: user.email,
-          userId: user.id,
-        }),
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      const response = await callPaystackFunction("paystack-subscribe", session?.access_token, {
+        planId: currentPlan.id,
+        email: user.email,
+        userId: user.id,
       })
 
       const result = await response.json()
