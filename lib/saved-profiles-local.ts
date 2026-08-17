@@ -7,7 +7,7 @@ export type LocalSavedProfile = {
   location?: string
   imageUrl?: string
   href?: string
-  category?: "creator" | "crew" | "studio" | "store" | "profile"
+  category?: "creator" | "crew" | "studio" | "store" | "profile" | "location"
   savedAt: string
 }
 
@@ -21,6 +21,7 @@ export function inferProfileHref(profile: Pick<LocalSavedProfile, "id" | "href" 
   if (profile.category === "crew" || profile.id.startsWith("crew-")) return `/crew/${profile.id}`
   if (profile.category === "creator" || profile.id.startsWith("creator-")) return `/creators/${profile.id}`
   if (profile.category === "studio" || profile.category === "store") return `/studios-stores/${profile.id}`
+  if (profile.category === "location") return `/locations/${profile.id}`
   return `/profile/${profile.id}`
 }
 

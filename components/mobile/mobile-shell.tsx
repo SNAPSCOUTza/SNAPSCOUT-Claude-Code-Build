@@ -110,7 +110,7 @@ export default function MobileShell({
       { label: "Studios", link: "/studios-stores", ariaLabel: "Browse studios and stores", icon: Building2 },
       ...(isScout
         ? []
-        : [{ label: "Locations", link: "/upload-location", ariaLabel: "Upload or manage shoot locations", icon: MapPin }]),
+        : [{ label: "Locations", link: "/locations", ariaLabel: "Browse shoot locations", icon: MapPin }]),
       { label: "Gigs", link: gigsHref, ariaLabel: "Open SnapScout gigs", icon: Briefcase },
     ],
     [isScout, isAdmin, gigsHref],

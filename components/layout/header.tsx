@@ -73,7 +73,7 @@ export default function Header() {
         { name: "Find Crew", url: "/find-crew", icon: Users },
         { name: "Creators", url: "/creators", icon: Camera },
         { name: "Studios", url: "/studios-stores", icon: Building2 },
-        { name: "Locations", url: "/upload-location", icon: MapPin },
+        { name: "Locations", url: "/locations", icon: MapPin },
         { name: "Gigs", url: "/marketplace/available-gigs", icon: Briefcase },
       ]
     } else if (accountType === "content_creator") {
@@ -81,7 +81,7 @@ export default function Header() {
         { name: "Creators", url: "/creators", icon: Camera },
         { name: "Find Crew", url: "/find-crew", icon: Users },
         { name: "Studios", url: "/studios-stores", icon: Building2 },
-        { name: "Locations", url: "/upload-location", icon: MapPin },
+        { name: "Locations", url: "/locations", icon: MapPin },
         { name: "Gigs", url: "/marketplace/available-gigs", icon: Briefcase },
       ]
     } else if (accountType === "studio") {
@@ -89,14 +89,14 @@ export default function Header() {
         { name: "Find Crew", url: "/find-crew", icon: Users },
         { name: "Creators", url: "/creators", icon: Camera },
         { name: "Studios", url: "/studios-stores", icon: Building2 },
-        { name: "Locations", url: "/upload-location", icon: MapPin },
+        { name: "Locations", url: "/locations", icon: MapPin },
         { name: "Gigs", url: "/marketplace/available-gigs", icon: Briefcase },
       ]
     } else if (accountType === "store") {
       return [
         { name: "Creators", url: "/creators", icon: Camera },
         { name: "Studios", url: "/studios-stores", icon: Building2 },
-        { name: "Locations", url: "/upload-location", icon: MapPin },
+        { name: "Locations", url: "/locations", icon: MapPin },
         { name: "Gigs", url: "/marketplace/available-gigs", icon: Briefcase },
         { name: "Projects", url: "/marketplace/my-projects", icon: Search },
       ]
@@ -114,7 +114,7 @@ export default function Header() {
         { name: "Find Crew", url: "/find-crew", icon: Users },
         { name: "Creators", url: "/creators", icon: Camera },
         { name: "Studios", url: "/studios-stores", icon: Building2 },
-        { name: "Locations", url: "/upload-location", icon: MapPin },
+        { name: "Locations", url: "/locations", icon: MapPin },
         { name: "Gigs", url: "/marketplace/available-gigs", icon: Briefcase },
       ]
     }

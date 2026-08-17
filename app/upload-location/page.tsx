@@ -1,48 +1,29 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { ChangeEvent, FormEvent } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useAuth } from "@/contexts/auth-context"
+import { createBrowserClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Crown, MapPin, Upload, ShieldCheck } from "lucide-react"
+import { Crown, Loader2, MapPin, Upload, ShieldCheck } from "lucide-react"
 import {
-  canUploadShootLocations,
-  createUploadedShootLocationId,
-  saveUploadedShootLocation,
-} from "@/lib/mock-data/uploaded-shoot-locations"
-
-const PROVINCES = [
-  "Gauteng",
-  "Western Cape",
-  "KwaZulu-Natal",
-  "Eastern Cape",
-  "Free State",
-  "Limpopo",
-  "Mpumalanga",
-  "North West",
-  "Northern Cape",
-]
-
-const CITIES = [
-  "Johannesburg",
-  "Cape Town",
-  "Durban",
-  "Pretoria",
-  "Port Elizabeth",
-  "Bloemfontein",
-  "Nelspruit",
-  "Polokwane",
-]
+  LOCATION_CITY_OPTIONS,
+  LOCATION_PROVINCE_OPTIONS,
+  LOCATION_TYPE_OPTIONS,
+} from "@/lib/locations/types"
 
 export default function UploadLocationPage() {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
+  const [checkingAccess, setCheckingAccess] = useState(true)
+  const [canUpload, setCanUpload] = useState(false)
+
   const [photos, setPhotos] = useState<File[]>([])
   const [locationName, setLocationName] = useState("")
   const [locationDetails, setLocationDetails] = useState("")
@@ -57,9 +38,36 @@ export default function UploadLocationPage() {
   const [crowdLevels, setCrowdLevels] = useState("Moderate")
   const [indoorOutdoor, setIndoorOutdoor] = useState("Indoor")
   const [accessRules, setAccessRules] = useState("Permit required after 18:00")
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
-  const canUpload = Boolean(user) && canUploadShootLocations(profile)
+  useEffect(() => {
+    if (!user) {
+      setCheckingAccess(false)
+      return
+    }
+
+    let cancelled = false
+    const supabase = createBrowserClient()
+
+    supabase
+      .from("user_subscriptions")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }: { data: { id: string } | null }) => {
+        if (cancelled) return
+        setCanUpload(Boolean(data))
+        setCheckingAccess(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   const photoPreviews = useMemo(
     () => photos.map((file) => ({ name: file.name, src: URL.createObjectURL(file) })),
@@ -73,39 +81,45 @@ export default function UploadLocationPage() {
     setPhotos(Array.from(fileList))
   }
 
-  const fileToDataUrl = (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(String(reader.result || ""))
-      reader.onerror = () => reject(new Error("Could not read image file"))
-      reader.readAsDataURL(file)
-    })
-
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const photoData = await Promise.all(photos.map((file) => fileToDataUrl(file)))
+    setSaving(true)
+    setSaveError(null)
 
-    saveUploadedShootLocation({
-      id: createUploadedShootLocationId(),
-      createdAt: new Date().toISOString(),
-      createdBy: user?.id || "unknown-user",
-      name: locationName,
-      details: locationDetails,
-      description,
-      locationType,
-      city,
-      province,
-      safetyRating,
-      securityLevel,
-      bestShootingTimes,
-      parkingAvailability,
-      crowdLevels,
-      indoorOutdoor,
-      accessRules,
-      photos: photoData,
-    })
+    try {
+      const formData = new FormData()
+      formData.append("name", locationName)
+      formData.append("address", locationDetails)
+      formData.append("description", description)
+      formData.append("location_type", locationType)
+      formData.append("city", city)
+      formData.append("province", province)
+      formData.append("safety_rating", safetyRating)
+      formData.append("security_level", securityLevel)
+      formData.append("best_shooting_times", bestShootingTimes)
+      formData.append("parking_availability", parkingAvailability)
+      formData.append("crowd_levels", crowdLevels)
+      formData.append("indoor_outdoor", indoorOutdoor)
+      formData.append("access_rules", accessRules)
+      photos.forEach((file) => formData.append("photos", file))
 
-    setSaved(true)
+      const response = await fetch("/api/locations", { method: "POST", body: formData })
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not save this location")
+      }
+
+      setSaved(true)
+      setPhotos([])
+      setLocationName("")
+      setLocationDetails("")
+      setDescription("")
+    } catch (error: any) {
+      setSaveError(error?.message || "Could not save this location")
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (!user) {
@@ -128,6 +142,14 @@ export default function UploadLocationPage() {
     )
   }
 
+  if (checkingAccess) {
+    return (
+      <main className="flex min-h-[calc(100vh-110px)] items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+      </main>
+    )
+  }
+
   if (!canUpload) {
     return (
       <main className="min-h-[calc(100vh-110px)] bg-white py-8">
@@ -140,9 +162,7 @@ export default function UploadLocationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-gray-600">
-                Upload Shoot Location is currently available to paid accounts only (mock gating enabled).
-              </p>
+              <p className="text-gray-600">Uploading shoot locations is available to active subscribers only.</p>
               <div className="flex flex-wrap gap-2">
                 <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Creator Pro</Badge>
                 <Badge className="bg-violet-100 text-violet-700 hover:bg-violet-100">Studio / Store</Badge>
@@ -212,12 +232,11 @@ export default function UploadLocationPage() {
                   onChange={(e) => setLocationType(e.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <option>Studio</option>
-                  <option>Rooftop</option>
-                  <option>Warehouse</option>
-                  <option>Home / Residential</option>
-                  <option>Outdoor / Nature</option>
-                  <option>Street / Urban</option>
+                  {LOCATION_TYPE_OPTIONS.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.value}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -229,7 +248,7 @@ export default function UploadLocationPage() {
                   onChange={(e) => setProvince(e.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  {PROVINCES.map((item) => (
+                  {LOCATION_PROVINCE_OPTIONS.map((item) => (
                     <option key={item}>{item}</option>
                   ))}
                 </select>
@@ -243,7 +262,7 @@ export default function UploadLocationPage() {
                   onChange={(e) => setCity(e.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  {CITIES.map((item) => (
+                  {LOCATION_CITY_OPTIONS.map((item) => (
                     <option key={item}>{item}</option>
                   ))}
                 </select>
@@ -372,14 +391,22 @@ export default function UploadLocationPage() {
                 </select>
               </div>
 
+              {saveError && (
+                <div className="md:col-span-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{saveError}</div>
+              )}
+
               <div className="md:col-span-2 flex flex-wrap items-center gap-3 pt-2">
-                <Button type="submit" className="bg-red-600 hover:bg-red-700 text-white">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Save Location (Mock)
+                <Button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700 text-white">
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                  {saving ? "Saving..." : "Publish Location"}
                 </Button>
                 {saved && (
                   <p className="text-sm text-emerald-700">
-                    Location saved in mock mode and added to discoverable listings for paid subscribers.
+                    Location published.{" "}
+                    <Link href="/locations" className="font-semibold underline">
+                      View it on the Locations page
+                    </Link>
+                    .
                   </p>
                 )}
               </div>
@@ -391,15 +418,12 @@ export default function UploadLocationPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <MapPin className="h-5 w-5 text-red-600" />
-              Discoverability Rules (Preview)
+              Discoverability Rules
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-gray-600">
-            <p>Uploaded shoot locations are currently preview-gated to paid subscribers only.</p>
-            <p>
-              This is mock gating for now. We can connect this to real subscription checks and listing publish states in
-              Supabase when you want.
-            </p>
+            <p>Uploaded shoot locations go live on the Locations page immediately for everyone to browse.</p>
+            <p>Only accounts with an active subscription can publish a new location listing.</p>
           </CardContent>
         </Card>
       </div>
