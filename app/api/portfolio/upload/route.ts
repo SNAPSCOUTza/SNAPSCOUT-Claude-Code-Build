@@ -6,14 +6,6 @@ import { deleteFromR2, uploadToR2 } from "@/lib/r2/storage"
 
 export const runtime = "nodejs"
 
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: "10mb",
-    },
-  },
-}
-
 function safeFileName(name: string) {
   const extension = name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg"
   return `${crypto.randomUUID()}.${extension.slice(0, 8)}`
