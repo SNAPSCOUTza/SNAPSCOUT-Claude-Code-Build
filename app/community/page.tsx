@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { AnimatePresence, motion } from "framer-motion"
-import { ArrowLeft, Bookmark, CalendarDays, Heart, Home, Lock, MapPin, ShieldCheck, Sparkles, Star, Users, X } from "lucide-react"
+import { motion } from "framer-motion"
+import { ArrowLeft, Bookmark, CalendarDays, Heart, Home, MapPin, ShieldCheck, Sparkles, Star, Users, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -32,7 +32,6 @@ export default function CommunityPage() {
   const { profile } = useAuth()
   const [posts, setPosts] = useState<CommunityPost[]>(mockCommunityPosts)
   const [category, setCategory] = useState<(typeof communityCategories)[number]>("All")
-  const [expandedPreviewId, setExpandedPreviewId] = useState<string | null>(null)
   const [openPost, setOpenPost] = useState<CommunityPost | null>(null)
   const [loading, setLoading] = useState(true)
   const [bookmarked, setBookmarked] = useState<string[]>([])
@@ -46,13 +45,27 @@ export default function CommunityPage() {
       try {
         const supabase = createBrowserClient()
         const { data, error } = await supabase
-          .from("community_posts")
-          .select("id, slug, title, headline, body, category, cover_image_url, published_at, access_level, status")
+          .from("articles")
+          .select("id, slug, title, excerpt, body, category, cover_image_url, published_at, created_at, status")
           .eq("status", "published")
-          .order("published_at", { ascending: false })
+          .order("created_at", { ascending: false })
 
         if (error) throw error
-        if (data?.length) setPosts(data as CommunityPost[])
+        if (data?.length) {
+          setPosts(
+            data.map((article: Record<string, any>) => ({
+              id: article.id,
+              slug: article.slug,
+              title: article.title,
+              excerpt: article.excerpt,
+              body: article.body,
+              category: article.category,
+              cover_image_url: article.cover_image_url,
+              published_at: article.published_at || article.created_at,
+              status: article.status,
+            })) as CommunityPost[],
+          )
+        }
       } catch {
         setPosts(mockCommunityPosts)
       } finally {
@@ -69,11 +82,6 @@ export default function CommunityPage() {
   }, [category, posts])
 
   const handleOpenPost = (post: CommunityPost) => {
-    const locked = post.access_level === "subscribers" && !isSubscriber
-    if (locked) {
-      setExpandedPreviewId((current) => (current === post.id ? null : post.id))
-      return
-    }
     setOpenPost(post)
   }
 
@@ -141,63 +149,31 @@ export default function CommunityPage() {
             </div>
           ) : (
             <MotionRevealGroup className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
-              {filteredPosts.map((post) => {
-                const locked = post.access_level === "subscribers" && !isSubscriber
-                const expanded = expandedPreviewId === post.id
-
-                return (
-                  <motion.article key={post.id} layout variants={revealItem}>
-                    <Card className="overflow-hidden rounded-2xl border-border bg-card">
-                      <button type="button" onClick={() => handleOpenPost(post)} className="block w-full text-left">
-                        <div className="relative aspect-[4/3] overflow-hidden">
-                          <Image src={post.cover_image_url || "/placeholder.svg"} alt={post.title} fill className="object-cover" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent" />
-                          {locked && (
-                            <div className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-background/85 text-foreground backdrop-blur">
-                              <Lock className="h-4 w-4" />
-                            </div>
-                          )}
-                          {isNewPost(post) && (
-                            <span className="absolute left-3 top-3 inline-flex min-h-8 animate-pulse items-center rounded-full bg-primary px-3 text-[12px] font-semibold text-primary-foreground shadow-lg">
-                              New
-                            </span>
-                          )}
-                          <Badge className="absolute bottom-3 left-3 rounded-full">{post.category}</Badge>
-                        </div>
-                        <CardContent className="grid gap-2 p-4">
-                          <p className="font-mono text-[12px] text-muted-foreground">
-                            {new Date(post.published_at).toLocaleDateString("en-ZA", { day: "2-digit", month: "short" })}
-                          </p>
-                          <h2 className="line-clamp-2 text-[16px] font-bold leading-tight md:text-[24px]">{post.title}</h2>
-                          <p className="line-clamp-3 text-[14px] text-muted-foreground">{post.headline}</p>
-                        </CardContent>
-                      </button>
-
-                      <AnimatePresence>
-                        {expanded && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="border-t"
-                          >
-                            <div className="grid gap-3 p-4">
-                              <div className="relative overflow-hidden rounded-2xl bg-muted p-4">
-                                <p className="blur-[3px] text-[14px] leading-6 text-muted-foreground">{post.body}</p>
-                                <div className="absolute inset-0 grid place-items-center bg-background/35">
-                                  <Button asChild className="h-[52px] rounded-full px-6">
-                                    <Link href="/subscribe">Subscribe to read</Link>
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </motion.div>
+              {filteredPosts.map((post) => (
+                <motion.article key={post.id} layout variants={revealItem}>
+                  <Card className="overflow-hidden rounded-2xl border-border bg-card">
+                    <button type="button" onClick={() => handleOpenPost(post)} className="block w-full text-left">
+                      <div className="relative aspect-[4/3] overflow-hidden">
+                        <Image src={post.cover_image_url || "/placeholder.svg"} alt={post.title} fill className="object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent" />
+                        {isNewPost(post) && (
+                          <span className="absolute left-3 top-3 inline-flex min-h-8 animate-pulse items-center rounded-full bg-primary px-3 text-[12px] font-semibold text-primary-foreground shadow-lg">
+                            New
+                          </span>
                         )}
-                      </AnimatePresence>
-                    </Card>
-                  </motion.article>
-                )
-              })}
+                        <Badge className="absolute bottom-3 left-3 rounded-full">{post.category}</Badge>
+                      </div>
+                      <CardContent className="grid gap-2 p-4">
+                        <p className="font-mono text-[12px] text-muted-foreground">
+                          {new Date(post.published_at).toLocaleDateString("en-ZA", { day: "2-digit", month: "short" })}
+                        </p>
+                        <h2 className="line-clamp-2 text-[16px] font-bold leading-tight md:text-[24px]">{post.title}</h2>
+                        <p className="line-clamp-3 text-[14px] text-muted-foreground">{post.excerpt}</p>
+                      </CardContent>
+                    </button>
+                  </Card>
+                </motion.article>
+              ))}
             </MotionRevealGroup>
           )}
 
@@ -349,7 +325,7 @@ export default function CommunityPage() {
                 <DialogTitle className="text-[24px] font-bold leading-tight">{openPost.title}</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 px-5 pb-8">
-                <p className="text-[14px] text-muted-foreground">{openPost.headline}</p>
+                <p className="text-[14px] text-muted-foreground">{openPost.excerpt}</p>
                 <p className="text-[14px] leading-7">{openPost.body}</p>
                 {isSubscriber && (
                   <Button

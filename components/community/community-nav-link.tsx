@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Newspaper } from "lucide-react"
 import { motion } from "framer-motion"
-import { mockCommunityPosts } from "@/lib/community-data"
+import { createBrowserClient } from "@/lib/supabase/client"
 
 type CommunityNavLinkProps = {
   iconOnly?: boolean
@@ -12,14 +12,27 @@ type CommunityNavLinkProps = {
   onClick?: () => void
 }
 
-const newestPublishedAt = Math.max(...mockCommunityPosts.map((post) => new Date(post.published_at).getTime()))
-
 export function CommunityNavLink({ iconOnly = false, className = "", onClick }: CommunityNavLinkProps) {
   const [hasNewPosts, setHasNewPosts] = useState(false)
 
   useEffect(() => {
     const lastVisited = Number(window.localStorage.getItem("community_last_visited") || 0)
-    setHasNewPosts(newestPublishedAt > lastVisited)
+
+    async function checkForNewPosts() {
+      const supabase = createBrowserClient()
+      const { data } = await supabase
+        .from("articles")
+        .select("created_at")
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const newestPublishedAt = data?.created_at ? new Date(data.created_at).getTime() : 0
+      setHasNewPosts(newestPublishedAt > lastVisited)
+    }
+
+    checkForNewPosts()
   }, [])
 
   return (
