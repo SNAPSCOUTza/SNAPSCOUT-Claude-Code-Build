@@ -192,15 +192,15 @@ export default function Header() {
     <div className="hidden md:block">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-14 py-[7px] my-3">
+          <div className="flex items-center justify-between h-16 py-[7px] my-3">
             {/* Desktop Logo */}
-            <Link href="/" className="hidden md:flex items-center space-x-3 py-[13px] leading-9">
-              <div className="relative my-1.5 py-1.5 leading-10">
+            <Link href="/" className="hidden md:flex items-center space-x-1.5 py-[13px] leading-9">
+              <div className="relative leading-10">
                 <Image
                   src="/images/snapscout-studio-add-logo.png"
                   alt="SnapScout Logo"
-                  width={48}
-                  height={48}
+                  width={60}
+                  height={60}
                   className="rounded-full"
                 />
               </div>
