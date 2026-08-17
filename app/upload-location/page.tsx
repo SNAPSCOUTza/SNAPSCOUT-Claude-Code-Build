@@ -14,9 +14,12 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Crown, Loader2, MapPin, Upload, ShieldCheck } from "lucide-react"
 import {
+  BATHROOM_ACCESS_OPTIONS,
+  FOOD_NEARBY_OPTIONS,
   LOCATION_CITY_OPTIONS,
   LOCATION_PROVINCE_OPTIONS,
   LOCATION_TYPE_OPTIONS,
+  POWER_ACCESS_OPTIONS,
 } from "@/lib/locations/types"
 
 export default function UploadLocationPage() {
@@ -37,6 +40,9 @@ export default function UploadLocationPage() {
   const [parkingAvailability, setParkingAvailability] = useState("Limited")
   const [crowdLevels, setCrowdLevels] = useState("Moderate")
   const [indoorOutdoor, setIndoorOutdoor] = useState("Indoor")
+  const [powerAccess, setPowerAccess] = useState("Unknown")
+  const [bathroomAccess, setBathroomAccess] = useState("Unknown")
+  const [foodNearby, setFoodNearby] = useState("Unknown")
   const [accessRules, setAccessRules] = useState("Permit required after 18:00")
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -100,6 +106,9 @@ export default function UploadLocationPage() {
       formData.append("parking_availability", parkingAvailability)
       formData.append("crowd_levels", crowdLevels)
       formData.append("indoor_outdoor", indoorOutdoor)
+      formData.append("power_access", powerAccess)
+      formData.append("bathroom_access", bathroomAccess)
+      formData.append("food_nearby", foodNearby)
       formData.append("access_rules", accessRules)
       photos.forEach((file) => formData.append("photos", file))
 
@@ -372,6 +381,48 @@ export default function UploadLocationPage() {
                   <option>Indoor</option>
                   <option>Outdoor</option>
                   <option>Mixed</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="powerAccess">Power</Label>
+                <select
+                  id="powerAccess"
+                  value={powerAccess}
+                  onChange={(e) => setPowerAccess(e.target.value)}
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {POWER_ACCESS_OPTIONS.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bathroomAccess">Bathrooms</Label>
+                <select
+                  id="bathroomAccess"
+                  value={bathroomAccess}
+                  onChange={(e) => setBathroomAccess(e.target.value)}
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {BATHROOM_ACCESS_OPTIONS.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="foodNearby">Food</Label>
+                <select
+                  id="foodNearby"
+                  value={foodNearby}
+                  onChange={(e) => setFoodNearby(e.target.value)}
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {FOOD_NEARBY_OPTIONS.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
                 </select>
               </div>
 

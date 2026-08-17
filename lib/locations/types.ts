@@ -16,6 +16,9 @@ export type ShootLocation = {
   crowd_levels: string
   indoor_outdoor: string
   permit_required: boolean
+  power_access: string
+  bathroom_access: string
+  food_nearby: string
   access_rules: string | null
   status: "draft" | "pending_review" | "published" | "archived"
   rating: number
@@ -83,3 +86,7 @@ export const LOCATION_CITY_OPTIONS = [
   "Nelspruit",
   "Polokwane",
 ] as const
+
+export const POWER_ACCESS_OPTIONS = ["Unknown", "None", "Nearby", "On-site outlet"] as const
+export const BATHROOM_ACCESS_OPTIONS = ["Unknown", "None", "Nearby", "Available"] as const
+export const FOOD_NEARBY_OPTIONS = ["Unknown", "None nearby", "Walking distance", "On-site"] as const

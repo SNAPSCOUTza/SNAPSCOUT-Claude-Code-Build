@@ -6,10 +6,12 @@ import Image from "next/image"
 import Link from "next/link"
 import {
   ArrowLeft,
+  Bath,
   Camera,
   Car,
   Clock3,
   Flag,
+  Heart,
   Loader2,
   MapPin,
   MessageCircle,
@@ -19,6 +21,8 @@ import {
   Star,
   Sun,
   Users,
+  Utensils,
+  Zap,
 } from "lucide-react"
 import MobileShell from "@/components/mobile/mobile-shell"
 import { Badge } from "@/components/ui/badge"
@@ -59,6 +63,8 @@ export default function LocationDetailPage() {
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewBody, setReviewBody] = useState("")
   const [savingReview, setSavingReview] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+  const [savingLocation, setSavingLocation] = useState(false)
 
   const loadLocation = useCallback(async () => {
     const { data } = await supabase.from("shoot_locations").select("*").eq("id", params.id).maybeSingle()
@@ -120,6 +126,49 @@ export default function LocationDetailPage() {
     }
   }, [photos, reviews, supabase])
 
+  useEffect(() => {
+    if (!user) {
+      setIsSaved(false)
+      return
+    }
+
+    let cancelled = false
+    supabase
+      .from("shoot_location_saves")
+      .select("location_id")
+      .eq("location_id", params.id)
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }: { data: { location_id: string } | null }) => {
+        if (!cancelled) setIsSaved(Boolean(data))
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [user, params.id, supabase])
+
+  const toggleSave = async () => {
+    if (!user) {
+      router.push("/auth/login")
+      return
+    }
+
+    setSavingLocation(true)
+    try {
+      const response = await fetch(`/api/locations/${params.id}/save`, {
+        method: isSaved ? "DELETE" : "POST",
+      })
+      if (!response.ok) throw new Error("Could not update saved locations")
+      setIsSaved(!isSaved)
+      await loadLocation()
+    } catch {
+      window.alert("Could not update saved locations. Please try again.")
+    } finally {
+      setSavingLocation(false)
+    }
+  }
+
   const heroImages = location?.gallery_image_urls?.length
     ? location.gallery_image_urls
     : location?.cover_image_url
@@ -132,15 +181,6 @@ export default function LocationDetailPage() {
     if (!scroller) return
     const child = scroller.children[index] as HTMLElement | undefined
     child?.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
-  }
-
-  const handleBookLocation = () => {
-    if (!location) return
-    if (!user) {
-      router.push("/auth/login")
-      return
-    }
-    router.push(`/messages?recipient=${location.created_by}`)
   }
 
   const handleReport = async () => {
@@ -343,10 +383,16 @@ export default function LocationDetailPage() {
             <div className="mt-6 space-y-3">
               <Button
                 type="button"
-                onClick={handleBookLocation}
+                onClick={toggleSave}
+                disabled={savingLocation}
                 className="h-14 w-full rounded-full bg-[#f20d14] text-[17px] font-semibold text-white hover:bg-[#d80a10]"
               >
-                Book Location
+                {savingLocation ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Heart className={`mr-2 h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
+                )}
+                {isSaved ? "Saved" : "Save Location"}
               </Button>
               <Button
                 type="button"
@@ -472,6 +518,9 @@ export default function LocationDetailPage() {
             <InfoChip icon={Users} label="Crowd Levels" value={location.crowd_levels} />
             <InfoChip icon={Sun} label="Indoor / Outdoor" value={location.indoor_outdoor} />
             <InfoChip icon={Sparkles} label="Security" value={location.security_level} />
+            <InfoChip icon={Zap} label="Power" value={location.power_access} />
+            <InfoChip icon={Bath} label="Bathrooms" value={location.bathroom_access} />
+            <InfoChip icon={Utensils} label="Food" value={location.food_nearby} />
           </div>
           {location.access_rules && (
             <p className="mt-4 text-[13px] leading-relaxed text-[#6d7480]">{location.access_rules}</p>
