@@ -29,6 +29,7 @@ import MobileShell from "@/components/mobile/mobile-shell"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
+import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
 import { getStudioStoreById, type StudioStoreItem } from "@/lib/mock-data/studios-stores-data"
 import {
   STUDIO_STORE_DASHBOARD_PREVIEW_KEY,
@@ -185,18 +186,10 @@ export default function StudioStoreDetailPage() {
       "Other",
     ]),
   )
-  const galleryImages = item.gallery?.length
-    ? item.gallery
-    : [
-        item.image,
-        "/images/modern-studio.png",
-        "/images/studio-space.png",
-        "/images/creator-equipment.png",
-        "/images/studio-lighting.png",
-        "/images/warehouse-location.png",
-        "/images/camera-rental.png",
-        "/images/rooftop-location.png",
-      ]
+  // No fake stock-photo filler here - a listing with no real gallery photos
+  // just shows its single cover/avatar image instead of unrelated stock
+  // studio shots. Real uploaded work shows in the Portfolio section below.
+  const galleryImages = item.gallery?.length ? item.gallery : [item.image]
 
   const packageCards = (
     item.packages?.length
@@ -366,6 +359,19 @@ export default function StudioStoreDetailPage() {
           <div className="mt-4 rounded-2xl border border-[#e6ebf3] bg-white p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">About this space</p>
             <p className="mt-2 text-[14px] leading-relaxed text-[#2b3340]">{item.about || item.description}</p>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-[#e6ebf3] bg-white p-4">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Portfolio</p>
+            <div className="mt-3">
+              <ProfilePortfolioGallery
+                userId={String(item.id)}
+                items={(item.gallery || []).map((image, index) => ({ id: `${image}-${index}`, image_url: image }))}
+                title={item.name}
+                previewCount={6}
+                className="[&_h3]:hidden [&_.text-center]:hidden [&_.mt-3]:mt-0"
+              />
+            </div>
           </div>
 
           <div className="mt-4 rounded-2xl border border-[#e6ebf3] bg-white p-4">
