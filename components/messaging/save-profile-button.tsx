@@ -12,6 +12,9 @@ import {
   type LocalSavedProfile,
 } from "@/lib/saved-profiles-local"
 
+const isUuid = (value?: string) =>
+  Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
+
 interface SaveProfileButtonProps {
   profileId: string
   profileName: string
@@ -56,7 +59,7 @@ export function SaveProfileButton({
       } = await supabase.auth.getSession()
       if (session?.user) {
         setUserId(session.user.id)
-        checkIfSaved(session.user.id)
+        if (isUuid(profileId)) checkIfSaved(session.user.id)
       }
     }
     initAuth()
@@ -101,7 +104,7 @@ export function SaveProfileButton({
 
       setIsSaved(nextSaved)
 
-      if (!userId) return
+      if (!userId || !isUuid(profileId)) return
 
       if (!nextSaved) {
         const { error } = await supabase
