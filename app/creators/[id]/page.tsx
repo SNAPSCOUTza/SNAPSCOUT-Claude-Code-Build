@@ -45,7 +45,7 @@ function mapLiveProfileToCreator(profile: any): LiveCreator {
     profession: profile.profession || "Creator",
     location: location || "South Africa",
     bio: profile.bio || "This creator hasn't added a bio yet.",
-    avatar: profile.profile_image_url || profile.profile_picture || profile.avatar_url || "/placeholder.svg",
+    avatar: profile.cover_image_url || profile.profile_image_url || profile.profile_picture || profile.avatar_url || "/placeholder.svg",
     rating: 4.5 + Math.random() * 0.5,
     reviews: Math.floor(Math.random() * 100) + 20,
     portfolioCount: 0,
@@ -160,7 +160,7 @@ export default function CreatorProfilePage() {
     supabase
       .from("user_profiles")
       .select(
-        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, pricing, hourly_rate, daily_rate",
+        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, pricing, hourly_rate, daily_rate",
       )
       .eq("user_id", params.id)
       .maybeSingle()

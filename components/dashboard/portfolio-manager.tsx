@@ -14,6 +14,7 @@ import {
   Instagram,
   Loader2,
   RefreshCw,
+  Star,
   Trash2,
   Upload,
 } from "lucide-react"
@@ -217,6 +218,30 @@ export function PortfolioManager({
     } catch (error: any) {
       setUploadStatus("error")
       setMessage(error?.message || "Could not delete portfolio image.")
+    }
+  }
+
+  const handleSetCover = async (item: ProfilePortfolioItem) => {
+    if (!isUploadItem(item)) return
+    setUploadStatus("loading")
+    setMessage("")
+
+    try {
+      const response = await fetch(`/api/portfolio/upload/${encodeURIComponent(item.id)}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_cover: true }),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(payload.error || "Could not set cover image.")
+      setUploadStatus("success")
+      setMessage("Cover image updated. This is what clients see while browsing.")
+      await onRefresh()
+      await refreshPortfolio()
+    } catch (error: any) {
+      setUploadStatus("error")
+      setMessage(error?.message || "Could not set cover image.")
     }
   }
 
@@ -627,15 +652,34 @@ export function PortfolioManager({
                   className="group relative aspect-square overflow-hidden rounded-[22px] bg-[#f4f6f8]"
                 >
                   <Image src={getItemImage(item)} alt={item.title || item.caption || "Portfolio image"} fill className="object-cover transition duration-300 group-hover:scale-105" />
+                  {item.is_cover && (
+                    <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-[#f20d14] px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
+                      <Star className="h-3 w-3 fill-current" />
+                      Cover
+                    </span>
+                  )}
                   {isUploadItem(item) && (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(item)}
-                      className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-white/95 text-[#f20d14] opacity-0 shadow-sm transition group-hover:opacity-100"
-                      aria-label="Delete portfolio image"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="absolute right-2 top-2 flex gap-1.5 opacity-0 transition group-hover:opacity-100">
+                      {!item.is_cover && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetCover(item)}
+                          className="grid h-9 w-9 place-items-center rounded-full bg-white/95 text-[#101318] shadow-sm hover:text-[#f20d14]"
+                          aria-label="Set as cover image"
+                          title="Set as cover image"
+                        >
+                          <Star className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item)}
+                        className="grid h-9 w-9 place-items-center rounded-full bg-white/95 text-[#f20d14] shadow-sm"
+                        aria-label="Delete portfolio image"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   )}
                   {item.source === "instagram" && (
                     <span className="absolute left-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-white/95 text-[#f20d14] shadow-sm">

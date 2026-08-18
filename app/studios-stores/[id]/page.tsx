@@ -13,6 +13,7 @@ import {
   Coffee,
   Globe,
   Heart,
+  Loader2,
   MapPin,
   Package,
   Share2,
@@ -34,6 +35,8 @@ import {
   applyStudioStoreDashboardPreview,
 } from "@/lib/mock-data/studio-store-dashboard-preview"
 import { useAuth } from "@/contexts/auth-context"
+import { createBrowserClient } from "@/lib/supabase/client"
+import { STUDIO_STORE_PROFILE_COLUMNS, mapLiveProfileToStudioStoreItem } from "@/lib/studios-stores/live-data"
 import {
   findUploadedShootLocationById,
   hasMockPaidSubscription,
@@ -98,11 +101,51 @@ export default function StudioStoreDetailPage() {
     }
   }, [])
 
+  const [liveItem, setLiveItem] = useState<DetailStudioStore | null>(null)
+  const [loadingLive, setLoadingLive] = useState(!baseItem && !isUploadedLocationRoute)
+
+  useEffect(() => {
+    if (baseItem || isUploadedLocationRoute) {
+      setLoadingLive(false)
+      return
+    }
+
+    let cancelled = false
+    setLoadingLive(true)
+    const supabase = createBrowserClient()
+
+    supabase
+      .from("user_profiles")
+      .select(STUDIO_STORE_PROFILE_COLUMNS)
+      .eq("user_id", params.id)
+      .in("account_type", ["studio", "store"])
+      .maybeSingle()
+      .then(({ data }: { data: any }) => {
+        if (cancelled) return
+        setLiveItem(data ? (mapLiveProfileToStudioStoreItem(data) as DetailStudioStore) : null)
+        setLoadingLive(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [params.id, baseItem, isUploadedLocationRoute])
+
   const item = useMemo<DetailStudioStore | null>(() => {
-    if (!baseItem) return null
+    if (!baseItem) return liveItem
     if (baseItem.isUploadedLocation) return baseItem
     return applyStudioStoreDashboardPreview(baseItem as StudioStoreItem, dashboardPreviewSettings) as DetailStudioStore
-  }, [baseItem, dashboardPreviewSettings])
+  }, [baseItem, dashboardPreviewSettings, liveItem])
+
+  if (loadingLive) {
+    return (
+      <MobileShell title="Studio Details">
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#f20d14]" />
+        </div>
+      </MobileShell>
+    )
+  }
 
   if (isUploadedLocationRoute && !canViewUploadedLocations) {
     return (

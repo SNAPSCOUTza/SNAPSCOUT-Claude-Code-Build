@@ -136,7 +136,7 @@ export default function FindCrewPage() {
         .from("user_profiles")
         .select(`
           id, user_id, full_name, display_name, username, email, profession, bio, location, city, province,
-          profile_image_url, profile_picture, avatar_url, availability, availability_status, pricing,
+          profile_image_url, profile_picture, avatar_url, cover_image_url, availability, availability_status, pricing,
           hourly_rate, daily_rate, project_rate, skills, social_links, portfolio_images,
           is_public, is_profile_visible, subscription_status, created_at
         `)
@@ -160,7 +160,8 @@ export default function FindCrewPage() {
           role: profile.profession,
           city: profile.city || location?.split(",")[0]?.trim() || "",
           province: profile.province || location?.split(",")[1]?.trim() || "SA",
-          profile_picture: profile.profile_image_url || profile.profile_picture || profile.avatar_url || "",
+          profile_picture:
+            profile.cover_image_url || profile.profile_image_url || profile.profile_picture || profile.avatar_url || "",
           bio: profile.bio,
           availability_status: profile.availability_status || profile.availability || "available",
           skills: profile.skills || [],

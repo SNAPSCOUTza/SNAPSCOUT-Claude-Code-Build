@@ -99,7 +99,8 @@ function mockToProfile(member: MockCrewMember): CrewProfile {
 function mapLiveProfileToCrewProfile(profile: any): CrewProfile {
   const location = profile.location || [profile.city, profile.province].filter(Boolean).join(", ")
   const skills: string[] = profile.skills || []
-  const images = (profile.portfolio_images?.length ? profile.portfolio_images : portfolioFallbacks) as string[]
+  const baseImages = profile.portfolio_images?.length ? profile.portfolio_images : portfolioFallbacks
+  const images = (profile.cover_image_url ? [profile.cover_image_url, ...baseImages] : baseImages) as string[]
   const rateValue = profile.hourly_rate || profile.daily_rate
   const rateSuffix = profile.hourly_rate ? "/hr" : "/day"
 
@@ -108,7 +109,8 @@ function mapLiveProfileToCrewProfile(profile: any): CrewProfile {
     display_name: profile.display_name || profile.full_name || profile.username || "SnapScout Creative",
     bio: profile.bio || "This crew member hasn't added a bio yet.",
     profession: profile.profession || "Film Crew",
-    profile_image_url: profile.profile_image_url || profile.profile_picture || profile.avatar_url || "/placeholder.svg",
+    profile_image_url:
+      profile.cover_image_url || profile.profile_image_url || profile.profile_picture || profile.avatar_url || "/placeholder.svg",
     location: location || "South Africa",
     pricing: rateValue ? `R${rateValue}${rateSuffix}` : "By inquiry",
     skills,
@@ -158,7 +160,7 @@ export default function CrewProfilePage() {
     supabase
       .from("user_profiles")
       .select(
-        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, hourly_rate, daily_rate, skills, portfolio_images",
+        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, hourly_rate, daily_rate, skills, portfolio_images",
       )
       .eq("user_id", params.id)
       .maybeSingle()

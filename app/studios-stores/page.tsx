@@ -19,6 +19,8 @@ import { MotionRevealGroup, MotionRevealItem } from "@/components/ui/motion-reve
 import { StickyScrollCard } from "@/components/ui/sticky-scroll-card"
 import { useAuth } from "@/contexts/auth-context"
 import { SnapScoutStateArt } from "@/components/mobile/snapscout-state-art"
+import { createBrowserClient } from "@/lib/supabase/client"
+import { STUDIO_STORE_PROFILE_COLUMNS, mapLiveProfileToStudioStoreItem } from "@/lib/studios-stores/live-data"
 import {
   hasMockPaidSubscription,
   loadUploadedShootLocations,
@@ -28,6 +30,7 @@ import {
 type DiscoverableStudioStore = Omit<StudioStoreItem, "id"> & {
   id: string | number
   isUploadedLocation?: boolean
+  isLiveProfile?: boolean
 }
 
 export default function StudiosStoresPage() {
@@ -38,6 +41,7 @@ export default function StudiosStoresPage() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [bookingItem, setBookingItem] = useState<DiscoverableStudioStore | null>(null)
   const [uploadedLocations, setUploadedLocations] = useState<DiscoverableStudioStore[]>([])
+  const [liveListings, setLiveListings] = useState<DiscoverableStudioStore[]>([])
 
   const canViewUploadedLocations = hasMockPaidSubscription(profile)
 
@@ -56,10 +60,30 @@ export default function StudiosStoresPage() {
     setUploadedLocations(uploaded)
   }, [canViewUploadedLocations])
 
+  useEffect(() => {
+    let cancelled = false
+    const supabase = createBrowserClient()
+
+    supabase
+      .from("user_profiles")
+      .select(STUDIO_STORE_PROFILE_COLUMNS)
+      .in("account_type", ["studio", "store"])
+      .eq("is_profile_visible", true)
+      .order("created_at", { ascending: false })
+      .then(({ data }: { data: any[] | null }) => {
+        if (cancelled) return
+        setLiveListings((data || []).map(mapLiveProfileToStudioStoreItem))
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const studiosStores = useMemo(() => {
     const base = studiosStoresData as DiscoverableStudioStore[]
-    return canViewUploadedLocations ? [...uploadedLocations, ...base] : base
-  }, [canViewUploadedLocations, uploadedLocations])
+    return [...(canViewUploadedLocations ? uploadedLocations : []), ...liveListings, ...base]
+  }, [canViewUploadedLocations, uploadedLocations, liveListings])
 
   const filteredStudiosStores = studiosStores.filter((item) => {
     const matchesSearch =

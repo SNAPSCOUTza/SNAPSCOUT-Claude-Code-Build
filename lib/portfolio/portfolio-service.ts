@@ -44,6 +44,30 @@ export function normalizeUploadItem(record: any): NormalizedPortfolioItem {
     caption: record.caption || record.description,
     timestamp: record.created_at,
     sort_order: record.sort_order,
+    is_cover: Boolean(record.is_cover),
+  }
+}
+
+export function normalizePortfolioLinkItem(record: any): NormalizedPortfolioItem {
+  const mediaUrl = record.full_media_url || record.thumbnail_url || record.embed_url || record.source_url || "/placeholder.svg"
+  return {
+    id: record.id,
+    source: "upload",
+    source_platform: record.source_platform || "external",
+    mediaType: normalizeMediaType(record.media_type),
+    media_type: record.media_type,
+    thumbnailUrl: record.thumbnail_url || mediaUrl,
+    mediaUrl,
+    thumbnail_url: record.thumbnail_url || mediaUrl,
+    full_media_url: mediaUrl,
+    image_url: mediaUrl,
+    permalink: record.source_url,
+    source_url: record.source_url,
+    title: record.title,
+    description: record.caption,
+    caption: record.caption,
+    timestamp: record.created_at,
+    sort_order: record.sort_order,
   }
 }
 
@@ -251,19 +275,35 @@ export async function getPublicPortfolioItems(supabase: SupabaseLike, userId: st
     }
   }
 
-  const { data } = await supabase
-    .from("portfolio_uploads")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("status", "visible")
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: false })
-    .limit(PORTFOLIO_DISPLAY_LIMIT)
+  const [{ data: uploads }, { data: links }] = await Promise.all([
+    supabase
+      .from("portfolio_uploads")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("status", "visible")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("portfolio_items")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_visible", true)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false }),
+  ])
+
+  const items = [...(uploads || []).map(normalizeUploadItem), ...(links || []).map(normalizePortfolioLinkItem)]
+    .sort((a, b) => {
+      const sortDiff = (a.sort_order ?? 0) - (b.sort_order ?? 0)
+      if (sortDiff !== 0) return sortDiff
+      return new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
+    })
+    .slice(0, PORTFOLIO_DISPLAY_LIMIT)
 
   return {
     source: "upload" as PortfolioSource,
     connection: null,
-    items: (data || []).map(normalizeUploadItem),
+    items,
   }
 }
 

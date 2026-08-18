@@ -33,6 +33,7 @@ export type NormalizedPortfolioItem = {
   username?: string | null
   timestamp?: string | null
   sort_order?: number | null
+  is_cover?: boolean | null
 }
 
 export type ProfilePortfolioItem = {
@@ -69,6 +70,7 @@ export type ProfilePortfolioItem = {
   description?: string | null
   username?: string | null
   timestamp?: string | null
+  is_cover?: boolean | null
 }
 
 export type LightboxPortfolioItem = {
