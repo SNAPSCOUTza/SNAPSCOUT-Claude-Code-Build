@@ -22,6 +22,7 @@ import MobileShell from "@/components/mobile/mobile-shell"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
+import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { mockCrewMembers, type MockCrewMember } from "@/lib/mock-data/crew-data"
 
@@ -99,8 +100,10 @@ function mockToProfile(member: MockCrewMember): CrewProfile {
 function mapLiveProfileToCrewProfile(profile: any): CrewProfile {
   const location = profile.location || [profile.city, profile.province].filter(Boolean).join(", ")
   const skills: string[] = profile.skills || []
-  const baseImages = profile.portfolio_images?.length ? profile.portfolio_images : portfolioFallbacks
-  const images = (profile.cover_image_url ? [profile.cover_image_url, ...baseImages] : baseImages) as string[]
+  // No fake stock-photo filler here - the hero falls back to the cover/avatar
+  // image below when there's no real portfolio_images data, and the actual
+  // portfolio grid further down fetches real uploads via ProfilePortfolioGallery.
+  const images = profile.portfolio_images?.length ? (profile.portfolio_images as string[]) : []
   const rateValue = profile.hourly_rate || profile.daily_rate
   const rateSuffix = profile.hourly_rate ? "/hr" : "/day"
 
@@ -392,23 +395,16 @@ export default function CrewProfilePage() {
           </div>
 
           <div className="mt-4 rounded-2xl border border-[#e6ebf3] bg-white p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Portfolio</p>
-              <button type="button" className="text-[13px] font-semibold text-[#f20d14]">
-                View all
-              </button>
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-2.5">
-              {portfolioPreview.map((image, index) => (
-                <div key={`${image}-${index}`} className="relative aspect-square overflow-hidden rounded-[18px] bg-[#f3f5f8]">
-                  <Image
-                    src={image}
-                    alt={`${profile.display_name} portfolio ${index + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              ))}
+            <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Portfolio</p>
+            <div className="mt-3">
+              <ProfilePortfolioGallery
+                userId={profile.id}
+                items={portfolioPreview.map((image, index) => ({ id: `${image}-${index}`, image_url: image }))}
+                title={profile.display_name}
+                previewCount={6}
+                className="[&_h3]:hidden [&_.text-center]:hidden [&_.mt-3]:mt-0"
+                onHire={() => openHireSheet()}
+              />
             </div>
           </div>
 
