@@ -42,6 +42,7 @@ interface CrewMember {
   skills: string[]
   specialties?: string[]
   rating?: number
+  reviews?: number
   years_experience?: string
   recent_work?: string
   recent_work_caption?: string
@@ -138,7 +139,7 @@ export default function FindCrewPage() {
           id, user_id, full_name, display_name, username, email, profession, bio, location, city, province,
           profile_image_url, profile_picture, avatar_url, cover_image_url, availability, availability_status, pricing,
           hourly_rate, daily_rate, project_rate, skills, social_links, portfolio_images,
-          is_public, is_profile_visible, subscription_status, created_at
+          is_public, is_profile_visible, subscription_status, created_at, rating, review_count
         `)
         .eq("is_profile_visible", true)
         .eq("talent_type", "crew")
@@ -167,6 +168,8 @@ export default function FindCrewPage() {
           skills: profile.skills || [],
           specialties: profile.skills || [],
           is_profile_visible: profile.is_profile_visible ?? profile.is_public ?? true,
+          rating: profile.rating || 0,
+          reviews: profile.review_count || 0,
           isLiveProfile: true, // Flag to identify live profiles
         }
       })
@@ -525,8 +528,9 @@ export default function FindCrewPage() {
                         <div className="mt-2 flex items-center justify-between text-[12px]">
                           <div className="flex items-center gap-1">
                             <Star className="h-3.5 w-3.5 fill-current text-[#0d0f13]" />
-                            <span className="font-semibold">{member.rating?.toFixed(1) || "4.8"}</span>
-                            <span className="text-[#666b75]">({projectCount})</span>
+                            <span className="font-semibold">
+                              {member.rating ? `${member.rating.toFixed(1)} (${member.reviews || 0})` : "New"}
+                            </span>
                           </div>
                           <span className="font-semibold text-[#0d0f13]">R950/hr</span>
                         </div>

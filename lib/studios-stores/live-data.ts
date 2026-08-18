@@ -2,7 +2,7 @@ import { applyStudioStoreDashboardPreview } from "@/lib/mock-data/studio-store-d
 import type { StudioStoreItem } from "@/lib/mock-data/studios-stores-data"
 
 export const STUDIO_STORE_PROFILE_COLUMNS =
-  "user_id, full_name, display_name, username, account_type, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, phone, email, social_links, availability, availability_status, onboarding_data, created_at"
+  "user_id, full_name, display_name, username, account_type, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, phone, email, social_links, availability, availability_status, onboarding_data, created_at, rating, review_count"
 
 export function mapLiveProfileToStudioStoreItem(profile: any) {
   const location = profile.location || [profile.city, profile.province].filter(Boolean).join(", ")
@@ -14,8 +14,8 @@ export function mapLiveProfileToStudioStoreItem(profile: any) {
     location: location || "South Africa",
     province: profile.province || undefined,
     city: profile.city || undefined,
-    rating: Math.round((4.5 + Math.random() * 0.5) * 10) / 10,
-    reviews: Math.floor(Math.random() * 60) + 10,
+    rating: profile.rating || 0,
+    reviews: profile.review_count || 0,
     image: profile.cover_image_url || profile.profile_image_url || profile.profile_picture || profile.avatar_url || "/placeholder.svg",
     description: profile.bio || "This SnapScout partner hasn't added a description yet.",
     services: [],

@@ -115,8 +115,8 @@ function mapLiveProfileToCrewProfile(profile: any): CrewProfile {
     pricing: rateValue ? `R${rateValue}${rateSuffix}` : "By inquiry",
     skills,
     portfolio_images: images,
-    rating: Math.round((4.5 + Math.random() * 0.5) * 10) / 10,
-    reviews: Math.floor(Math.random() * 100) + 20,
+    rating: profile.rating || 0,
+    reviews: profile.review_count || 0,
     projects: "New",
     years: "-",
     responseRate: "95%",
@@ -160,7 +160,7 @@ export default function CrewProfilePage() {
     supabase
       .from("user_profiles")
       .select(
-        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, hourly_rate, daily_rate, skills, portfolio_images",
+        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, hourly_rate, daily_rate, skills, portfolio_images, rating, review_count",
       )
       .eq("user_id", params.id)
       .maybeSingle()
@@ -284,7 +284,7 @@ export default function CrewProfilePage() {
               <MapPin className="mr-1.5 h-4 w-4" /> {profile.location}
             </Badge>
             <Badge variant="outline" className="h-10 rounded-full border-[#e6ebf3] bg-white px-4 text-[13px] text-[#111318]">
-              <Star className="mr-1.5 h-4 w-4 fill-[#111318] text-[#111318]" /> {profile.rating} ({profile.reviews})
+              <Star className="mr-1.5 h-4 w-4 fill-[#111318] text-[#111318]" /> {profile.rating > 0 ? `${profile.rating} (${profile.reviews})` : "New"}
             </Badge>
             <Badge variant="outline" className="h-10 rounded-full border-[#e6ebf3] bg-white px-4 text-[13px] text-[#111318]">
               {profile.profession}

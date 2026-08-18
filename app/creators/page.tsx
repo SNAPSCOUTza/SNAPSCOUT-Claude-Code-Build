@@ -107,7 +107,7 @@ export default function CreatorsPage() {
           id, user_id, full_name, display_name, username, email, profession, bio, location, city, province,
           profile_image_url, profile_picture, avatar_url, cover_image_url, availability, availability_status, pricing,
           hourly_rate, daily_rate, project_rate, skills, specializations, social_links, portfolio_images,
-          is_public, is_profile_visible, subscription_status, created_at
+          is_public, is_profile_visible, subscription_status, created_at, rating, review_count
         `)
         .eq("is_profile_visible", true)
         .eq("talent_type", "creator")
@@ -137,8 +137,8 @@ export default function CreatorsPage() {
           skills: profile.skills || [],
           specializations: profile.specializations?.length ? profile.specializations : profile.skills || [],
           is_public: profile.is_profile_visible ?? profile.is_public ?? true,
-          rating: 4.5 + Math.random() * 0.5,
-          reviews: Math.floor(Math.random() * 100) + 20,
+          rating: profile.rating || 0,
+          reviews: profile.review_count || 0,
           pricing,
           portfolioImages: profile.portfolio_images || [],
           isLiveProfile: true, // Flag to identify live profiles
@@ -396,7 +396,7 @@ export default function CreatorsPage() {
                             className="h-10 rounded-full border-[#e4e0d9] bg-white px-4 text-[13px] font-semibold text-[#111318]"
                           >
                             <Star className="mr-2 h-3.5 w-3.5 fill-current text-[#111318]" />
-                            {(creator.rating || 4.8).toFixed(1)} ({creator.reviews || 40})
+                            {creator.rating > 0 ? `${creator.rating.toFixed(1)} (${creator.reviews})` : "New"}
                           </Badge>
                           <AvailabilityStatusBadge ownerId={creator.user_id || creator.id} ownerType={getOwnerType(creator.profession)} />
                         </div>
@@ -826,9 +826,11 @@ export default function CreatorsPage() {
                       <div className="flex items-center space-x-1 flex-shrink-0">
                         <Star className="w-4 h-4 text-warning fill-current" />
                         <span className="text-sm font-medium text-foreground">
-                          {creator.rating?.toFixed(1) || "4.5"}
+                          {creator.rating > 0 ? creator.rating.toFixed(1) : "New"}
                         </span>
-                        <span className="text-xs text-muted-foreground">({creator.reviews || 0})</span>
+                        {creator.rating > 0 && (
+                          <span className="text-xs text-muted-foreground">({creator.reviews || 0})</span>
+                        )}
                       </div>
                     </div>
 

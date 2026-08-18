@@ -201,8 +201,14 @@ export default function StudiosStoresPage() {
                           <div className="mt-2 flex items-center justify-between text-[12px]">
                             <div className="flex items-center gap-1">
                               <Star className="h-3.5 w-3.5 fill-current text-[#0d0f13]" />
-                              <span className="font-semibold">{item.rating}</span>
-                              <span className="text-[#666b75]">(<AnimatedCount value={item.reviews} />)</span>
+                              {item.rating > 0 ? (
+                                <>
+                                  <span className="font-semibold">{item.rating}</span>
+                                  <span className="text-[#666b75]">(<AnimatedCount value={item.reviews} />)</span>
+                                </>
+                              ) : (
+                                <span className="font-semibold">New</span>
+                              )}
                             </div>
                             <span className="font-semibold text-[#0d0f13]">{item.hourlyRate}</span>
                           </div>
@@ -429,8 +435,14 @@ export default function StudiosStoresPage() {
                         </div>
                         <div className="flex items-center mb-3">
                           <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
-                          <span className="font-medium">{item.rating}</span>
-                          <span className="text-gray-600 ml-1">({item.reviews} reviews)</span>
+                          {item.rating > 0 ? (
+                            <>
+                              <span className="font-medium">{item.rating}</span>
+                              <span className="text-gray-600 ml-1">({item.reviews} reviews)</span>
+                            </>
+                          ) : (
+                            <span className="font-medium">New</span>
+                          )}
                           <Badge
                             variant={item.availability === "Available" ? "success" : "secondary"}
                             className="ml-3 text-white border-none"

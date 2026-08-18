@@ -303,7 +303,7 @@ export default function StudioStoreDetailPage() {
               </Badge>
             ) : null}
             <Badge variant="outline" className="h-10 rounded-full border-[#e6ebf3] bg-white px-4 text-[13px] text-[#111318]">
-              <Star className="mr-1.5 h-4 w-4 fill-[#111318] text-[#111318]" /> {item.rating} ({item.reviews})
+              <Star className="mr-1.5 h-4 w-4 fill-[#111318] text-[#111318]" /> {item.rating > 0 ? `${item.rating} (${item.reviews})` : "New"}
             </Badge>
             <Badge variant="outline" className="h-10 rounded-full border-[#e6ebf3] bg-white px-4 text-[13px] text-[#111318]">
               {item.availability}

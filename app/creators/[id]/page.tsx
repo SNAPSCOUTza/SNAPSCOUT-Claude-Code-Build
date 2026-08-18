@@ -46,8 +46,8 @@ function mapLiveProfileToCreator(profile: any): LiveCreator {
     location: location || "South Africa",
     bio: profile.bio || "This creator hasn't added a bio yet.",
     avatar: profile.cover_image_url || profile.profile_image_url || profile.profile_picture || profile.avatar_url || "/placeholder.svg",
-    rating: 4.5 + Math.random() * 0.5,
-    reviews: Math.floor(Math.random() * 100) + 20,
+    rating: profile.rating || 0,
+    reviews: profile.review_count || 0,
     portfolioCount: 0,
     portfolioItems: [],
     hourly_rate: profile.hourly_rate,
@@ -160,7 +160,7 @@ export default function CreatorProfilePage() {
     supabase
       .from("user_profiles")
       .select(
-        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, pricing, hourly_rate, daily_rate",
+        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, pricing, hourly_rate, daily_rate, rating, review_count",
       )
       .eq("user_id", params.id)
       .maybeSingle()
@@ -356,7 +356,7 @@ export default function CreatorProfilePage() {
                   className="h-11 rounded-full border-slate-200 px-4 text-[14px] font-semibold text-[#111318]"
                 >
                   <Star className="mr-2 h-4 w-4 fill-current text-[#111318]" />
-                  {creator.rating.toFixed(1)} ({creator.reviews})
+                  {creator.rating > 0 ? `${creator.rating.toFixed(1)} (${creator.reviews})` : "New"}
                 </Badge>
                 <Badge
                   variant="outline"
