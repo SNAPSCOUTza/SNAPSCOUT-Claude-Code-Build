@@ -10,6 +10,8 @@ const publicRoutes = [
   "/stores",
   "/studios-stores",
   "/find-crew",
+  "/crew",
+  "/locations",
   "/explore",
   "/marketplace",
   "/onboarding",
