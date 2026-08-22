@@ -33,6 +33,11 @@ type DiscoverableStudioStore = Omit<StudioStoreItem, "id"> & {
   isLiveProfile?: boolean
 }
 
+function studioStoreTypeLabel(type: StudioStoreItem["type"]) {
+  if (type === "both") return "Studio & Store"
+  return type === "studio" ? "Studio" : "Equipment Store"
+}
+
 export default function StudiosStoresPage() {
   const { profile } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
@@ -91,7 +96,7 @@ export default function StudiosStoresPage() {
       item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.services.some((service) => service.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesLocation = selectedLocation === "all" || item.location.includes(selectedLocation)
-    const matchesType = selectedType === "all" || item.type === selectedType
+    const matchesType = selectedType === "all" || item.type === selectedType || item.type === "both"
 
     return matchesSearch && matchesLocation && matchesType
   })
@@ -176,7 +181,7 @@ export default function StudiosStoresPage() {
                         <Link href={`/studios-stores/${item.id}`} className="relative block h-40">
                           <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
                           <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#111318]">
-                            {item.isUploadedLocation ? "Shoot Location" : item.type === "studio" ? "Studio" : "Equipment Store"}
+                            {item.isUploadedLocation ? "Shoot Location" : studioStoreTypeLabel(item.type)}
                           </span>
                         </Link>
                       </motion.div>
@@ -405,10 +410,10 @@ export default function StudiosStoresPage() {
                       <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
                       <div className="absolute top-4 left-4">
                         <Badge
-                          variant={item.type === "studio" ? "default" : "secondary"}
+                          variant={item.type === "store" ? "secondary" : "default"}
                           className="text-white border-none"
                         >
-                          {item.isUploadedLocation ? "Shoot Location" : item.type === "studio" ? "Studio" : "Equipment Store"}
+                          {item.isUploadedLocation ? "Shoot Location" : studioStoreTypeLabel(item.type)}
                         </Badge>
                       </div>
                       {item.isUploadedLocation ? (

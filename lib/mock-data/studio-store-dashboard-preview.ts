@@ -15,6 +15,8 @@ export type StudioStorePackageDraft = {
 
 type StudioStoreDashboardPreviewSettings = {
   business_name?: string
+  listing_type?: "studio" | "store" | "both"
+  logo_url?: string
   showroom_photo_url?: string
   location_address?: string
   operating_hours?: string
@@ -98,6 +100,8 @@ export function applyStudioStoreDashboardPreview(
   return {
     ...baseItem,
     name: settings.business_name?.trim() || baseItem.name,
+    type: settings.listing_type || baseItem.type,
+    logo: settings.logo_url?.trim() || baseItem.logo,
     image: showroomImage || baseItem.image,
     gallery: [showroomImage, ...packageImages, ...(baseItem.gallery || [])].filter(Boolean) as string[],
     fullAddress: settings.location_address?.trim() || baseItem.fullAddress,

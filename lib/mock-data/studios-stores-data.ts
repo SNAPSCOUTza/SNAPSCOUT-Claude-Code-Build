@@ -1,7 +1,10 @@
 export type StudioStoreItem = {
   id: number
   name: string
-  type: "studio" | "store"
+  // "both" means this listing should match a search/filter for either
+  // "studio" or "store" - see the filter-matching logic in the Studios &
+  // Stores listing page.
+  type: "studio" | "store" | "both"
   location: string
   fullAddress?: string
   province?: string
@@ -10,6 +13,7 @@ export type StudioStoreItem = {
   rating: number
   reviews: number
   image: string
+  logo?: string
   gallery?: string[]
   description: string
   about?: string

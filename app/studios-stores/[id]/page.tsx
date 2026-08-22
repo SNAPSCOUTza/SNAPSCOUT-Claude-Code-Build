@@ -284,7 +284,14 @@ export default function StudioStoreDetailPage() {
 
         <div className="px-3 pb-2 pt-5">
           <p className="text-[12px] font-bold tracking-[0.14em] text-[#f20d14]">{city}</p>
-          <h1 className="mt-2 text-[43px] font-semibold leading-tight text-[#111318]">{item.name}</h1>
+          <div className="mt-2 flex items-center gap-3">
+            {item.logo && (
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-[#e6ebf3] bg-white">
+                <Image src={item.logo} alt={`${item.name} logo`} fill className="object-cover" />
+              </div>
+            )}
+            <h1 className="text-[43px] font-semibold leading-tight text-[#111318]">{item.name}</h1>
+          </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
             <Badge variant="outline" className="h-10 rounded-full border-[#e6ebf3] bg-white px-4 text-[13px] text-[#111318]">

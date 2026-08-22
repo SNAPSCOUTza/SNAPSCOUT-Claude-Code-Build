@@ -128,6 +128,12 @@ interface UserSubscription {
 
 interface StudioStoreDashboardSettings {
   business_name: string
+  // Controls how this listing shows up in the Studios & Stores type filter -
+  // independent of account_type (which stays "studio" or "store" and drives
+  // dashboard permissions/nav). Defaults to account_type at load time so
+  // existing accounts keep their current filter behavior until they
+  // explicitly opt into "both".
+  listing_type: "studio" | "store" | "both"
   logo_url: string
   showroom_photo_url: string
   map_link: string
@@ -160,6 +166,7 @@ interface StudioStoreDashboardSettings {
 
 const DEFAULT_STUDIO_STORE_SETTINGS: StudioStoreDashboardSettings = {
   business_name: "",
+  listing_type: "studio",
   logo_url: "",
   showroom_photo_url: "",
   map_link: "",
@@ -628,6 +635,10 @@ export default function DashboardPage() {
   const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null)
   const [uploadingPackageImageIndex, setUploadingPackageImageIndex] = useState<number | null>(null)
   const [packageImageUploadError, setPackageImageUploadError] = useState<{ index: number; message: string } | null>(null)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null)
+  const [showroomUploading, setShowroomUploading] = useState(false)
+  const [showroomUploadError, setShowroomUploadError] = useState<string | null>(null)
 
   const initialProfileRef = useRef<UserProfile | null>(null)
   const initialStudioStoreSettingsRef = useRef<StudioStoreDashboardSettings>(DEFAULT_STUDIO_STORE_SETTINGS)
@@ -923,6 +934,9 @@ export default function DashboardPage() {
         const loadedStudioStoreSettings = {
           ...DEFAULT_STUDIO_STORE_SETTINGS,
           ...(loadedOnboardingData?.studio_store_dashboard || {}),
+          listing_type:
+            loadedOnboardingData?.studio_store_dashboard?.listing_type ||
+            (profile.account_type === "store" ? "store" : "studio"),
           selected_amenities: normalizeTextArray(
             loadedOnboardingData?.studio_store_dashboard?.selected_amenities ||
               loadedOnboardingData?.studio_store_dashboard?.listing_features ||
@@ -1179,6 +1193,58 @@ export default function DashboardPage() {
       setPackageImageUploadError({ index, message: error?.message || "Failed to upload room image" })
     } finally {
       setUploadingPackageImageIndex(null)
+    }
+  }
+
+  const handleLogoUpload = async (file: File) => {
+    setLogoUploadError(null)
+    setLogoUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/dashboard/studio-logo", {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.url) {
+        throw new Error(result?.error || "Failed to upload logo")
+      }
+
+      handleStudioStoreSettingChange("logo_url", result.url)
+    } catch (error: any) {
+      setLogoUploadError(error?.message || "Failed to upload logo")
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  const handleShowroomPhotoUpload = async (file: File) => {
+    setShowroomUploadError(null)
+    setShowroomUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/dashboard/studio-showroom-photo", {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.url) {
+        throw new Error(result?.error || "Failed to upload showroom photo")
+      }
+
+      handleStudioStoreSettingChange("showroom_photo_url", result.url)
+    } catch (error: any) {
+      setShowroomUploadError(error?.message || "Failed to upload showroom photo")
+    } finally {
+      setShowroomUploading(false)
     }
   }
 
@@ -2329,20 +2395,88 @@ export default function DashboardPage() {
                       />
                     </div>
                     <div>
-                      <Label>Logo URL</Label>
-                      <Input
-                        value={studioStoreSettings.logo_url}
-                        onChange={(e) => handleStudioStoreSettingChange("logo_url", e.target.value)}
-                        placeholder="https://..."
-                      />
+                      <Label>Logo</Label>
+                      <div className="mt-2 flex items-center gap-4">
+                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
+                          {studioStoreSettings.logo_url ? (
+                            <img
+                              src={studioStoreSettings.logo_url || "/placeholder.svg"}
+                              alt="Business logo"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="grid h-full place-items-center text-gray-400">
+                              <ImageIcon className="h-6 w-6" />
+                            </div>
+                          )}
+                          {logoUploading && (
+                            <div className="absolute inset-0 grid place-items-center bg-white/70">
+                              <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-red-500" />
+                            </div>
+                          )}
+                        </div>
+                        <label className="flex h-11 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:border-red-200 hover:text-red-600">
+                          <Upload className="mr-2 h-4 w-4" />
+                          {logoUploading ? "Uploading..." : "Upload logo"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={logoUploading}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0]
+                              if (file) handleLogoUpload(file)
+                              event.target.value = ""
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <p className="mt-2 text-xs text-gray-500">
+                        Shown next to your business name on your public listing.
+                      </p>
+                      {logoUploadError && <p className="mt-2 text-xs font-semibold text-red-600">{logoUploadError}</p>}
                     </div>
                     <div>
                       <Label>Showroom / space photo</Label>
-                      <Input
-                        value={studioStoreSettings.showroom_photo_url}
-                        onChange={(e) => handleStudioStoreSettingChange("showroom_photo_url", e.target.value)}
-                        placeholder="https://..."
-                      />
+                      <div className="mt-2">
+                        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[22px] border border-gray-200 bg-gray-100">
+                          {studioStoreSettings.showroom_photo_url ? (
+                            <img
+                              src={studioStoreSettings.showroom_photo_url || "/placeholder.svg"}
+                              alt="Showroom / space photo"
+                              loading="lazy"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="grid h-full place-items-center text-gray-400">
+                              <ImageIcon className="h-8 w-8" />
+                            </div>
+                          )}
+                          {showroomUploading && (
+                            <div className="absolute inset-0 grid place-items-center bg-white/70">
+                              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-red-500" />
+                            </div>
+                          )}
+                        </div>
+                        <label className="mt-3 flex h-11 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-sm font-semibold text-gray-700 transition hover:border-red-200 hover:text-red-600">
+                          <Upload className="mr-2 h-4 w-4" />
+                          {showroomUploading ? "Uploading..." : "Upload showroom photo"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={showroomUploading}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0]
+                              if (file) handleShowroomPhotoUpload(file)
+                              event.target.value = ""
+                            }}
+                          />
+                        </label>
+                      </div>
+                      {showroomUploadError && (
+                        <p className="mt-2 text-xs font-semibold text-red-600">{showroomUploadError}</p>
+                      )}
                     </div>
                     <div>
                       <Label>Map link</Label>
@@ -2368,6 +2502,41 @@ export default function DashboardPage() {
                         placeholder="Mon-Fri 08:00-18:00"
                       />
                     </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Listing Type</CardTitle>
+                    <CardDescription>Choose how you show up in Studios & Stores search and filters.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: "studio", label: "Studio" },
+                        { value: "store", label: "Store" },
+                        { value: "both", label: "Both" },
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => handleStudioStoreSettingChange("listing_type", option.value)}
+                          className={`h-11 rounded-full border px-6 text-sm font-semibold transition ${
+                            studioStoreSettings.listing_type === option.value
+                              ? "border-red-600 bg-red-600 text-white"
+                              : "border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:text-red-600"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-4 text-xs text-gray-500">
+                      This only affects how clients find you - it helps correctly direct searches and filters on
+                      the Studios &amp; Stores page, so people looking specifically for a studio or specifically
+                      for a store find exactly what they're looking for. Choosing "Both" shows your listing under
+                      either filter.
+                    </p>
                   </CardContent>
                 </Card>
 
