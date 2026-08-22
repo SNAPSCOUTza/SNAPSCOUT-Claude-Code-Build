@@ -7,23 +7,27 @@ import {
 } from "@/lib/resend/send-email"
 import { sanitizeSingleLineInput } from "@/lib/utils/sanitize"
 
-// This endpoint can be called by Supabase Auth Hook or directly
+// Receives the Supabase Auth "Send Email" hook (server-to-server only - see
+// docs/RESEND_SETUP.md). Nothing in this app calls it directly; it exists
+// purely for Supabase's Auth service to invoke. The Origin header this used
+// to check is attacker-controlled outside a real browser, so it verified
+// nothing - the webhook secret is the only real credential here.
+function isAllowedRedirect(url: string): boolean {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://snapscout.co.za"
+  try {
+    return new URL(url).origin === new URL(siteUrl).origin
+  } catch {
+    return false
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Verify the webhook secret if coming from Supabase
     const authHeader = request.headers.get("authorization")
     const hookSecret = process.env.SEND_EMAIL_HOOK_SECRET
 
-    // If hook secret is set, validate it
-    if (hookSecret && authHeader !== `Bearer ${hookSecret}`) {
-      // Allow requests without auth header for direct API calls from our app
-      const origin = request.headers.get("origin")
-      const isInternalCall =
-        origin?.includes("snapscout") || origin?.includes("localhost") || origin?.includes("vercel.app")
-
-      if (!isInternalCall) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-      }
+    if (!hookSecret || authHeader !== `Bearer ${hookSecret}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const body = await request.json()
@@ -38,8 +42,8 @@ export async function POST(request: NextRequest) {
       case "signup":
       case "confirm":
         // Send confirmation email
-        if (!data?.confirmation_url) {
-          return NextResponse.json({ error: "Missing confirmation_url" }, { status: 400 })
+        if (!data?.confirmation_url || !isAllowedRedirect(data.confirmation_url)) {
+          return NextResponse.json({ error: "Missing or invalid confirmation_url" }, { status: 400 })
         }
         result = await sendConfirmationEmail(email, data.confirmation_url)
         break
@@ -47,8 +51,8 @@ export async function POST(request: NextRequest) {
       case "recovery":
       case "reset_password":
         // Send password reset email
-        if (!data?.reset_url) {
-          return NextResponse.json({ error: "Missing reset_url" }, { status: 400 })
+        if (!data?.reset_url || !isAllowedRedirect(data.reset_url)) {
+          return NextResponse.json({ error: "Missing or invalid reset_url" }, { status: 400 })
         }
         result = await sendPasswordResetEmail(email, data.reset_url)
         break
