@@ -35,6 +35,7 @@ export default function LocationsBrowsePage() {
       .select("*")
       .eq("status", "published")
       .order("created_at", { ascending: false })
+      .limit(60)
       .then(({ data }: { data: ShootLocation[] | null }) => {
         if (cancelled) return
         setLocations(data || [])

@@ -11,10 +11,15 @@ function safeFileName(name: string) {
   return `${crypto.randomUUID()}.${extension.slice(0, 8)}`
 }
 
+const PAGE_SIZE = 24
+const MAX_PAGE_SIZE = 60
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const city = searchParams.get("city")
   const category = searchParams.get("category")
+  const page = Math.max(0, Number.parseInt(searchParams.get("page") || "0", 10) || 0)
+  const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, Number.parseInt(searchParams.get("limit") || "", 10) || PAGE_SIZE))
 
   const supabase = await createServerClient()
 
@@ -23,6 +28,7 @@ export async function GET(request: Request) {
     .select("*")
     .eq("status", "published")
     .order("created_at", { ascending: false })
+    .range(page * limit, page * limit + limit - 1)
 
   if (city) query = query.eq("city", city)
   if (category) query = query.eq("location_type", category)
@@ -30,7 +36,14 @@ export async function GET(request: Request) {
   const { data, error } = await query
   if (error) return apiError(error.message, 500, "LOCATIONS_LOAD_FAILED")
 
-  return NextResponse.json({ locations: data || [] })
+  return NextResponse.json(
+    { locations: data || [], page, limit, hasMore: (data?.length || 0) === limit },
+    {
+      // Public listing data changes infrequently - cache at the edge so a
+      // scripted burst of requests mostly hits the CDN, not the database.
+      headers: { "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300" },
+    },
+  )
 }
 
 export async function POST(request: Request) {
