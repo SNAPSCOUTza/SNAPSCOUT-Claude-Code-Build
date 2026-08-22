@@ -1,7 +1,7 @@
 "use client"
 
 import type { ComponentType, ReactNode } from "react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -209,6 +209,41 @@ export default function MobileShell({
     }
   }, [pathname])
 
+  const [bottomNavHidden, setBottomNavHidden] = useState(false)
+  const lastScrollYRef = useRef(0)
+
+  useEffect(() => {
+    setBottomNavHidden(false)
+
+    if (hideBottomNav || disableBottomNavAutoHide || typeof window === "undefined") return
+
+    lastScrollYRef.current = window.scrollY
+    let ticking = false
+
+    const handleScroll = () => {
+      if (ticking) return
+      ticking = true
+      window.requestAnimationFrame(() => {
+        const currentY = window.scrollY
+        const delta = currentY - lastScrollYRef.current
+
+        if (currentY < 40) {
+          setBottomNavHidden(false)
+        } else if (delta > 4) {
+          setBottomNavHidden(true)
+        } else if (delta < -4) {
+          setBottomNavHidden(false)
+        }
+
+        lastScrollYRef.current = currentY
+        ticking = false
+      })
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [pathname, hideBottomNav, disableBottomNavAutoHide])
+
   const quickMenuItems = useMemo(
     () =>
       user
@@ -307,11 +342,16 @@ export default function MobileShell({
       {!hideBottomNav ? (
         <motion.nav
           initial={false}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          animate={{ y: bottomNavHidden ? "150%" : 0, opacity: bottomNavHidden ? 0 : 1 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           className="mobile-bottom-nav pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(10px+env(safe-area-inset-bottom))] pt-2 sm:px-6"
         >
-          <div className="pointer-events-auto mx-auto w-full max-w-[520px] rounded-[32px] border border-[#dde6f1] bg-white/95 p-1 shadow-[0_18px_42px_rgba(15,23,42,0.14)] backdrop-blur-xl">
+          <div
+            className={cn(
+              "mx-auto w-full max-w-[520px] rounded-[32px] border border-[#dde6f1] bg-white/95 p-1 shadow-[0_18px_42px_rgba(15,23,42,0.14)] backdrop-blur-xl",
+              bottomNavHidden ? "pointer-events-none" : "pointer-events-auto",
+            )}
+          >
             <InteractiveMenu items={interactiveNavItems} activeHref={activeBottomHref} accentColor="#f20d14" />
           </div>
         </motion.nav>
