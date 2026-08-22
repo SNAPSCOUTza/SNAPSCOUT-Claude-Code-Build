@@ -3,6 +3,12 @@ import { prisma } from "@/lib/prisma"
 import { createAdminClient, isAdminClientAvailable } from "@/lib/supabase/admin"
 import { sanitizeSingleLineInput } from "@/lib/utils/sanitize"
 import { sendConfirmationEmail } from "@/lib/resend/send-email"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+
+// This route calls auth.admin.createUser directly, which bypasses Supabase
+// GoTrue's own built-in rate limiting on the normal public signup endpoint -
+// so this app has to provide that protection itself.
+const SIGNUP_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 8 }
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +16,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Supabase admin client is not configured" }, { status: 500 })
     }
     const supabaseAdmin = createAdminClient()
+
+    const ip = getClientIp(request)
+    const rateLimit = await checkRateLimit(supabaseAdmin, `signup:ip:${ip}`, SIGNUP_RATE_LIMIT)
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many signup attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
+      )
+    }
 
     const body = await request.json()
     const email = sanitizeSingleLineInput(body.email, 320).toLowerCase()

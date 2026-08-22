@@ -3,6 +3,13 @@ import { upsertInitialUserProfile } from "@/lib/auth/profile-bootstrap"
 import { createAdminClient, isAdminClientAvailable } from "@/lib/supabase/admin"
 import { sanitizeSingleLineInput } from "@/lib/utils/sanitize"
 import { sendConfirmationEmail } from "@/lib/resend/send-email"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+
+// Same rate-limit key namespace as /api/auth/signup ("signup:ip:...") -
+// both routes call auth.admin.createUser directly, so they need to share
+// one budget per IP or an attacker could just split traffic between the
+// two endpoints to double their effective throughput.
+const SIGNUP_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 8 }
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +17,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Supabase admin client is not configured" }, { status: 500 })
     }
     const supabaseAdmin = createAdminClient()
+
+    const ip = getClientIp(request)
+    const rateLimit = await checkRateLimit(supabaseAdmin, `signup:ip:${ip}`, SIGNUP_RATE_LIMIT)
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many signup attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
+      )
+    }
 
     const body = await request.json()
     const email = sanitizeSingleLineInput(body.email, 320).toLowerCase()
