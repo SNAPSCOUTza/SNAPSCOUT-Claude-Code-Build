@@ -160,13 +160,14 @@ export default function OnboardingPage() {
           return
         }
 
-        // signUp() creates the account but its internal auto-sign-in can
-        // fail silently. Confirm a real session exists before moving on -
+        // Email confirmation is required, so signUp()'s internal auto-sign-in
+        // is expected to fail here until the owner clicks the link we just
+        // emailed them. Confirm a real session exists before moving on -
         // otherwise the account exists but the user isn't signed in, and
         // they'll get bounced to login at the very end of the flow.
         const { data } = supabase ? await supabase.auth.getUser() : { data: { user: null } }
         if (!data.user) {
-          setSignupError("Your account was created, but we couldn't sign you in automatically. Please sign in.")
+          setSignupError("Account created! Check your email and click the confirmation link, then sign in.")
           setSubmitting(false)
           return
         }

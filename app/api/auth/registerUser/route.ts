@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { upsertInitialUserProfile } from "@/lib/auth/profile-bootstrap"
 import { createAdminClient, isAdminClientAvailable } from "@/lib/supabase/admin"
 import { sanitizeSingleLineInput } from "@/lib/utils/sanitize"
+import { sendConfirmationEmail } from "@/lib/resend/send-email"
 
 export async function POST(request: Request) {
   try {
@@ -26,7 +27,9 @@ export async function POST(request: Request) {
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm email
+      // Not auto-confirmed - the account isn't usable until the owner
+      // proves they control the inbox, via the confirmation email below.
+      email_confirm: false,
       user_metadata: {
         display_name: name,
         account_type: user_type,
@@ -60,12 +63,39 @@ export async function POST(request: Request) {
       console.log("[v0] RegisterUser - Profile created for user:", data.user.id)
     }
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://snapscout.co.za"
+
+    try {
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: "signup",
+        email,
+        password,
+        options: {
+          redirectTo: `${siteUrl}/api/auth/callback?type=signup&next=/dashboard`,
+        },
+      })
+
+      if (linkError || !linkData?.properties?.action_link) {
+        console.error("[v0] RegisterUser - Failed to generate confirmation link:", linkError)
+      } else {
+        const result = await sendConfirmationEmail(email, linkData.properties.action_link)
+        if (result.error) {
+          console.error("[v0] RegisterUser - Confirmation email error:", result.error)
+        }
+      }
+    } catch (emailError) {
+      console.error("[v0] RegisterUser - Confirmation email error:", emailError)
+      // Don't fail signup if email fails - the account still exists and
+      // the user can request another confirmation link later
+    }
+
     return NextResponse.json({
       success: true,
       user: {
         id: data.user.id,
         email: data.user.email,
       },
+      message: "Account created! Check your email to confirm your address before signing in.",
     })
   } catch (error) {
     console.error("[v0] Registration error:", error)

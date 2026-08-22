@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import { Resend } from "resend"
 import { prisma } from "@/lib/prisma"
 import { createAdminClient, isAdminClientAvailable } from "@/lib/supabase/admin"
 import { sanitizeSingleLineInput } from "@/lib/utils/sanitize"
+import { sendConfirmationEmail } from "@/lib/resend/send-email"
 
 export async function POST(request: Request) {
   try {
@@ -24,11 +24,13 @@ export async function POST(request: Request) {
 
     console.log("[v0] Creating user via admin API:", email)
 
-    // Create user with admin API (bypasses email hook)
+    // Create user with admin API (bypasses email hook). email_confirm is
+    // false so the account isn't usable until the owner actually proves
+    // they control the inbox - see the confirmation email sent below.
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm the email immediately
+      email_confirm: false,
     })
 
     if (createError) {
@@ -63,70 +65,38 @@ export async function POST(request: Request) {
       console.error("[v0] Profile creation error:", profileError.message)
     }
 
-    const senderEmail = process.env.SENDER_EMAIL || "noreply@updates.snapscout.co.za"
-    const fromEmail = senderEmail.includes("<") ? senderEmail : `SnapScout <${senderEmail}>`
-    const loginUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://snapscout.co.za"}/auth/login`
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://snapscout.co.za"
 
     try {
-      const resendApiKey = process.env.RESEND_API_KEY
-      if (!resendApiKey) {
-        console.warn("[v0] RESEND_API_KEY is not configured; skipping welcome email")
-      } else {
-        const resend = new Resend(resendApiKey)
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: "signup",
+        email,
+        password,
+        options: {
+          redirectTo: `${siteUrl}/api/auth/callback?type=signup&next=/dashboard`,
+        },
+      })
 
-        await resend.emails.send({
-          from: fromEmail,
-          to: email,
-          subject: "Welcome to SnapScout!",
-          html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #dc2626; margin: 0; font-size: 28px;">SnapScout</h1>
-              <p style="color: #666; margin: 5px 0 0 0; font-size: 14px;">South Africa's Creative Network</p>
-            </div>
-            
-            <div style="background: linear-gradient(135deg, #fef2f2 0%, #fff 100%); border-radius: 12px; padding: 30px; margin-bottom: 20px;">
-              <h2 style="color: #1f2937; margin: 0 0 15px 0; font-size: 22px;">Welcome, ${display_name}!</h2>
-              <p style="color: #4b5563; margin: 0 0 20px 0;">
-                Your SnapScout account has been created successfully! You're ready to explore South Africa's premier creative network.
-              </p>
-              
-              <div style="text-align: center; margin: 25px 0;">
-                <a href="${loginUrl}" style="display: inline-block; background: #dc2626; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
-                  Sign In Now
-                </a>
-              </div>
-              
-              <p style="color: #6b7280; font-size: 13px; margin: 20px 0 0 0;">
-                Start building your profile and connect with creative professionals across South Africa.
-              </p>
-            </div>
-            
-            <div style="text-align: center; color: #9ca3af; font-size: 12px;">
-              <p style="margin: 0;">© ${new Date().getFullYear()} SnapScout. All rights reserved.</p>
-              <p style="margin: 5px 0 0 0;">South Africa's premier platform for creative professionals.</p>
-            </div>
-          </body>
-          </html>
-        `,
-        })
-        console.log("[v0] Welcome email sent successfully")
+      if (linkError || !linkData?.properties?.action_link) {
+        console.error("[v0] Failed to generate confirmation link:", linkError)
+      } else {
+        const result = await sendConfirmationEmail(email, linkData.properties.action_link)
+        if (result.error) {
+          console.error("[v0] Confirmation email error:", result.error)
+        } else {
+          console.log("[v0] Confirmation email sent successfully")
+        }
       }
     } catch (emailError) {
-      console.error("[v0] Welcome email error:", emailError)
-      // Don't fail signup if email fails - user can still sign in
+      console.error("[v0] Confirmation email error:", emailError)
+      // Don't fail signup if email fails - the account still exists and
+      // the user can request another confirmation link later
     }
 
     return NextResponse.json({
       success: true,
       user: { id: userData.user.id, email: userData.user.email },
-      message: "Account created successfully! You can sign in now.",
+      message: "Account created! Check your email to confirm your address before signing in.",
     })
   } catch (error: any) {
     console.error("[v0] Signup error:", error)
