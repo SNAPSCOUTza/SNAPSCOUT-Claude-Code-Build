@@ -1,4 +1,9 @@
 // Ported from app/api/paystack/subscribe/route.ts
+//
+// The caller's identity (userId) is derived server-side from the verified
+// JWT, never trusted from the request body - otherwise anyone could grant a
+// paid subscription to an arbitrary victim's account.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { corsHeaders } from "../_shared/cors.ts"
 import { PAYSTACK_CONFIG, generatePaystackReference, validatePaystackConfig, getPlanById } from "../_shared/paystack.ts"
 
@@ -15,11 +20,31 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders })
 
   try {
-    const body = await req.json()
-    const { planId, email, userId } = body || {}
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader) return json({ error: "Unauthorized" }, 401)
 
-    if (!planId || !email || !userId) {
-      return json({ success: false, error: "Missing required fields", message: "Plan ID, email, and user ID are required" }, 400)
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!
+    const supabaseAsCaller = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAsCaller.auth.getUser()
+
+    if (authError || !user) {
+      console.error("[paystack-subscribe] Auth error:", authError)
+      return json({ error: "Unauthorized" }, 401)
+    }
+
+    const body = await req.json()
+    const { planId, email } = body || {}
+    const userId = user.id
+
+    if (!planId || !email) {
+      return json({ success: false, error: "Missing required fields", message: "Plan ID and email are required" }, 400)
     }
 
     const configValidation = validatePaystackConfig()

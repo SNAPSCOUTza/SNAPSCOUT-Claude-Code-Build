@@ -1,26 +1,39 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { PAYSTACK_CONFIG, generatePaystackReference, validatePaystackConfig, getPlanById } from "@/lib/paystack"
+import { createServerClient } from "@/lib/supabase/server"
 
 interface SubscribeRequest {
   planId: string
   email: string
-  userId: string
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createServerClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const body: SubscribeRequest = await request.json()
-    const { planId, email, userId } = body
+    const { planId, email } = body
+    // Never trust the caller's identity from the body - derive it from the
+    // verified session so a caller can't grant a paid plan to someone else.
+    const userId = user.id
 
     console.log("[PAYSTACK] Subscription request:", { planId, email, userId })
 
     // Validate required fields
-    if (!planId || !email || !userId) {
+    if (!planId || !email) {
       return NextResponse.json(
         {
           success: false,
           error: "Missing required fields",
-          message: "Plan ID, email, and user ID are required",
+          message: "Plan ID and email are required",
         },
         { status: 400 },
       )

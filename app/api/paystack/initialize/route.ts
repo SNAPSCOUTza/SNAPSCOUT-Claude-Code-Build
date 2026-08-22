@@ -7,24 +7,37 @@ import {
   USE_SUBSCRIPTION_PLANS,
 } from "@/lib/paystack"
 import { sanitizeOptionalUrl, sanitizeSingleLineInput } from "@/lib/utils/sanitize"
+import { createServerClient } from "@/lib/supabase/server"
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createServerClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const body = await request.json()
 
     // Handle new subscription format from subscribe page
     const email = sanitizeSingleLineInput(body?.email, 160).toLowerCase()
-    const rawAmount = typeof body?.amount === "number" ? body.amount : Number(body?.amount)
-    const amount = Number.isFinite(rawAmount) ? rawAmount : undefined
     const plan = sanitizeSingleLineInput(body?.plan || body?.accountType, 80)
     const planCode = sanitizeSingleLineInput(body?.plan_code, 120)
-    const userId = sanitizeSingleLineInput(body?.metadata?.user_id || body?.userId, 120)
+    // The caller's identity and the price charged are never trusted from the
+    // request body - both are derived server-side (verified session, plan
+    // config) so a caller can't grant a paid plan to someone else's account
+    // or tamper with the amount charged.
+    const userId = user.id
     const callbackUrl = sanitizeOptionalUrl(body?.callback_url, 500)
 
-    console.log("[v0] Payment initialization request:", { email, amount, plan, planCode, userId })
+    console.log("[v0] Payment initialization request:", { email, plan, planCode, userId })
 
-    if (!email || !userId) {
-      console.log("[v0] Missing required fields:", { email: !!email, userId: !!userId })
+    if (!email) {
+      console.log("[v0] Missing required fields:", { email: !!email })
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
@@ -43,18 +56,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (plan === "Scout" || amount === 0) {
+    const paymentAmount = SUBSCRIPTION_PRICES[plan.toLowerCase() as keyof typeof SUBSCRIPTION_PRICES]
+    if (paymentAmount === undefined) {
+      console.log("[v0] Invalid plan:", { plan })
+      return NextResponse.json({ error: "Invalid plan" }, { status: 400 })
+    }
+
+    if (paymentAmount === 0) {
       return NextResponse.json({
         success: true,
         isFree: true,
         message: "Free account - no payment required",
       })
-    }
-
-    const paymentAmount = amount || SUBSCRIPTION_PRICES[plan as keyof typeof SUBSCRIPTION_PRICES]
-    if (!paymentAmount) {
-      console.log("[v0] Invalid plan or amount:", { plan, amount, paymentAmount })
-      return NextResponse.json({ error: "Invalid plan or amount" }, { status: 400 })
     }
 
     const reference = generatePaystackReference()

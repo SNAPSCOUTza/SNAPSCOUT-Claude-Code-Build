@@ -1,4 +1,10 @@
 // Ported from app/api/paystack/initialize/route.ts
+//
+// The caller's identity (userId) and the amount charged are both derived
+// server-side from the verified JWT / plan config, never trusted from the
+// request body - otherwise anyone could grant a paid subscription to an
+// arbitrary victim's account for an arbitrary (attacker-chosen) price.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { corsHeaders } from "../_shared/cors.ts"
 import { sanitizeOptionalUrl, sanitizeSingleLineInput } from "../_shared/sanitize.ts"
 import { PAYSTACK_CONFIG, SUBSCRIPTION_PRICES, generatePaystackReference, validatePaystackConfig } from "../_shared/paystack.ts"
@@ -16,17 +22,34 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders })
 
   try {
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader) return json({ error: "Unauthorized" }, 401)
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!
+    const supabaseAsCaller = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAsCaller.auth.getUser()
+
+    if (authError || !user) {
+      console.error("[paystack-initialize] Auth error:", authError)
+      return json({ error: "Unauthorized" }, 401)
+    }
+
     const body = await req.json()
 
     const email = sanitizeSingleLineInput(body?.email, 160).toLowerCase()
-    const rawAmount = typeof body?.amount === "number" ? body.amount : Number(body?.amount)
-    const amount = Number.isFinite(rawAmount) ? rawAmount : undefined
     const plan = sanitizeSingleLineInput(body?.plan || body?.accountType, 80)
     const planCode = sanitizeSingleLineInput(body?.plan_code, 120)
-    const userId = sanitizeSingleLineInput(body?.metadata?.user_id || body?.userId, 120)
+    const userId = user.id
     const callbackUrl = sanitizeOptionalUrl(body?.callback_url, 500)
 
-    if (!email || !userId) {
+    if (!email) {
       return json({ error: "Missing required fields" }, 400)
     }
 
@@ -43,13 +66,13 @@ Deno.serve(async (req) => {
       )
     }
 
-    if (plan === "Scout" || amount === 0) {
-      return json({ success: true, isFree: true, message: "Free account - no payment required" })
+    const paymentAmount = SUBSCRIPTION_PRICES[plan.toLowerCase()]
+    if (paymentAmount === undefined) {
+      return json({ error: "Invalid plan" }, 400)
     }
 
-    const paymentAmount = amount || SUBSCRIPTION_PRICES[plan]
-    if (!paymentAmount) {
-      return json({ error: "Invalid plan or amount" }, 400)
+    if (paymentAmount === 0) {
+      return json({ success: true, isFree: true, message: "Free account - no payment required" })
     }
 
     const reference = generatePaystackReference()
