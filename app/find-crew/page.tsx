@@ -48,6 +48,7 @@ interface CrewMember {
   recent_work_caption?: string
   is_profile_visible: boolean
   isLiveProfile: boolean
+  pricing?: string
 }
 
 const departments = ["Camera", "Audio", "Lighting", "Production", "Art", "Hair & Makeup"]
@@ -150,6 +151,9 @@ export default function FindCrewPage() {
       const liveProfiles = (data || []).map((profile: any) => {
         const profileId = profile.user_id || profile.id
         const location = profile.location || [profile.city, profile.province].filter(Boolean).join(", ")
+        const pricing =
+          profile.pricing ||
+          (profile.hourly_rate ? `R${profile.hourly_rate}/hr` : profile.daily_rate ? `R${profile.daily_rate}/day` : "")
 
         return {
           id: profileId,
@@ -171,6 +175,7 @@ export default function FindCrewPage() {
           rating: profile.rating || 0,
           reviews: profile.review_count || 0,
           isLiveProfile: true, // Flag to identify live profiles
+          pricing,
         }
       })
 
@@ -532,7 +537,7 @@ export default function FindCrewPage() {
                               {member.rating ? `${member.rating.toFixed(1)} (${member.reviews || 0})` : "New"}
                             </span>
                           </div>
-                          <span className="font-semibold text-[#0d0f13]">R950/hr</span>
+                          <span className="font-semibold text-[#0d0f13]">{member.pricing || "R950/hr"}</span>
                         </div>
 
                         <p className="mt-2 line-clamp-2 text-[12px] leading-relaxed text-[#666b75]">{member.bio}</p>
@@ -1253,7 +1258,7 @@ export default function FindCrewPage() {
         talentId={hireRequestMember?.user_id || hireRequestMember?.id || ""}
         talentName={hireRequestMember?.display_name || "Crew Member"}
         talentType="crew"
-        priceLabel="R950/hr"
+        priceLabel={hireRequestMember?.pricing || "R950/hr"}
       />
     </div>
   )
