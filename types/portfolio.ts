@@ -9,7 +9,11 @@ export type PortfolioSourcePlatform =
 
 export type PortfolioMediaType = "image" | "video" | "embed" | "external"
 
-export type PortfolioSource = "upload" | "instagram"
+// "upload" / "instagram" are also used as the whole-profile source switch
+// (see getPublicPortfolioItems) - "link" only ever appears as a per-item tag
+// on individual portfolio_items rows (Vimeo/YouTube/etc imports), never as
+// the profile-level switch.
+export type PortfolioSource = "upload" | "instagram" | "link"
 
 export type NormalizedPortfolioItem = {
   id: string
@@ -75,7 +79,10 @@ export type ProfilePortfolioItem = {
 
 export type LightboxPortfolioItem = {
   id: string
-  type: "image" | "video"
+  // "link" = no real playable/embeddable preview exists (e.g. a plain
+  // Instagram/Facebook permalink with no embed_url) - render as a link-out
+  // card, not a broken video or a meaningless placeholder image.
+  type: "image" | "video" | "link"
   thumbnail: string
   fullUrl?: string
   title?: string
@@ -93,6 +100,13 @@ export type LightboxPortfolioItem = {
 export function normalizePortfolioItem(item: ProfilePortfolioItem, index = 0): LightboxPortfolioItem {
   const platform = item.source_platform || item.platform || (item.source === "instagram" ? "instagram" : "local")
   const mediaType = item.media_type || item.mediaType || item.type || "image"
+  const hasRealEmbed = Boolean(item.embed_url || item.embedUrl)
+  const type: LightboxPortfolioItem["type"] =
+    mediaType === "image" || mediaType === "external"
+      ? "image"
+      : mediaType === "embed" && !hasRealEmbed
+        ? "link"
+        : "video"
   const thumbnail =
     item.thumbnailUrl ||
     item.thumbnail_url ||
@@ -107,7 +121,7 @@ export function normalizePortfolioItem(item: ProfilePortfolioItem, index = 0): L
 
   return {
     id: item.id || `portfolio-${index}`,
-    type: mediaType === "image" || mediaType === "external" ? "image" : "video",
+    type,
     thumbnail,
     fullUrl:
       item.mediaUrl ||

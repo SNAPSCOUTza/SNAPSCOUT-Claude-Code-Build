@@ -22,6 +22,23 @@ function vimeoId(url: URL) {
   return url.pathname.split("/").filter(Boolean).find((part) => /^\d+$/.test(part)) || null
 }
 
+// Vimeo's oEmbed endpoint is public - no API key needed - and returns a real
+// thumbnail for the video. Falls back to the generic static placeholder if
+// the video is private/deleted or the request fails; never lets a thumbnail
+// lookup block the actual import.
+async function fetchVimeoThumbnail(videoUrl: string): Promise<string | null> {
+  try {
+    const response = await fetch(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(videoUrl)}`, {
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!response.ok) return null
+    const data = await response.json()
+    return typeof data.thumbnail_url === "string" ? data.thumbnail_url : null
+  } catch {
+    return null
+  }
+}
+
 function classifyUrl(url: URL): {
   source_platform: PortfolioSourcePlatform
   media_type: PortfolioMediaType
@@ -83,6 +100,14 @@ export async function POST(request: Request) {
   }
 
   const classified = classifyUrl(parsed)
+
+  // Real thumbnail for Vimeo instead of the generic placeholder - cheap,
+  // public API call, worth the extra round trip for a much better result.
+  if (classified.source_platform === "vimeo") {
+    const realThumbnail = await fetchVimeoThumbnail(parsed.toString())
+    if (realThumbnail) classified.thumbnail_url = realThumbnail
+  }
+
   const payload = {
     user_id: user.id,
     source_platform: classified.source_platform,

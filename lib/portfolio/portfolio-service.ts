@@ -52,7 +52,7 @@ export function normalizePortfolioLinkItem(record: any): NormalizedPortfolioItem
   const mediaUrl = record.full_media_url || record.thumbnail_url || record.embed_url || record.source_url || "/placeholder.svg"
   return {
     id: record.id,
-    source: "upload",
+    source: "link",
     source_platform: record.source_platform || "external",
     mediaType: normalizeMediaType(record.media_type),
     media_type: record.media_type,
@@ -72,7 +72,12 @@ export function normalizePortfolioLinkItem(record: any): NormalizedPortfolioItem
 }
 
 export function normalizeInstagramItem(record: any, username?: string | null): NormalizedPortfolioItem {
+  const isVideo = normalizeMediaType(record.media_type) !== "image"
   const mediaUrl = record.media_url || record.thumbnail_url || "/placeholder.svg"
+  // For video/reel items with no real thumbnail from Instagram, fall back to
+  // a static placeholder - never to mediaUrl, which for video is the raw
+  // .mp4 file and can't be decoded by an <img>.
+  const thumbnailUrl = record.thumbnail_url || (isVideo ? "/video-reel-showcase.png" : mediaUrl)
   return {
     id: record.id || record.media_id || record.instagram_media_id,
     cacheId: record.id,
@@ -80,10 +85,10 @@ export function normalizeInstagramItem(record: any, username?: string | null): N
     source: "instagram",
     source_platform: "instagram",
     mediaType: normalizeMediaType(record.media_type),
-    media_type: normalizeMediaType(record.media_type) === "image" ? "image" : "video",
-    thumbnailUrl: record.thumbnail_url || mediaUrl,
+    media_type: isVideo ? "video" : "image",
+    thumbnailUrl,
     mediaUrl,
-    thumbnail_url: record.thumbnail_url || mediaUrl,
+    thumbnail_url: thumbnailUrl,
     full_media_url: mediaUrl,
     media_url: mediaUrl,
     permalink: record.permalink,
@@ -373,7 +378,12 @@ export async function upsertInstagramMedia(
     instagram_media_id: item.id,
     media_id: item.id,
     media_url: item.media_url || item.thumbnail_url || null,
-    thumbnail_url: item.thumbnail_url || item.media_url || null,
+    // Instagram's Graph API often omits thumbnail_url for VIDEO/REEL media
+    // (still processing, or just not returned). Never fall back to
+    // media_url here - for video that's the raw .mp4 file, and handing it
+    // to an <img> renders nothing. normalizeInstagramItem below is what
+    // turns a missing thumbnail into a real placeholder image.
+    thumbnail_url: item.thumbnail_url || null,
     permalink: item.permalink || null,
     caption: item.caption || null,
     media_type: item.media_type || "IMAGE",

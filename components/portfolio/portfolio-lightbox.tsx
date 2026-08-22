@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useCallback } from "react"
-import { X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
+import { X, ChevronLeft, ChevronRight, ExternalLink, Facebook, Instagram } from "lucide-react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -109,7 +109,28 @@ export function PortfolioLightbox({ items, currentIndex, onClose, onNext, onPrev
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         className="relative flex max-h-[92dvh] w-full max-w-5xl flex-col gap-3 px-1 sm:px-16"
       >
-        {currentItem.type === "video" ? (
+        {currentItem.type === "link" ? (
+          <div
+            className={`aspect-video overflow-hidden rounded-[28px] shadow-[0_22px_52px_rgba(0,0,0,0.35)] outline outline-1 outline-white/10 ${
+              currentItem.platform === "facebook" ? "bg-[#1877f2]" : "bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af]"
+            }`}
+          >
+            <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-white">
+              {currentItem.platform === "facebook" ? <Facebook className="h-12 w-12" /> : <Instagram className="h-12 w-12" />}
+              <p className="text-sm font-semibold">No preview available for this link</p>
+              {currentItem.link && (
+                <a
+                  href={currentItem.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full bg-white/95 px-5 py-2.5 text-sm font-bold text-[#111318]"
+                >
+                  View on {currentItem.platform === "facebook" ? "Facebook" : "Instagram"}
+                </a>
+              )}
+            </div>
+          </div>
+        ) : currentItem.type === "video" ? (
           <div className="aspect-video overflow-hidden rounded-[28px] bg-black shadow-[0_22px_52px_rgba(0,0,0,0.35)] outline outline-1 outline-white/10">
             {currentItem.embedUrl ? (
               <iframe

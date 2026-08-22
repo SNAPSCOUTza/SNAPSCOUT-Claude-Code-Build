@@ -9,14 +9,18 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Clapperboard,
   ExternalLink,
   ImageIcon,
   Instagram,
+  Link2,
   Loader2,
+  Play,
   RefreshCw,
   Star,
   Trash2,
   Upload,
+  Youtube,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -85,6 +89,29 @@ function isUploadItem(item: ProfilePortfolioItem) {
   return item.source === "upload" || item.source_platform === "local"
 }
 
+function isLinkItem(item: ProfilePortfolioItem) {
+  return item.source === "link"
+}
+
+// Instagram/Facebook links have no real thumbnail (no embed, no API access
+// to fetch one) - show a branded link-out card instead of a broken/placeholder
+// image. Vimeo/YouTube do have a real thumbnail by this point, so those
+// still render as a normal image.
+function linkCardFor(item: ProfilePortfolioItem) {
+  if (!isLinkItem(item)) return null
+  if (item.source_platform === "instagram") return { icon: Instagram, bg: "bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af]" }
+  if (item.source_platform === "facebook") return { icon: ExternalLink, bg: "bg-[#1877f2]" }
+  return null
+}
+
+function platformBadge(item: ProfilePortfolioItem) {
+  if (item.source === "instagram" || item.source_platform === "instagram") return Instagram
+  if (item.source_platform === "youtube") return Youtube
+  if (item.source_platform === "vimeo") return Play
+  if (isLinkItem(item)) return Link2
+  return null
+}
+
 export function PortfolioManager({
   items,
   loading = false,
@@ -105,6 +132,10 @@ export function PortfolioManager({
   const [uploadStatus, setUploadStatus] = useState<Status>("idle")
   const [instagramStatus, setInstagramStatus] = useState<Status>("idle")
   const [message, setMessage] = useState("")
+  const [projectUrl, setProjectUrl] = useState("")
+  const [projectTitle, setProjectTitle] = useState("")
+  const [projectStatus, setProjectStatus] = useState<Status>("idle")
+  const [projectMessage, setProjectMessage] = useState("")
 
   const visibleItems = useMemo(() => items.slice(0, DISPLAY_LIMIT), [items])
   const emptySlots = Math.max(0, DISPLAY_LIMIT - visibleItems.length)
@@ -200,24 +231,63 @@ export function PortfolioManager({
   }
 
   const handleDelete = async (item: ProfilePortfolioItem) => {
-    if (!isUploadItem(item)) return
+    const upload = isUploadItem(item)
+    const link = isLinkItem(item)
+    if (!upload && !link) return
     setUploadStatus("loading")
     setMessage("")
 
     try {
-      const response = await fetch(`/api/portfolio/upload/${encodeURIComponent(item.id)}`, {
+      const endpoint = upload ? `/api/portfolio/upload/${encodeURIComponent(item.id)}` : `/api/portfolio/items/${encodeURIComponent(item.id)}`
+      const response = await fetch(endpoint, {
         method: "DELETE",
         credentials: "include",
       })
       const payload = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(payload.error || "Could not delete portfolio image.")
+      if (!response.ok) throw new Error(payload.error || "Could not delete portfolio item.")
       setUploadStatus("success")
-      setMessage("Portfolio image removed.")
+      setMessage(upload ? "Portfolio image removed." : "Project removed.")
       await onRefresh()
       await refreshPortfolio()
     } catch (error: any) {
       setUploadStatus("error")
-      setMessage(error?.message || "Could not delete portfolio image.")
+      setMessage(error?.message || "Could not delete portfolio item.")
+    }
+  }
+
+  const handleAddProject = async () => {
+    if (!projectUrl.trim()) {
+      setProjectStatus("error")
+      setProjectMessage("Paste a link to your project first.")
+      return
+    }
+
+    setProjectStatus("loading")
+    setProjectMessage("")
+
+    try {
+      const response = await fetch("/api/portfolio/import-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          url: projectUrl.trim(),
+          title: projectTitle.trim() || undefined,
+          sort_order: visibleItems.length,
+        }),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(payload.error || "Could not add that project.")
+
+      setProjectUrl("")
+      setProjectTitle("")
+      setProjectStatus("success")
+      setProjectMessage("Project added to your portfolio.")
+      await onRefresh()
+      await refreshPortfolio()
+    } catch (error: any) {
+      setProjectStatus("error")
+      setProjectMessage(error?.message || "Could not add that project.")
     }
   }
 
@@ -514,6 +584,69 @@ export function PortfolioManager({
         </motion.section>
       </div>
 
+      <motion.section
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        className="rounded-[30px] border border-[#e8edf5] bg-white p-5 shadow-[0_18px_36px_rgba(10,15,25,0.06)]"
+      >
+        <div className="flex items-start gap-3">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#f4f6f8] text-[#101318]">
+            <Clapperboard className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-[#101318]">Add Project</h3>
+            <p className="mt-1 text-sm leading-6 text-[#667085]">
+              Paste a link to a video hosted elsewhere - Vimeo, YouTube, or a project page - and it'll play right on
+              your profile. Nothing gets uploaded or stored on SnapScout, so there's no file-size limit.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Label className="text-sm font-semibold">Project link</Label>
+            <div className="relative mt-2">
+              <Link2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98a2b3]" />
+              <Input
+                value={projectUrl}
+                onChange={(event) => {
+                  setProjectUrl(event.target.value)
+                  setProjectStatus("idle")
+                }}
+                className="h-12 rounded-full pl-11"
+                placeholder="https://vimeo.com/... or https://youtube.com/..."
+              />
+            </div>
+          </div>
+          <div className="sm:col-span-2">
+            <Label className="text-sm font-semibold">Project title (optional)</Label>
+            <Input
+              value={projectTitle}
+              onChange={(event) => setProjectTitle(event.target.value)}
+              className="mt-2 h-12 rounded-full"
+              placeholder="Behind the scenes - automotive campaign"
+            />
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          disabled={projectStatus === "loading" || visibleItems.length >= DISPLAY_LIMIT}
+          onClick={handleAddProject}
+          className="mt-4 h-[52px] w-full rounded-full bg-[#f20d14] text-white hover:bg-[#d9070d]"
+        >
+          {projectStatus === "loading" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+          {visibleItems.length >= DISPLAY_LIMIT ? "9 portfolio items added" : "Add Project"}
+        </Button>
+
+        {projectMessage && (
+          <div className={`mt-3 rounded-[18px] border px-4 py-3 text-sm ${projectStatus === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-100 bg-emerald-50 text-emerald-700"}`}>
+            {projectMessage}
+          </div>
+        )}
+      </motion.section>
+
       {connection && (
         <section className="rounded-[30px] border border-[#e8edf5] bg-white p-5 shadow-[0_18px_36px_rgba(10,15,25,0.05)]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -643,7 +776,12 @@ export function PortfolioManager({
         <div className="mt-5 grid grid-cols-3 gap-3">
           {loading
             ? Array.from({ length: DISPLAY_LIMIT }).map((_, index) => <div key={index} className="aspect-square animate-pulse rounded-[22px] bg-[#eef2f6]" />)
-            : visibleItems.map((item, index) => (
+            : visibleItems.map((item, index) => {
+                const linkCard = linkCardFor(item)
+                const BadgeIcon = platformBadge(item)
+                const deletable = isUploadItem(item) || isLinkItem(item)
+
+                return (
                 <motion.div
                   key={`${item.id}-${index}`}
                   initial={{ opacity: 0, y: 12 }}
@@ -651,16 +789,22 @@ export function PortfolioManager({
                   transition={{ duration: 0.3, delay: index * 0.04 }}
                   className="group relative aspect-square overflow-hidden rounded-[22px] bg-[#f4f6f8]"
                 >
-                  <Image src={getItemImage(item)} alt={item.title || item.caption || "Portfolio image"} fill className="object-cover transition duration-300 group-hover:scale-105" />
+                  {linkCard ? (
+                    <div className={`absolute inset-0 grid place-items-center ${linkCard.bg} text-white`}>
+                      <linkCard.icon className="h-8 w-8" />
+                    </div>
+                  ) : (
+                    <Image src={getItemImage(item)} alt={item.title || item.caption || "Portfolio image"} fill className="object-cover transition duration-300 group-hover:scale-105" />
+                  )}
                   {item.is_cover && (
                     <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-[#f20d14] px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
                       <Star className="h-3 w-3 fill-current" />
                       Cover
                     </span>
                   )}
-                  {isUploadItem(item) && (
+                  {deletable && (
                     <div className="absolute right-2 top-2 flex gap-1.5 opacity-0 transition group-hover:opacity-100">
-                      {!item.is_cover && (
+                      {isUploadItem(item) && !item.is_cover && (
                         <button
                           type="button"
                           onClick={() => handleSetCover(item)}
@@ -675,19 +819,20 @@ export function PortfolioManager({
                         type="button"
                         onClick={() => handleDelete(item)}
                         className="grid h-9 w-9 place-items-center rounded-full bg-white/95 text-[#f20d14] shadow-sm"
-                        aria-label="Delete portfolio image"
+                        aria-label={isLinkItem(item) ? "Remove project" : "Delete portfolio image"}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   )}
-                  {item.source === "instagram" && (
+                  {BadgeIcon && !linkCard && (
                     <span className="absolute left-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-white/95 text-[#f20d14] shadow-sm">
-                      <Instagram className="h-4 w-4" />
+                      <BadgeIcon className="h-4 w-4" />
                     </span>
                   )}
                 </motion.div>
-              ))}
+                )
+              })}
           {!loading &&
             Array.from({ length: emptySlots }).map((_, index) => (
               <div key={`empty-${index}`} className="grid aspect-square place-items-center rounded-[22px] border border-dashed border-[#dbe2ec] bg-[#fbfcfe] text-center text-[#98a2b3]">
