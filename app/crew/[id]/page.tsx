@@ -22,6 +22,7 @@ import MobileShell from "@/components/mobile/mobile-shell"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
+import { LeaveReviewButton } from "@/components/reviews/leave-review-button"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { mockCrewMembers, type MockCrewMember } from "@/lib/mock-data/crew-data"
@@ -153,6 +154,7 @@ export default function CrewProfilePage() {
 
   const [liveProfile, setLiveProfile] = useState<CrewProfile | null>(null)
   const [loadingLive, setLoadingLive] = useState(!mockProfile)
+  const [reviewRefreshKey, setReviewRefreshKey] = useState(0)
 
   useEffect(() => {
     if (mockProfile) return
@@ -176,7 +178,7 @@ export default function CrewProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [params.id, mockProfile])
+  }, [params.id, mockProfile, reviewRefreshKey])
 
   const profile = mockProfile || liveProfile
 
@@ -343,6 +345,13 @@ export default function CrewProfilePage() {
               </Button>
             )}
           </div>
+
+          <LeaveReviewButton
+            profileId={profile.id}
+            profileName={profile.display_name}
+            onReviewChange={() => setReviewRefreshKey((key) => key + 1)}
+            className="mt-3 h-12 w-full rounded-full border-[#e6ebf3] bg-white text-[#111318] hover:bg-[#fff7f7] hover:text-[#f20d14]"
+          />
 
           <div className="mt-4 rounded-2xl border border-[#e6ebf3] bg-[#f7f9fc] p-4">
             <div className="flex items-start gap-3">

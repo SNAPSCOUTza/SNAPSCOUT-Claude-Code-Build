@@ -21,6 +21,7 @@ import {
 
 import MobileShell from "@/components/mobile/mobile-shell"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
+import { LeaveReviewButton } from "@/components/reviews/leave-review-button"
 import { SaveProfileButton } from "@/components/messaging/save-profile-button"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
 import { Badge } from "@/components/ui/badge"
@@ -149,6 +150,7 @@ export default function CreatorProfilePage() {
   const [requestedDate, setRequestedDate] = useState<string | undefined>()
   const [requestOrigin, setRequestOrigin] = useState<"booking" | "availability">("booking")
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0)
+  const [reviewRefreshKey, setReviewRefreshKey] = useState(0)
   const heroScrollerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -173,7 +175,7 @@ export default function CreatorProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [params.id, mockCreator])
+  }, [params.id, mockCreator, reviewRefreshKey])
 
   const creator = mockCreator || liveCreator
 
@@ -426,6 +428,13 @@ export default function CreatorProfilePage() {
                 Call
               </Button>
             </div>
+
+            <LeaveReviewButton
+              profileId={creator.id}
+              profileName={creator.name}
+              onReviewChange={() => setReviewRefreshKey((key) => key + 1)}
+              className="h-12 w-full rounded-full border-slate-200 bg-white text-[16px] font-medium text-[#111318] hover:bg-slate-50"
+            />
 
             <div className="rounded-[24px] border border-slate-200 bg-[#f7f9fc] px-4 py-3">
               {[
