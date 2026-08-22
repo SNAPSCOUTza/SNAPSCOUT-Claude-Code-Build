@@ -125,13 +125,15 @@ export default function CallSheetPage() {
     }
   }
 
+  const isOwner = callSheet?.is_owner !== false
+
   return (
     <main className="min-h-screen bg-white px-4 py-8 text-[#07111f] md:px-8 print:px-0">
       <div className="mx-auto max-w-5xl">
         <Button asChild variant="ghost" className="-ml-3 rounded-full print:hidden">
-          <Link href="/crew-pools">
+          <Link href={isOwner ? "/crew-pools" : "/dashboard"}>
             <ArrowLeft className="h-4 w-4" />
-            Crew Pools
+            {isOwner ? "Crew Pools" : "Dashboard"}
           </Link>
         </Button>
 
@@ -145,13 +147,21 @@ export default function CallSheetPage() {
             <>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex-1">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ef1218]">Call sheet</p>
-                  <Input
-                    value={projectName}
-                    onChange={(event) => setProjectName(event.target.value)}
-                    onBlur={updateProjectName}
-                    className="mt-2 h-auto border-0 bg-transparent p-0 text-3xl font-black tracking-tight shadow-none focus-visible:ring-0 md:text-5xl"
-                  />
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ef1218]">
+                    Call sheet{!isOwner && callSheet?.owner?.full_name ? ` · from ${callSheet.owner.full_name}` : ""}
+                  </p>
+                  {isOwner ? (
+                    <Input
+                      value={projectName}
+                      onChange={(event) => setProjectName(event.target.value)}
+                      onBlur={updateProjectName}
+                      className="mt-2 h-auto border-0 bg-transparent p-0 text-3xl font-black tracking-tight shadow-none focus-visible:ring-0 md:text-5xl"
+                    />
+                  ) : (
+                    <h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">
+                      {callSheet?.project_name || "Untitled production"}
+                    </h1>
+                  )}
                   <div className="mt-4 flex flex-wrap gap-3 text-sm text-[#5d6b82]">
                     <span className="rounded-full bg-[#f4f7fb] px-3 py-2">{callSheet?.shoot_date}</span>
                     <span className="rounded-full bg-[#f4f7fb] px-3 py-2">{callSheet?.shoot_location || "Location TBC"}</span>
@@ -205,19 +215,32 @@ export default function CallSheetPage() {
                           <p className="truncate text-sm text-[#5d6b82]">{entry.role || entry.profile?.role || "Crew"}</p>
                         </div>
                       </div>
-                      <Input
-                        defaultValue={entry.call_time}
-                        onBlur={(event) => updateCrew(entry, { call_time: event.target.value })}
-                        className="h-11 rounded-full bg-white"
-                        aria-label={`Call time for ${entry.profile?.full_name || "crew member"}`}
-                      />
-                      <Input
-                        defaultValue={entry.department || ""}
-                        onBlur={(event) => updateCrew(entry, { department: event.target.value })}
-                        className="h-11 rounded-full bg-white"
-                        placeholder="Department"
-                        aria-label={`Department for ${entry.profile?.full_name || "crew member"}`}
-                      />
+                      {isOwner ? (
+                        <>
+                          <Input
+                            defaultValue={entry.call_time}
+                            onBlur={(event) => updateCrew(entry, { call_time: event.target.value })}
+                            className="h-11 rounded-full bg-white"
+                            aria-label={`Call time for ${entry.profile?.full_name || "crew member"}`}
+                          />
+                          <Input
+                            defaultValue={entry.department || ""}
+                            onBlur={(event) => updateCrew(entry, { department: event.target.value })}
+                            className="h-11 rounded-full bg-white"
+                            placeholder="Department"
+                            aria-label={`Department for ${entry.profile?.full_name || "crew member"}`}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex h-11 items-center rounded-full bg-[#f4f7fb] px-4 text-sm font-semibold">
+                            Call {entry.call_time}
+                          </span>
+                          <span className="flex h-11 items-center rounded-full bg-[#f4f7fb] px-4 text-sm text-[#5d6b82]">
+                            {entry.department || "Department TBC"}
+                          </span>
+                        </>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -225,25 +248,29 @@ export default function CallSheetPage() {
         </div>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row print:hidden">
-          <Button
-            type="button"
-            disabled={saving === "send" || callSheet?.status === "sent"}
-            onClick={sendCallSheet}
-            className="h-12 rounded-full bg-[#ef1218] text-white hover:bg-[#d90d12]"
-          >
-            <Send className="h-4 w-4" />
-            Send to Crew
-          </Button>
+          {isOwner && (
+            <Button
+              type="button"
+              disabled={saving === "send" || callSheet?.status === "sent"}
+              onClick={sendCallSheet}
+              className="h-12 rounded-full bg-[#ef1218] text-white hover:bg-[#d90d12]"
+            >
+              <Send className="h-4 w-4" />
+              Send to Crew
+            </Button>
+          )}
           <Button type="button" variant="outline" onClick={() => window.print()} className="h-12 rounded-full bg-white">
             <Printer className="h-4 w-4" />
             Export as PDF
           </Button>
+          {isOwner && (
           <Button asChild variant="outline" className="h-12 rounded-full bg-white">
             <Link href="/dashboard/payment">
               <CreditCard className="h-4 w-4" />
               Request Payments
             </Link>
           </Button>
+          )}
         </div>
       </div>
     </main>

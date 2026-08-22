@@ -60,6 +60,11 @@ export type CallSheet = {
   status: "draft" | "sent"
   created_at: string
   crew?: CallSheetCrewEntry[]
+  // Present once fetched from the API - true when the current viewer is the
+  // producer who created it, false when they're one of the crew it was sent
+  // to. Drives whether the page renders edit controls or a read-only view.
+  is_owner?: boolean
+  owner?: CrewProfile
 }
 
 export type CallSheetCrewEntry = {

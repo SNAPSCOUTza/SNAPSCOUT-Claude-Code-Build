@@ -68,6 +68,7 @@ import { CREATOR_SPECIALIZATION_OPTIONS } from "@/lib/creator-specializations"
 import { AvailabilityManager } from "@/components/availability/availability-manager"
 import type { AvailabilityOwnerType } from "@/lib/availability"
 import { IncomingAvailabilityRequests } from "@/components/crew/IncomingAvailabilityRequests"
+import { MyCallSheets } from "@/components/crew/MyCallSheets"
 import type { PortfolioSourcePlatform, ProfilePortfolioItem } from "@/types/portfolio"
 import {
   DEFAULT_STUDIO_STORE_PACKAGES,
@@ -1760,6 +1761,8 @@ export default function DashboardPage() {
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
             {user?.id && <IncomingAvailabilityRequests />}
+
+            {user?.id && <MyCallSheets />}
 
             {user?.id && (
               <AvailabilityManager ownerId={user.id} ownerType={dashboardOwnerType} />

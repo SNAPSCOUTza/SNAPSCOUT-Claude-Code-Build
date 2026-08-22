@@ -1,5 +1,50 @@
 import { NextResponse } from "next/server"
 import { apiError, getProfilesByIds, isApiErrorContext, requireUser, sanitizeText } from "@/lib/crew-pools/api"
+import { createAdminClient } from "@/lib/supabase/admin"
+
+// Call sheets the current user has been sent as crew (not ones they own -
+// see /api/call-sheets/[callSheetId] for the single-sheet, owner-or-crew
+// authorization check this mirrors).
+export async function GET() {
+  const context = await requireUser()
+  if (isApiErrorContext(context)) return context
+  const { supabase, user } = context
+
+  const { data: crewRows, error: crewError } = await supabase
+    .from("call_sheet_crew")
+    .select("call_sheet_id,call_time,department,role")
+    .eq("crew_member_id", user.id)
+
+  if (crewError) return apiError(crewError.message, 500, "CALL_SHEET_CREW_LOOKUP_FAILED")
+  if (!crewRows || crewRows.length === 0) return NextResponse.json({ call_sheets: [] })
+
+  const admin = createAdminClient()
+  const { data: sheets, error: sheetsError } = await admin
+    .from("call_sheets")
+    .select("id,owner_id,project_name,shoot_date,shoot_location,general_call_time,status,created_at")
+    .in(
+      "id",
+      crewRows.map((row: any) => row.call_sheet_id),
+    )
+    .eq("status", "sent")
+    .order("shoot_date", { ascending: true })
+
+  if (sheetsError) return apiError(sheetsError.message, 500, "CALL_SHEET_LIST_FAILED")
+
+  const ownerProfiles = await getProfilesByIds(
+    admin,
+    (sheets || []).map((sheet: any) => sheet.owner_id),
+  )
+  const crewByCallSheet = new Map(crewRows.map((row: any) => [row.call_sheet_id, row]))
+
+  return NextResponse.json({
+    call_sheets: (sheets || []).map((sheet: any) => ({
+      ...sheet,
+      my_entry: crewByCallSheet.get(sheet.id),
+      owner: ownerProfiles.get(sheet.owner_id),
+    })),
+  })
+}
 
 export async function POST(request: Request) {
   const context = await requireUser()

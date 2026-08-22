@@ -1,22 +1,30 @@
 import { NextResponse } from "next/server"
 import { apiError, getProfilesByIds, isApiErrorContext, requireUser, sanitizeText } from "@/lib/crew-pools/api"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function GET(_request: Request, { params }: { params: { callSheetId: string } }) {
   const context = await requireUser()
   if (isApiErrorContext(context)) return context
+  const { user } = context
 
-  const { supabase, user } = context
-  const { data: callSheet, error: callSheetError } = await supabase
+  // A call sheet needs to be readable by both its owner and any crew member
+  // it lists - call_sheets/call_sheet_crew RLS only grants the owner read
+  // access today. Widening that requires a DB migration this environment
+  // can't apply automatically (see scripts/create-crew-pool-tables.sql's own
+  // "run this manually" note), so authorization is enforced here instead,
+  // using the admin client to read past RLS once that check passes.
+  const admin = createAdminClient()
+
+  const { data: callSheet, error: callSheetError } = await admin
     .from("call_sheets")
     .select("id,request_id,owner_id,project_name,shoot_date,shoot_location,general_call_time,status,created_at")
     .eq("id", params.callSheetId)
-    .eq("owner_id", user.id)
     .maybeSingle()
 
   if (callSheetError) return apiError(callSheetError.message, 500, "CALL_SHEET_LOOKUP_FAILED")
   if (!callSheet) return apiError("Call sheet not found", 404, "CALL_SHEET_NOT_FOUND")
 
-  const { data: crew, error: crewError } = await supabase
+  const { data: crew, error: crewError } = await admin
     .from("call_sheet_crew")
     .select("id,call_sheet_id,crew_member_id,call_time,department,role")
     .eq("call_sheet_id", params.callSheetId)
@@ -24,14 +32,25 @@ export async function GET(_request: Request, { params }: { params: { callSheetId
 
   if (crewError) return apiError(crewError.message, 500, "CALL_SHEET_CREW_LOOKUP_FAILED")
 
-  const profileMap = await getProfilesByIds(
-    supabase,
-    (crew || []).map((entry: any) => entry.crew_member_id),
-  )
+  const isOwner = callSheet.owner_id === user.id
+  const isCrew = (crew || []).some((entry: any) => entry.crew_member_id === user.id)
+
+  // Crew can only see a call sheet once it's actually been sent - not a
+  // producer's in-progress draft.
+  if (!isOwner && !(isCrew && callSheet.status === "sent")) {
+    return apiError("Call sheet not found", 404, "CALL_SHEET_NOT_FOUND")
+  }
+
+  const profileMap = await getProfilesByIds(admin, [
+    ...(crew || []).map((entry: any) => entry.crew_member_id),
+    callSheet.owner_id,
+  ])
 
   return NextResponse.json({
     call_sheet: {
       ...callSheet,
+      is_owner: isOwner,
+      owner: profileMap.get(callSheet.owner_id),
       crew: (crew || []).map((entry: any) => ({
         ...entry,
         profile: profileMap.get(entry.crew_member_id),
