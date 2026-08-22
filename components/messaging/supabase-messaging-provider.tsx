@@ -20,8 +20,8 @@ interface Message {
 
 interface Conversation {
   id: string
-  participant_1_id: string
-  participant_2_id: string
+  participant_1: string
+  participant_2: string
   last_message_at: string
   created_at: string
   participants?: {
@@ -74,7 +74,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       const { data: convos } = await supabase
         .from("conversations")
         .select("*")
-        .or(`participant_1_id.eq.${userId},participant_2_id.eq.${userId}`)
+        .or(`participant_1.eq.${userId},participant_2.eq.${userId}`)
         .order("last_message_at", { ascending: false })
 
       if (!convos?.length) {
@@ -84,7 +84,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
 
       const conversationsWithParticipants = await Promise.all(
         convos.map(async (convo) => {
-          const otherId = convo.participant_1_id === userId ? convo.participant_2_id : convo.participant_1_id
+          const otherId = convo.participant_1 === userId ? convo.participant_2 : convo.participant_1
 
           const { data: profile } = await supabase
             .from("user_profiles")
@@ -277,13 +277,13 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       const userId = userIdRef.current
       if (!userId || !participantId || participantId === userId) return null
 
-      // The DB's unique constraint on (participant_1_id, participant_2_id) is
+      // The DB's unique constraint on (participant_1, participant_2) is
       // directional, so check both orderings before creating a new row.
       const { data: existingConvo } = await supabase
         .from("conversations")
         .select("id")
         .or(
-          `and(participant_1_id.eq.${userId},participant_2_id.eq.${participantId}),and(participant_1_id.eq.${participantId},participant_2_id.eq.${userId})`,
+          `and(participant_1.eq.${userId},participant_2.eq.${participantId}),and(participant_1.eq.${participantId},participant_2.eq.${userId})`,
         )
         .maybeSingle()
 
@@ -295,8 +295,8 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
       const { data: newConvo, error } = await supabase
         .from("conversations")
         .insert({
-          participant_1_id: userId,
-          participant_2_id: participantId,
+          participant_1: userId,
+          participant_2: participantId,
           last_message_at: new Date().toISOString(),
         })
         .select("id")
