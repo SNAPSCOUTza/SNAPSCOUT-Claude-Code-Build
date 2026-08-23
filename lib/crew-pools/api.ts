@@ -53,10 +53,18 @@ export function normalizeCrewProfile(record: any, fallbackId: string): CrewProfi
     record?.service_area ||
     "South Africa"
 
+  // record?.role is user_profiles.role - an admin permission level ("user",
+  // "admin", "super_admin"), not a job role. Never fall back to it here;
+  // account_type ("creator"/"studio"/"store") is the right fallback when
+  // profession isn't set.
+  const accountTypeLabel = record?.account_type
+    ? record.account_type.charAt(0).toUpperCase() + record.account_type.slice(1)
+    : null
+
   return {
     id: record?.user_id || record?.id || fallbackId,
     full_name: record?.display_name || record?.full_name || record?.username || "SnapScout Creative",
-    role: record?.profession || record?.role || record?.account_type || "Creative",
+    role: record?.profession || accountTypeLabel || "Creative",
     location,
     avatar_url: record?.profile_image_url || record?.profile_picture || record?.avatar_url || null,
     day_rate: parseDayRate(record?.day_rate || record?.pricing || record?.rate),
