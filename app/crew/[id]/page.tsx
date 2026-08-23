@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   BriefcaseBusiness,
   CalendarDays,
+  CheckCircle2,
   Clock3,
   Heart,
   HeartHandshake,
@@ -27,6 +28,7 @@ import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfoli
 import { PortfolioLightbox } from "@/components/portfolio/portfolio-lightbox"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { mockCrewMembers, type MockCrewMember } from "@/lib/mock-data/crew-data"
+import { parseTalentPackages, normalizeVisiblePackageCount } from "@/lib/mock-data/talent-dashboard-preview"
 import type { LightboxPortfolioItem } from "@/types/portfolio"
 
 interface CrewProfile {
@@ -46,6 +48,7 @@ interface CrewProfile {
   responseRate: string
   memberSince: string
   contactNumber: string
+  onboarding_data?: Record<string, any> | null
 }
 
 const portfolioFallbacks = [
@@ -128,6 +131,7 @@ function mapLiveProfileToCrewProfile(profile: any): CrewProfile {
     responseRate: "95%",
     memberSince: "Recently",
     contactNumber: "",
+    onboarding_data: profile.onboarding_data && typeof profile.onboarding_data === "object" ? profile.onboarding_data : null,
   }
 }
 
@@ -149,6 +153,7 @@ export default function CrewProfilePage() {
   const [activeSlide, setActiveSlide] = useState(0)
   const [portfolioGalleryItems, setPortfolioGalleryItems] = useState<LightboxPortfolioItem[]>([])
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [selectedPackageIndex, setSelectedPackageIndex] = useState(0)
   const carouselRef = useRef<HTMLDivElement | null>(null)
 
   const mockProfile = useMemo(() => {
@@ -169,7 +174,7 @@ export default function CrewProfilePage() {
     supabase
       .from("user_profiles")
       .select(
-        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, hourly_rate, daily_rate, skills, portfolio_images, rating, review_count",
+        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, hourly_rate, daily_rate, skills, portfolio_images, rating, review_count, onboarding_data",
       )
       .eq("user_id", params.id)
       .maybeSingle()
@@ -240,6 +245,41 @@ export default function CrewProfilePage() {
         platform: "local",
       }))
   const heroHighlights = services.slice(0, 3)
+
+  const talentDashboardSettings = profile.onboarding_data?.talent_dashboard
+  const rawTalentPackages =
+    Array.isArray(talentDashboardSettings?.package_items) && talentDashboardSettings.package_items.length > 0
+      ? parseTalentPackages(talentDashboardSettings.package_items)
+      : []
+  const visiblePackageCount = normalizeVisiblePackageCount(
+    talentDashboardSettings?.visible_package_count,
+    rawTalentPackages.length,
+  )
+  const talentPackages = rawTalentPackages.slice(0, visiblePackageCount)
+  // No custom packages configured - fall back to a single card built from
+  // this crew member's own real rate rather than showing nothing or
+  // inventing pricing they never set.
+  const packageCards = (
+    talentPackages.length
+      ? talentPackages
+      : [
+          {
+            id: "default",
+            name: "Book a Session",
+            price: profile.pricing,
+            description: `Get in touch to book ${firstName} for your next shoot.`,
+            image: "",
+            badge: "",
+            availability: "Available",
+            included: [] as string[],
+          },
+        ]
+  ).map((pkg) => ({
+    ...pkg,
+    coverImage: pkg.image || profile.profile_image_url || "/placeholder.svg",
+  }))
+  const selectedPackage = packageCards[selectedPackageIndex] || packageCards[0]
+  const packageBookingOptions = Array.from(new Set([...packageCards.map((pkg) => pkg.name), "Other"]))
 
   return (
     <MobileShell title="Find Crew">
@@ -446,6 +486,79 @@ export default function CrewProfilePage() {
           <div className="mt-4 rounded-2xl border border-[#e6ebf3] bg-white p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Quick package selection</p>
+                <p className="mt-1 text-[13px] leading-snug text-[#5b6371]">Pick a package and continue into booking.</p>
+              </div>
+            </div>
+            <div className="no-scrollbar -mx-1 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1">
+              {packageCards.map((pkg, index) => {
+                const isSelected = index === selectedPackageIndex
+                return (
+                  <button
+                    key={pkg.id}
+                    type="button"
+                    onClick={() => setSelectedPackageIndex(index)}
+                    className={`min-w-[78%] snap-start overflow-hidden rounded-2xl border bg-white text-left shadow-sm transition ${
+                      isSelected ? "border-[#f20d14] ring-2 ring-[#f20d14]/10" : "border-[#e6ebf3]"
+                    }`}
+                  >
+                    {pkg.coverImage && (
+                      <div className="relative h-28 w-full overflow-hidden bg-[#f7f9fc]">
+                        <Image src={pkg.coverImage} alt={pkg.name} fill className="object-cover" />
+                        {pkg.badge && (
+                          <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#111318] shadow-sm">
+                            {pkg.badge}
+                          </span>
+                        )}
+                        <span
+                          className={`absolute right-3 top-3 rounded-full px-3 py-1 text-[11px] font-semibold shadow-sm ${
+                            pkg.availability === "Available" ? "bg-[#ecfdf5] text-[#047857]" : "bg-[#fff7ed] text-[#b45309]"
+                          }`}
+                        >
+                          {pkg.availability}
+                        </span>
+                      </div>
+                    )}
+                    <div className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-[15px] font-semibold leading-tight text-[#111318]">{pkg.name}</p>
+                          <p className="mt-1 text-[13px] leading-relaxed text-[#5b6371]">{pkg.description}</p>
+                        </div>
+                        {isSelected ? <CheckCircle2 className="h-5 w-5 flex-none text-[#f20d14]" /> : null}
+                      </div>
+                      <div className="mt-3 flex items-end justify-between gap-2">
+                        <div>
+                          <p className="text-[11px] text-[#6d7480]">Package price</p>
+                          <p className="text-[16px] font-semibold text-[#f20d14]">{pkg.price}</p>
+                        </div>
+                        {pkg.included.length > 0 && (
+                          <div className="flex max-w-[54%] flex-wrap justify-end gap-1">
+                            {pkg.included.slice(0, 2).map((feature) => (
+                              <span key={feature} className="rounded-full bg-[#f3f5f8] px-2 py-1 text-[10px] font-medium text-[#3e4652]">
+                                {feature}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            <Button
+              type="button"
+              onClick={() => openHireSheet()}
+              className="mt-4 h-12 w-full rounded-full bg-[#f20d14] text-[15px] font-semibold text-white hover:bg-[#d80a10]"
+            >
+              {selectedPackage?.availability === "Available" ? "Book Selected Package" : "Check Availability"}
+            </Button>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-[#e6ebf3] bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
                 <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Live availability</p>
                 <p className="mt-2 text-[14px] leading-relaxed text-[#2b3340]">
                   Share your date and project details to check whether {firstName} is available for your shoot.
@@ -483,7 +596,9 @@ export default function CrewProfilePage() {
           talentId={profile.id}
           talentName={profile.display_name}
           talentType="crew"
-          priceLabel={profile.pricing}
+          priceLabel={selectedPackage?.price || profile.pricing}
+          bookingTypeOptions={packageBookingOptions}
+          initialBookingType={selectedPackage?.name}
           initialDate={requestedDate}
           requestOrigin={requestOrigin}
           recipientId={profile.id}

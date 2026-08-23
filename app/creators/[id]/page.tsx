@@ -8,6 +8,7 @@ import {
   BriefcaseBusiness,
   CalendarDays,
   Camera,
+  CheckCircle2,
   Clock3,
   Loader2,
   MapPin,
@@ -29,6 +30,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { mockCreators, type MockCreator } from "@/lib/mock-data/portfolio-data"
+import { parseTalentPackages, normalizeVisiblePackageCount } from "@/lib/mock-data/talent-dashboard-preview"
 import type { LightboxPortfolioItem } from "@/types/portfolio"
 
 type LiveCreator = MockCreator & {
@@ -38,6 +40,7 @@ type LiveCreator = MockCreator & {
   pricing?: string | null
   specializations?: string[]
   skills?: string[]
+  onboarding_data?: Record<string, any> | null
 }
 
 function mapLiveProfileToCreator(profile: any): LiveCreator {
@@ -60,6 +63,7 @@ function mapLiveProfileToCreator(profile: any): LiveCreator {
     pricing: profile.pricing,
     specializations: Array.isArray(profile.specializations) ? profile.specializations : [],
     skills: Array.isArray(profile.skills) ? profile.skills : [],
+    onboarding_data: profile.onboarding_data && typeof profile.onboarding_data === "object" ? profile.onboarding_data : null,
   }
 }
 
@@ -159,6 +163,7 @@ export default function CreatorProfilePage() {
   const [reviewRefreshKey, setReviewRefreshKey] = useState(0)
   const [portfolioGalleryItems, setPortfolioGalleryItems] = useState<LightboxPortfolioItem[]>([])
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [selectedPackageIndex, setSelectedPackageIndex] = useState(0)
   const heroScrollerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -170,7 +175,7 @@ export default function CreatorProfilePage() {
     supabase
       .from("user_profiles")
       .select(
-        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, pricing, hourly_rate, daily_rate, rating, review_count, specializations, skills",
+        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, pricing, hourly_rate, daily_rate, rating, review_count, specializations, skills, onboarding_data",
       )
       .eq("user_id", params.id)
       .maybeSingle()
@@ -270,6 +275,41 @@ export default function CreatorProfilePage() {
     title: service,
     icon: inferHighlightIcon(service),
   }))
+
+  const talentDashboardSettings = liveCreator?.onboarding_data?.talent_dashboard
+  const rawTalentPackages =
+    Array.isArray(talentDashboardSettings?.package_items) && talentDashboardSettings.package_items.length > 0
+      ? parseTalentPackages(talentDashboardSettings.package_items)
+      : []
+  const visiblePackageCount = normalizeVisiblePackageCount(
+    talentDashboardSettings?.visible_package_count,
+    rawTalentPackages.length,
+  )
+  const talentPackages = rawTalentPackages.slice(0, visiblePackageCount)
+  // No custom packages configured - fall back to a single card built from
+  // this creator's own real rate rather than showing nothing or inventing
+  // pricing they never set.
+  const packageCards = (
+    talentPackages.length
+      ? talentPackages
+      : [
+          {
+            id: "default",
+            name: "Book a Session",
+            price: `${defaults.priceLabel}${defaults.rateSuffix}`,
+            description: `Get in touch to book ${creator.name.split(" ")[0]} for your next shoot.`,
+            image: "",
+            badge: "",
+            availability: "Available",
+            included: [] as string[],
+          },
+        ]
+  ).map((pkg) => ({
+    ...pkg,
+    coverImage: pkg.image || creator.avatar || "/placeholder.svg",
+  }))
+  const selectedPackage = packageCards[selectedPackageIndex] || packageCards[0]
+  const packageBookingOptions = Array.from(new Set([...packageCards.map((pkg) => pkg.name), "Other"]))
 
   const openHireSheet = (date?: string, origin: "booking" | "availability" = "booking") => {
     setRequestedDate(date)
@@ -529,6 +569,77 @@ export default function CreatorProfilePage() {
             </div>
 
             <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-5">
+              <p className="text-[13px] font-black uppercase tracking-[0.18em] text-slate-500">Quick package selection</p>
+              <p className="mt-1 text-[14px] leading-snug text-slate-600">Pick a package and continue into booking.</p>
+
+              <div className="no-scrollbar -mx-1 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1">
+                {packageCards.map((pkg, index) => {
+                  const isSelected = index === selectedPackageIndex
+                  return (
+                    <button
+                      key={pkg.id}
+                      type="button"
+                      onClick={() => setSelectedPackageIndex(index)}
+                      className={`min-w-[78%] snap-start overflow-hidden rounded-2xl border bg-white text-left shadow-sm transition ${
+                        isSelected ? "border-[#ff1c1c] ring-2 ring-[#ff1c1c]/10" : "border-slate-200"
+                      }`}
+                    >
+                      {pkg.coverImage && (
+                        <div className="relative h-28 w-full overflow-hidden bg-slate-100">
+                          <Image src={pkg.coverImage} alt={pkg.name} fill className="object-cover" />
+                          {pkg.badge && (
+                            <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#111318] shadow-sm">
+                              {pkg.badge}
+                            </span>
+                          )}
+                          <span
+                            className={`absolute right-3 top-3 rounded-full px-3 py-1 text-[11px] font-semibold shadow-sm ${
+                              pkg.availability === "Available" ? "bg-[#ecfdf5] text-[#047857]" : "bg-[#fff7ed] text-[#b45309]"
+                            }`}
+                          >
+                            {pkg.availability}
+                          </span>
+                        </div>
+                      )}
+                      <div className="p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-[15px] font-semibold leading-tight text-[#111318]">{pkg.name}</p>
+                            <p className="mt-1 text-[13px] leading-relaxed text-slate-500">{pkg.description}</p>
+                          </div>
+                          {isSelected ? <CheckCircle2 className="h-5 w-5 flex-none text-[#ff1c1c]" /> : null}
+                        </div>
+                        <div className="mt-3 flex items-end justify-between gap-2">
+                          <div>
+                            <p className="text-[11px] text-slate-500">Package price</p>
+                            <p className="text-[16px] font-semibold text-[#ff1c1c]">{pkg.price}</p>
+                          </div>
+                          {pkg.included.length > 0 && (
+                            <div className="flex max-w-[54%] flex-wrap justify-end gap-1">
+                              {pkg.included.slice(0, 2).map((feature) => (
+                                <span key={feature} className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600">
+                                  {feature}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <Button
+                type="button"
+                onClick={() => openHireSheet()}
+                className="mt-4 h-12 w-full rounded-full bg-[#ff1c1c] text-[15px] font-semibold text-white hover:bg-[#e21818]"
+              >
+                {selectedPackage?.availability === "Available" ? "Book Selected Package" : "Check Availability"}
+              </Button>
+            </div>
+
+            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-5">
               <p className="text-[13px] font-black uppercase tracking-[0.18em] text-slate-500">Availability</p>
               <p className="mt-2 text-[16px] leading-7 text-slate-600">
                 Need to check dates or confirm timing? Start the booking flow to request availability.
@@ -559,7 +670,9 @@ export default function CreatorProfilePage() {
           talentId={creator.id}
           talentName={creator.name}
           talentType="creator"
-          priceLabel={`${defaults.priceLabel}${defaults.rateSuffix}`}
+          priceLabel={selectedPackage?.price || `${defaults.priceLabel}${defaults.rateSuffix}`}
+          bookingTypeOptions={packageBookingOptions}
+          initialBookingType={selectedPackage?.name}
           initialDate={requestedDate}
           requestOrigin={requestOrigin}
           recipientId={creator.id}

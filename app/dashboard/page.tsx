@@ -77,6 +77,14 @@ import {
   normalizeStudioStorePackages,
   type StudioStorePackageDraft,
 } from "@/lib/mock-data/studio-store-dashboard-preview"
+import {
+  DEFAULT_TALENT_PACKAGES,
+  MAX_TALENT_PACKAGES,
+  TALENT_PACKAGE_ADDON_OPTIONS,
+  normalizeTalentPackages,
+  normalizeVisiblePackageCount,
+  type TalentPackageDraft,
+} from "@/lib/mock-data/talent-dashboard-preview"
 
 interface UserProfile {
   id?: string
@@ -197,6 +205,16 @@ const DEFAULT_STUDIO_STORE_SETTINGS: StudioStoreDashboardSettings = {
   deposit_tracking_notes: "",
   rental_request_notes: "",
   notifications_notes: "",
+}
+
+interface TalentPackageDashboardSettings {
+  package_items: TalentPackageDraft[]
+  visible_package_count: number
+}
+
+const DEFAULT_TALENT_PACKAGE_SETTINGS: TalentPackageDashboardSettings = {
+  package_items: DEFAULT_TALENT_PACKAGES,
+  visible_package_count: DEFAULT_TALENT_PACKAGES.length,
 }
 
 const SOUTH_AFRICA_PROVINCES = [
@@ -670,6 +688,7 @@ export default function DashboardPage() {
 
   const initialProfileRef = useRef<UserProfile | null>(null)
   const initialStudioStoreSettingsRef = useRef<StudioStoreDashboardSettings>(DEFAULT_STUDIO_STORE_SETTINGS)
+  const initialTalentPackageSettingsRef = useRef<TalentPackageDashboardSettings>(DEFAULT_TALENT_PACKAGE_SETTINGS)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const [profileData, setProfileData] = useState<UserProfile>({
@@ -731,6 +750,9 @@ export default function DashboardPage() {
   const [studioStoreSettings, setStudioStoreSettings] = useState<StudioStoreDashboardSettings>(
     DEFAULT_STUDIO_STORE_SETTINGS,
   )
+  const [talentPackageSettings, setTalentPackageSettings] = useState<TalentPackageDashboardSettings>(
+    DEFAULT_TALENT_PACKAGE_SETTINGS,
+  )
 
   const [profileCompleteness, setProfileCompleteness] = useState(0)
 
@@ -759,9 +781,19 @@ export default function DashboardPage() {
     const profileChanged = !isEqual(currentProfile, initialProfileRef.current)
     const studioSettingsChanged =
       isStudioOrStoreAccount && !isEqual(studioStoreSettings, initialStudioStoreSettingsRef.current)
+    const talentSettingsChanged =
+      isCreatorDashboard && !isEqual(talentPackageSettings, initialTalentPackageSettingsRef.current)
 
-    return profileChanged || studioSettingsChanged
-  }, [isStudioOrStoreAccount, profileData, selectedProvince, selectedCity, studioStoreSettings])
+    return profileChanged || studioSettingsChanged || talentSettingsChanged
+  }, [
+    isStudioOrStoreAccount,
+    isCreatorDashboard,
+    profileData,
+    selectedProvince,
+    selectedCity,
+    studioStoreSettings,
+    talentPackageSettings,
+  ])
 
   const gallerySections = useMemo(() => {
     const sections: Array<{
@@ -873,7 +905,7 @@ export default function DashboardPage() {
     if (initialProfileRef.current && hasUnsavedChanges()) {
       setSaveStatus("unsaved")
     }
-  }, [hasUnsavedChanges, studioStoreSettings])
+  }, [hasUnsavedChanges, studioStoreSettings, talentPackageSettings])
 
   const loadProfile = async (userId: string) => {
     setLoading(true)
@@ -974,6 +1006,17 @@ export default function DashboardPage() {
         }
         setStudioStoreSettings(loadedStudioStoreSettings)
         initialStudioStoreSettingsRef.current = loadedStudioStoreSettings
+
+        const loadedTalentPackageItems = normalizeTalentPackages(loadedOnboardingData?.talent_dashboard?.package_items)
+        const loadedTalentPackageSettings: TalentPackageDashboardSettings = {
+          package_items: loadedTalentPackageItems,
+          visible_package_count: normalizeVisiblePackageCount(
+            loadedOnboardingData?.talent_dashboard?.visible_package_count,
+            loadedTalentPackageItems.length,
+          ),
+        }
+        setTalentPackageSettings(loadedTalentPackageSettings)
+        initialTalentPackageSettingsRef.current = loadedTalentPackageSettings
 
         const completeness = calculateProfileCompleteness(profile)
         setProfileCompleteness(completeness)
@@ -1164,6 +1207,66 @@ export default function DashboardPage() {
     handleStudioStoreSettingChange("package_items", nextPackages.length ? nextPackages : DEFAULT_STUDIO_STORE_PACKAGES)
   }
 
+  const handleTalentPackageSettingChange = (
+    field: keyof TalentPackageDashboardSettings,
+    value: TalentPackageDraft[] | number,
+  ) => {
+    setTalentPackageSettings((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const handleTalentPackageChange = (index: number, field: keyof TalentPackageDraft, value: string | string[]) => {
+    const nextPackages = talentPackageSettings.package_items.map((item, itemIndex) =>
+      itemIndex === index ? { ...item, [field]: value } : item,
+    )
+    handleTalentPackageSettingChange("package_items", nextPackages)
+  }
+
+  const handleTalentPackageAddonToggle = (index: number, addon: string) => {
+    const packageItem = talentPackageSettings.package_items[index]
+    const current = normalizeTextArray(packageItem?.included)
+    const next = current.includes(addon) ? current.filter((item) => item !== addon) : [...current, addon]
+    handleTalentPackageChange(index, "included", next)
+  }
+
+  const addTalentPackage = () => {
+    if (talentPackageSettings.package_items.length >= MAX_TALENT_PACKAGES) return
+    const nextItems = [
+      ...talentPackageSettings.package_items,
+      {
+        id: `package-${Date.now()}`,
+        name: "New Package",
+        price: profileData.hourly_rate
+          ? `R${profileData.hourly_rate}/hr`
+          : profileData.daily_rate
+            ? `R${profileData.daily_rate}/day`
+            : "R1,500",
+        description: "Describe what this package includes.",
+        image: "",
+        badge: "",
+        availability: "Available",
+        included: [],
+      },
+    ]
+    handleTalentPackageSettingChange("package_items", nextItems)
+    // A newly added package should show up by default rather than being
+    // silently hidden behind a stale, smaller "visible on profile" count.
+    if (talentPackageSettings.visible_package_count < nextItems.length) {
+      handleTalentPackageSettingChange("visible_package_count", nextItems.length)
+    }
+  }
+
+  const removeTalentPackage = (index: number) => {
+    const nextItems = talentPackageSettings.package_items.filter((_, itemIndex) => itemIndex !== index)
+    const items = nextItems.length ? nextItems : DEFAULT_TALENT_PACKAGES
+    handleTalentPackageSettingChange("package_items", items)
+    if (talentPackageSettings.visible_package_count > items.length) {
+      handleTalentPackageSettingChange("visible_package_count", items.length)
+    }
+  }
+
   const handleImageUpload = async (file: File, field: "profile_image_url" | "portfolio_images") => {
     if (field !== "profile_image_url") {
       // Dead path - no UI element calls handleImageUpload with "portfolio_images".
@@ -1219,6 +1322,32 @@ export default function DashboardPage() {
       handleStudioPackageChange(index, "image", result.url)
     } catch (error: any) {
       setPackageImageUploadError({ index, message: error?.message || "Failed to upload room image" })
+    } finally {
+      setUploadingPackageImageIndex(null)
+    }
+  }
+
+  const handleTalentPackageImageUpload = async (index: number, file: File) => {
+    setPackageImageUploadError(null)
+    setUploadingPackageImageIndex(index)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/dashboard/talent-package-image", {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.url) {
+        throw new Error(result?.error || "Failed to upload package image")
+      }
+
+      handleTalentPackageChange(index, "image", result.url)
+    } catch (error: any) {
+      setPackageImageUploadError({ index, message: error?.message || "Failed to upload package image" })
     } finally {
       setUploadingPackageImageIndex(null)
     }
@@ -1298,6 +1427,7 @@ export default function DashboardPage() {
       const mergedOnboardingData = {
         ...(onboardingData || {}),
         ...(isStudioOrStoreAccount ? { studio_store_dashboard: studioStoreSettings } : {}),
+        ...(isCreatorDashboard ? { talent_dashboard: talentPackageSettings } : {}),
       }
 
       const profileToSave = {
@@ -1381,6 +1511,7 @@ export default function DashboardPage() {
         }
         setOnboardingData(mergedOnboardingData)
         initialStudioStoreSettingsRef.current = studioStoreSettings
+        initialTalentPackageSettingsRef.current = talentPackageSettings
         if (isStudioOrStoreAccount && typeof window !== "undefined") {
           window.localStorage.setItem(STUDIO_STORE_DASHBOARD_PREVIEW_KEY, JSON.stringify(studioStoreSettings))
         }
@@ -1721,6 +1852,7 @@ export default function DashboardPage() {
                           { id: "packages", icon: Package, label: "Packages" },
                         ]
                       : []),
+                    ...(isCreatorDashboard ? [{ id: "packages", icon: Package, label: "Packages" }] : []),
                     { id: "settings", icon: Settings, label: "Settings" },
                     { id: "subscription", icon: CreditCard, label: "Subscription" },
                     { id: "crew-pools", icon: FolderKanban, label: "Crew Pools", href: "/crew-pools" },
@@ -2998,6 +3130,198 @@ export default function DashboardPage() {
                                       }`}
                                     >
                                       {amenity}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeSection === "packages" && isCreatorDashboard && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader className="space-y-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <CardTitle>Packages</CardTitle>
+                        <CardDescription>
+                          Build the quick package cards clients see on your creator or crew profile.
+                        </CardDescription>
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={addTalentPackage}
+                        disabled={talentPackageSettings.package_items.length >= MAX_TALENT_PACKAGES}
+                        className="h-11 rounded-full bg-red-500 px-5 text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Package className="mr-2 h-4 w-4" />
+                        Add Package
+                      </Button>
+                    </div>
+                    <div className="flex flex-col gap-2 rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <Label className="text-sm font-semibold text-gray-900">Visible on profile</Label>
+                        <p className="text-xs text-gray-500">
+                          Choose how many of your {talentPackageSettings.package_items.length} package
+                          {talentPackageSettings.package_items.length === 1 ? "" : "s"} show on your public profile.
+                        </p>
+                      </div>
+                      <Select
+                        value={String(talentPackageSettings.visible_package_count)}
+                        onValueChange={(value) =>
+                          handleTalentPackageSettingChange("visible_package_count", Number(value))
+                        }
+                      >
+                        <SelectTrigger className="w-full sm:w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: talentPackageSettings.package_items.length }, (_, i) => i + 1).map(
+                            (count) => (
+                              <SelectItem key={count} value={String(count)}>
+                                {count} package{count === 1 ? "" : "s"}
+                              </SelectItem>
+                            ),
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    {talentPackageSettings.package_items.length >= MAX_TALENT_PACKAGES && (
+                      <p className="text-xs font-semibold text-gray-500">
+                        You've reached the {MAX_TALENT_PACKAGES}-package limit. Remove one to add another.
+                      </p>
+                    )}
+                    {talentPackageSettings.package_items.map((packageItem, index) => (
+                      <div key={packageItem.id} className="rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-500">Package {index + 1}</p>
+                            <h3 className="text-xl font-bold text-gray-950">{packageItem.name || "Untitled package"}</h3>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeTalentPackage(index)}
+                            className="grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                            aria-label={`Remove package ${index + 1}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[220px_1fr]">
+                          <div>
+                            <div className="relative aspect-[4/3] overflow-hidden rounded-[22px] border border-gray-200 bg-gray-100">
+                              {packageItem.image ? (
+                                <img src={packageItem.image} alt={packageItem.name} loading="lazy" className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="grid h-full place-items-center text-gray-400">
+                                  <ImageIcon className="h-8 w-8" />
+                                </div>
+                              )}
+                              {uploadingPackageImageIndex === index && (
+                                <div className="absolute inset-0 grid place-items-center bg-white/70">
+                                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-red-500" />
+                                </div>
+                              )}
+                            </div>
+                            <label className="mt-3 flex h-11 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-sm font-semibold text-gray-700 transition hover:border-red-200 hover:text-red-600">
+                              <Upload className="mr-2 h-4 w-4" />
+                              {uploadingPackageImageIndex === index ? "Uploading..." : "Upload package image"}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                disabled={uploadingPackageImageIndex === index}
+                                onChange={(event) => {
+                                  const file = event.target.files?.[0]
+                                  if (file) handleTalentPackageImageUpload(index, file)
+                                  event.target.value = ""
+                                }}
+                              />
+                            </label>
+                            {packageImageUploadError?.index === index && (
+                              <p className="mt-2 text-xs font-semibold text-red-600">{packageImageUploadError.message}</p>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div>
+                              <Label>Package name</Label>
+                              <Input
+                                value={packageItem.name}
+                                onChange={(event) => handleTalentPackageChange(index, "name", event.target.value)}
+                                placeholder="Half Day Shoot"
+                              />
+                            </div>
+                            <div>
+                              <Label>Price</Label>
+                              <Input
+                                value={packageItem.price}
+                                onChange={(event) => handleTalentPackageChange(index, "price", event.target.value)}
+                                placeholder="R2,500"
+                              />
+                            </div>
+                            <div>
+                              <Label>Badge / timing</Label>
+                              <Input
+                                value={packageItem.badge}
+                                onChange={(event) => handleTalentPackageChange(index, "badge", event.target.value)}
+                                placeholder="Up to 4 hours"
+                              />
+                            </div>
+                            <div>
+                              <Label>Availability</Label>
+                              <Select
+                                value={packageItem.availability}
+                                onValueChange={(value) => handleTalentPackageChange(index, "availability", value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select availability" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {PACKAGE_AVAILABILITY_OPTIONS.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                      {option}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="md:col-span-2">
+                              <Label>Description</Label>
+                              <Textarea
+                                value={packageItem.description}
+                                onChange={(event) => handleTalentPackageChange(index, "description", event.target.value)}
+                                placeholder="Tell clients what this package includes."
+                                rows={3}
+                              />
+                            </div>
+                            <div className="md:col-span-2">
+                              <Label>What's included</Label>
+                              <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-2">
+                                {TALENT_PACKAGE_ADDON_OPTIONS.map((addon) => {
+                                  const selected = normalizeTextArray(packageItem.included).includes(addon)
+                                  return (
+                                    <button
+                                      key={`${packageItem.id}-${addon}`}
+                                      type="button"
+                                      onClick={() => handleTalentPackageAddonToggle(index, addon)}
+                                      className={`h-10 shrink-0 rounded-full border px-4 text-sm font-semibold transition ${
+                                        selected
+                                          ? "border-red-200 bg-red-50 text-red-700"
+                                          : "border-gray-200 bg-gray-50 text-gray-700 hover:border-red-200"
+                                      }`}
+                                    >
+                                      {addon}
                                     </button>
                                   )
                                 })}
