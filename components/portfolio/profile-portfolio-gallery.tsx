@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { ExternalLink, Facebook, Instagram, Play } from "lucide-react"
@@ -17,8 +17,10 @@ type ProfilePortfolioGalleryProps = {
   title?: string
   previewCount?: number
   className?: string
-  onHire?: () => void
-  hireLabel?: string
+  // Fires whenever the resolved gallery data changes (live fetch settling,
+  // or the fallback items) - lets a parent page's own hero image carousel
+  // reuse this exact same data instead of duplicating the portfolio fetch.
+  onItemsLoaded?: (items: LightboxPortfolioItem[]) => void
 }
 
 const isUuid = (value?: string) =>
@@ -40,8 +42,7 @@ export function ProfilePortfolioGallery({
   title = "Portfolio",
   previewCount = 9,
   className = "",
-  onHire,
-  hireLabel,
+  onItemsLoaded,
 }: ProfilePortfolioGalleryProps) {
   const [remoteItems, setRemoteItems] = useState<LightboxPortfolioItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -85,7 +86,26 @@ export function ProfilePortfolioGallery({
     }
   }, [userId])
 
-  const galleryItems = remoteItems.length > 0 ? remoteItems : fallbackItems
+  const galleryItems = useMemo(
+    () => (remoteItems.length > 0 ? remoteItems : fallbackItems),
+    [remoteItems, fallbackItems],
+  )
+
+  // `items` is commonly passed as a freshly-mapped array on every parent
+  // render (e.g. items={images.map(...)}), so galleryItems gets a new
+  // reference even when its actual content hasn't changed. Notifying on
+  // every reference change would feed back into the parent's own state via
+  // onItemsLoaded and loop forever - only notify when the resolved ids
+  // actually differ.
+  const lastNotifiedSignatureRef = useRef<string | null>(null)
+  useEffect(() => {
+    const signature = galleryItems.map((item) => item.id).join("|")
+    if (signature === lastNotifiedSignatureRef.current) return
+    lastNotifiedSignatureRef.current = signature
+    onItemsLoaded?.(galleryItems)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [galleryItems])
+
   // "link" items (Instagram/Facebook permalinks with no embeddable player)
   // read as video-ish content, not photos, so they group under Videos.
   const photoCount = galleryItems.filter((item) => item.type === "image").length
@@ -206,13 +226,7 @@ export function ProfilePortfolioGallery({
       </div>
 
       {lightboxIndex !== null && (
-        <PortfolioLightbox
-          items={filteredItems}
-          initialIndex={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-          onHire={onHire}
-          hireLabel={hireLabel}
-        />
+        <PortfolioLightbox items={filteredItems} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
       )}
     </section>
   )

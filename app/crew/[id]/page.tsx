@@ -24,8 +24,10 @@ import { Badge } from "@/components/ui/badge"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
 import { LeaveReviewButton } from "@/components/reviews/leave-review-button"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
+import { PortfolioLightbox } from "@/components/portfolio/portfolio-lightbox"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { mockCrewMembers, type MockCrewMember } from "@/lib/mock-data/crew-data"
+import type { LightboxPortfolioItem } from "@/types/portfolio"
 
 interface CrewProfile {
   id: string
@@ -145,6 +147,8 @@ export default function CrewProfilePage() {
   const [requestedDate, setRequestedDate] = useState<string | undefined>()
   const [requestOrigin, setRequestOrigin] = useState<"booking" | "availability">("booking")
   const [activeSlide, setActiveSlide] = useState(0)
+  const [portfolioGalleryItems, setPortfolioGalleryItems] = useState<LightboxPortfolioItem[]>([])
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const carouselRef = useRef<HTMLDivElement | null>(null)
 
   const mockProfile = useMemo(() => {
@@ -217,7 +221,24 @@ export default function CrewProfilePage() {
 
   const city = profile.location.split(",")[0]?.toUpperCase() || "SOUTH AFRICA"
   const pricingValue = profile.pricing.replace("/hr", "")
-  const heroImages = profile.portfolio_images.length ? profile.portfolio_images : [profile.profile_image_url]
+  // profile.portfolio_images is a legacy column, often empty for real
+  // accounts - the actual current uploads live in the portfolio table
+  // fetched by ProfilePortfolioGallery further down, so the hero prefers
+  // that same live data via onItemsLoaded once it resolves.
+  const heroImages = portfolioGalleryItems.length
+    ? portfolioGalleryItems.map((item) => item.thumbnail)
+    : profile.portfolio_images.length
+      ? profile.portfolio_images
+      : [profile.profile_image_url]
+  const heroLightboxItems: LightboxPortfolioItem[] = portfolioGalleryItems.length
+    ? portfolioGalleryItems
+    : heroImages.map((image, index) => ({
+        id: `${image}-${index}`,
+        type: "image",
+        thumbnail: image,
+        fullUrl: image,
+        platform: "local",
+      }))
   const heroHighlights = services.slice(0, 3)
 
   return (
@@ -234,9 +255,14 @@ export default function CrewProfilePage() {
             }}
           >
             {heroImages.map((image, index) => (
-              <div key={`${image}-${index}`} className="relative h-[330px] min-w-full snap-start bg-[#f4f6f8]">
+              <button
+                key={`${image}-${index}`}
+                type="button"
+                onClick={() => setLightboxIndex(index)}
+                className="relative h-[330px] min-w-full snap-start bg-[#f4f6f8]"
+              >
                 <Image src={image} alt={`${profile.display_name} work ${index + 1}`} fill className="object-cover" />
-              </div>
+              </button>
             ))}
           </div>
 
@@ -412,7 +438,7 @@ export default function CrewProfilePage() {
                 title={profile.display_name}
                 previewCount={6}
                 className="[&_h3]:hidden [&_.text-center]:hidden [&_.mt-3]:mt-0"
-                onHire={() => openHireSheet()}
+                onItemsLoaded={setPortfolioGalleryItems}
               />
             </div>
           </div>
@@ -464,6 +490,9 @@ export default function CrewProfilePage() {
           recipientName={profile.display_name}
         />
       ) : null}
+      {lightboxIndex !== null && (
+        <PortfolioLightbox items={heroLightboxItems} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
+      )}
     </MobileShell>
   )
 }

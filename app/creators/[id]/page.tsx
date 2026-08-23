@@ -24,10 +24,12 @@ import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
 import { LeaveReviewButton } from "@/components/reviews/leave-review-button"
 import { SaveProfileButton } from "@/components/messaging/save-profile-button"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
+import { PortfolioLightbox } from "@/components/portfolio/portfolio-lightbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { mockCreators, type MockCreator } from "@/lib/mock-data/portfolio-data"
+import type { LightboxPortfolioItem } from "@/types/portfolio"
 
 type LiveCreator = MockCreator & {
   user_id: string
@@ -155,6 +157,8 @@ export default function CreatorProfilePage() {
   const [requestOrigin, setRequestOrigin] = useState<"booking" | "availability">("booking")
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0)
   const [reviewRefreshKey, setReviewRefreshKey] = useState(0)
+  const [portfolioGalleryItems, setPortfolioGalleryItems] = useState<LightboxPortfolioItem[]>([])
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const heroScrollerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -240,12 +244,27 @@ export default function CreatorProfilePage() {
   }
 
   const portfolioItems = creator.portfolioItems ?? []
-  const heroImages = portfolioItems.length
-    ? portfolioItems.map((item) => ({
+  // creator.portfolioItems is always empty (see mapLiveProfileToCreator) -
+  // the real portfolio only loads inside ProfilePortfolioGallery further
+  // down the page, so the hero reuses that same live data via
+  // onItemsLoaded instead of falling back to a single static avatar image.
+  const heroImages = portfolioGalleryItems.length
+    ? portfolioGalleryItems.map((item) => ({
         src: item.thumbnail || creator.avatar || "/placeholder.svg",
         alt: item.title || creator.name,
       }))
     : [{ src: creator.avatar || "/placeholder.svg", alt: creator.name }]
+  const heroLightboxItems: LightboxPortfolioItem[] = portfolioGalleryItems.length
+    ? portfolioGalleryItems
+    : [
+        {
+          id: "avatar",
+          type: "image",
+          thumbnail: creator.avatar || "/placeholder.svg",
+          fullUrl: creator.avatar || "/placeholder.svg",
+          platform: "local",
+        },
+      ]
 
   const highlightCards = defaults.highlights.map((service) => ({
     title: service,
@@ -277,7 +296,11 @@ export default function CreatorProfilePage() {
             >
               {heroImages.map((image, index) => (
                 <div key={`${image.src}-${index}`} className="min-w-full snap-center">
-                  <div className="relative aspect-[1.08/1] w-full overflow-hidden rounded-[28px] bg-[#f4f6fa]">
+                  <button
+                    type="button"
+                    onClick={() => setLightboxIndex(index)}
+                    className="relative aspect-[1.08/1] w-full overflow-hidden rounded-[28px] bg-[#f4f6fa]"
+                  >
                     <Image
                       src={image.src}
                       alt={image.alt}
@@ -286,7 +309,7 @@ export default function CreatorProfilePage() {
                       sizes="100vw"
                       priority={index === 0}
                     />
-                  </div>
+                  </button>
                 </div>
               ))}
             </div>
@@ -501,7 +524,7 @@ export default function CreatorProfilePage() {
                 title={creator.name}
                 previewCount={6}
                 className="[&_h3]:hidden [&_.text-center]:hidden [&_.mt-3]:mt-0"
-                onHire={() => openHireSheet()}
+                onItemsLoaded={setPortfolioGalleryItems}
               />
             </div>
 
@@ -543,6 +566,10 @@ export default function CreatorProfilePage() {
           recipientName={creator.name}
         />
       ) : null}
+
+      {lightboxIndex !== null && (
+        <PortfolioLightbox items={heroLightboxItems} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
+      )}
     </>
   )
 }

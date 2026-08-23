@@ -30,6 +30,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
+import { PortfolioLightbox } from "@/components/portfolio/portfolio-lightbox"
+import type { LightboxPortfolioItem } from "@/types/portfolio"
 import { getStudioStoreById, type StudioStoreItem } from "@/lib/mock-data/studios-stores-data"
 import {
   STUDIO_STORE_DASHBOARD_PREVIEW_KEY,
@@ -69,6 +71,7 @@ export default function StudioStoreDetailPage() {
   const { profile } = useAuth()
   const [bookingOpen, setBookingOpen] = useState(false)
   const [activeSlide, setActiveSlide] = useState(0)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [selectedPackageIndex, setSelectedPackageIndex] = useState(0)
   const [dashboardPreviewSettings, setDashboardPreviewSettings] = useState<Record<string, any> | null>(null)
   const carouselRef = useRef<HTMLDivElement | null>(null)
@@ -190,6 +193,13 @@ export default function StudioStoreDetailPage() {
   // just shows its single cover/avatar image instead of unrelated stock
   // studio shots. Real uploaded work shows in the Portfolio section below.
   const galleryImages = item.gallery?.length ? item.gallery : [item.image]
+  const heroLightboxItems: LightboxPortfolioItem[] = galleryImages.map((image, index) => ({
+    id: `${image}-${index}`,
+    type: "image",
+    thumbnail: image,
+    fullUrl: image,
+    platform: "local",
+  }))
 
   const packageCards = (
     item.packages?.length
@@ -241,9 +251,14 @@ export default function StudioStoreDetailPage() {
             }}
           >
             {galleryImages.map((image, index) => (
-              <div key={`${image}-${index}`} className="relative h-[330px] min-w-full snap-start">
+              <button
+                key={`${image}-${index}`}
+                type="button"
+                onClick={() => setLightboxIndex(index)}
+                className="relative h-[330px] min-w-full snap-start"
+              >
                 <Image src={image} alt={`${item.name} image ${index + 1}`} fill className="object-cover" />
-              </div>
+              </button>
             ))}
           </div>
 
@@ -390,8 +405,6 @@ export default function StudioStoreDetailPage() {
                 title={item.name}
                 previewCount={6}
                 className="[&_h3]:hidden [&_.text-center]:hidden [&_.mt-3]:mt-0"
-                onHire={() => setBookingOpen(true)}
-                hireLabel="Book Now"
               />
             </div>
           </div>
@@ -548,6 +561,9 @@ export default function StudioStoreDetailPage() {
             : "Example: studio booking, all day, natural light, parking, changing room, Cape Town..."
         }
       />
+      {lightboxIndex !== null && (
+        <PortfolioLightbox items={heroLightboxItems} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
+      )}
     </MobileShell>
   )
 }
