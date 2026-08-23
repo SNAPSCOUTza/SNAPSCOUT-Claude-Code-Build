@@ -14,10 +14,6 @@ import { createBrowserClient } from "@supabase/ssr"
 import MobileShell from "@/components/mobile/mobile-shell"
 import { useAuth } from "@/contexts/auth-context"
 
-// Mirrors the eligibility gate on the gig apply page (app/marketplace/gigs/[id]/page.tsx) -
-// scouts and unpaid accounts can browse gigs but can't apply.
-const GIG_ELIGIBLE_ACCOUNT_TYPES = ["film_crew", "content_creator", "studio", "store"]
-
 // Mock data fallback when database is empty
 const mockGigs = [
   {
@@ -132,8 +128,13 @@ export default function AvailableGigsPage() {
   const searchParams = useSearchParams()
   const { user, profile, isLoading: authLoading, isProfileLoading } = useAuth()
   const accountType = (profile?.account_type || profile?.user_type || "").toLowerCase()
-  const canApplyForGigs =
-    !!user && GIG_ELIGIBLE_ACCOUNT_TYPES.includes(accountType) && profile?.subscription_status === "active"
+  // Mirrors the authoritative eligibility gate on the gig apply page
+  // (app/marketplace/gigs/[id]/page.tsx) and its RLS policy - only "scout" is
+  // excluded by account type. There's no fixed allowlist of eligible type
+  // strings to match against: real account_type values ("creator") don't
+  // always match the AccountType union's naming ("content_creator"), so an
+  // allowlist here previously flashed the notice at legitimate, paying users.
+  const canApplyForGigs = !!user && accountType !== "scout" && profile?.subscription_status === "active"
   // While signed in but the profile hasn't loaded yet, account_type/subscription_status
   // are unknown - wait rather than flashing the notice at an eligible, paying user.
   const showEligibilityNotice = !authLoading && !(user && isProfileLoading) && !canApplyForGigs
