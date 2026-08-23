@@ -390,6 +390,8 @@ export default function StudioStoreDetailPage() {
                 title={item.name}
                 previewCount={6}
                 className="[&_h3]:hidden [&_.text-center]:hidden [&_.mt-3]:mt-0"
+                onHire={() => setBookingOpen(true)}
+                hireLabel="Book Now"
               />
             </div>
           </div>

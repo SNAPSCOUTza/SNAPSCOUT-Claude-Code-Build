@@ -32,6 +32,8 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import type { ShootLocation, ShootLocationPhoto, ShootLocationReview } from "@/lib/locations/types"
 import { LocationPhotoUploadSheet } from "@/components/locations/location-photo-upload-sheet"
+import { PortfolioLightbox } from "@/components/portfolio/portfolio-lightbox"
+import type { LightboxPortfolioItem } from "@/types/portfolio"
 
 function formatRelativeDate(value: string) {
   const diffMs = Date.now() - new Date(value).getTime()
@@ -58,6 +60,7 @@ export default function LocationDetailPage() {
   const heroScrollerRef = useRef<HTMLDivElement>(null)
 
   const [uploadOpen, setUploadOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewBody, setReviewBody] = useState("")
@@ -124,6 +127,21 @@ export default function LocationDetailPage() {
       cancelled = true
     }
   }, [photos, reviews, supabase])
+
+  const photoItems = useMemo<LightboxPortfolioItem[]>(
+    () =>
+      photos.map((photo) => ({
+        id: photo.id,
+        type: "image",
+        thumbnail: photo.image_url,
+        fullUrl: photo.image_url,
+        caption: photo.caption || undefined,
+        timestamp: photo.shot_at || photo.created_at,
+        platform: "local",
+        username: photo.uploader_name || names[photo.uploaded_by] || undefined,
+      })),
+    [photos, names],
+  )
 
   useEffect(() => {
     if (!user) {
@@ -374,10 +392,15 @@ export default function LocationDetailPage() {
                   Community Photos
                 </p>
                 <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
-                  {photos.slice(0, 8).map((photo) => (
-                    <div key={photo.id} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[#f3f5f8]">
+                  {photos.slice(0, 8).map((photo, index) => (
+                    <button
+                      key={photo.id}
+                      type="button"
+                      onClick={() => setLightboxIndex(index)}
+                      className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[#f3f5f8]"
+                    >
                       <Image src={photo.image_url} alt={photo.caption || location.name} fill className="object-cover" />
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -425,15 +448,20 @@ export default function LocationDetailPage() {
               </button>
             </div>
             <div className="mt-4 grid grid-cols-3 gap-1.5">
-              {photos.map((photo) => (
-                <div key={photo.id} className="relative aspect-square overflow-hidden rounded-xl bg-[#f3f5f8]">
+              {photos.map((photo, index) => (
+                <button
+                  key={photo.id}
+                  type="button"
+                  onClick={() => setLightboxIndex(index)}
+                  className="relative aspect-square overflow-hidden rounded-xl bg-[#f3f5f8]"
+                >
                   <Image src={photo.image_url} alt={photo.caption || location.name} fill className="object-cover" />
                   {photo.caption && (
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-2 pb-1.5 pt-4">
                       <p className="line-clamp-1 text-[10px] font-medium text-white">{photo.caption}</p>
                     </div>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           </section>
@@ -545,6 +573,9 @@ export default function LocationDetailPage() {
         locationId={location.id}
         onUploaded={loadPhotos}
       />
+      {lightboxIndex !== null && (
+        <PortfolioLightbox items={photoItems} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
+      )}
     </MobileShell>
   )
 }

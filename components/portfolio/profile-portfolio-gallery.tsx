@@ -18,6 +18,7 @@ type ProfilePortfolioGalleryProps = {
   previewCount?: number
   className?: string
   onHire?: () => void
+  hireLabel?: string
 }
 
 const isUuid = (value?: string) =>
@@ -40,6 +41,7 @@ export function ProfilePortfolioGallery({
   previewCount = 9,
   className = "",
   onHire,
+  hireLabel,
 }: ProfilePortfolioGalleryProps) {
   const [remoteItems, setRemoteItems] = useState<LightboxPortfolioItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -206,11 +208,10 @@ export function ProfilePortfolioGallery({
       {lightboxIndex !== null && (
         <PortfolioLightbox
           items={filteredItems}
-          currentIndex={lightboxIndex}
+          initialIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
-          onNext={() => setLightboxIndex((lightboxIndex + 1) % filteredItems.length)}
-          onPrev={() => setLightboxIndex((lightboxIndex - 1 + filteredItems.length) % filteredItems.length)}
           onHire={onHire}
+          hireLabel={hireLabel}
         />
       )}
     </section>
