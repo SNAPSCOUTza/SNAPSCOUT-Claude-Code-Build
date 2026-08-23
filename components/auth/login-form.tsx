@@ -29,12 +29,12 @@ const easeInOut = "easeInOut" as const
 // every field carrying its own hand-picked delay.
 const staggerContainer: Variants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+  visible: { transition: { staggerChildren: 0.15, delayChildren: 0.1 } },
 }
 
 const fieldVariants: Variants = {
   hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: easeInOut } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: easeInOut } },
 }
 
 export function LoginForm({ isDesktop }: LoginFormProps) {
@@ -114,7 +114,7 @@ export function LoginForm({ isDesktop }: LoginFormProps) {
               className="text-2xl font-bold text-foreground"
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, ease: easeInOut, delay: 0.15 }}
+              transition={{ duration: 0.9, ease: easeInOut, delay: 0.15 }}
             >
               SnapScout
             </motion.span>
@@ -131,14 +131,14 @@ export function LoginForm({ isDesktop }: LoginFormProps) {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: easeInOut, delay: 0.3 }}
+                transition={{ duration: 0.9, ease: easeInOut, delay: 0.3 }}
               >
                 <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: easeInOut, delay: 0.38 }}
+                transition={{ duration: 0.9, ease: easeInOut, delay: 0.45 }}
               >
                 <CardDescription className="text-center">Sign in to your SnapScout account</CardDescription>
               </motion.div>
@@ -247,7 +247,7 @@ export function LoginForm({ isDesktop }: LoginFormProps) {
                       className="mt-6 text-center"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ duration: 0.4, ease: easeInOut, delay: 0.55 }}
+                      transition={{ duration: 0.8, ease: easeInOut, delay: 0.75 }}
                     >
                       <p className="text-sm text-muted-foreground">
                         Don't have an account?{" "}
@@ -267,10 +267,16 @@ export function LoginForm({ isDesktop }: LoginFormProps) {
           className="mt-6 text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, ease: easeInOut, delay: 0.5 }}
+          transition={{ duration: 0.9, ease: easeInOut, delay: 0.9 }}
         >
-          <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4 mr-1" />
+          {/* White text on a dark frosted pill, rather than plain
+              muted-foreground text, since this sits directly on the busy
+              multi-colour illustrated background, not the white card. */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 rounded-full bg-black/35 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/50"
+          >
+            <ArrowLeft className="h-4 w-4" />
             Back to Home
           </Link>
         </motion.div>
