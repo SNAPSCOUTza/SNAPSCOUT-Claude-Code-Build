@@ -49,8 +49,8 @@ export default function DesktopLanding() {
                 </motion.h1>
 
                 <motion.p className="mt-6 text-lg leading-8 text-gray-700 max-w-2xl mx-auto">
-                  Discover talented local photographers, videographers, and content creators in your area based on
-                  portfolio quality. Your local companion for finding the perfect creative partner
+                  Discover talented local photographers, videographers, film crews and content creators all across
+                  South Africa. Your local companion for finding the perfect creative partner
                 </motion.p>
 
                 <motion.div className="mt-10 flex items-center justify-center gap-x-6">
