@@ -11,8 +11,14 @@ type MyCallSheet = {
   shoot_date: string
   shoot_location?: string
   general_call_time: string
-  my_entry?: { call_time: string; department?: string; role?: string }
+  my_entry?: { call_time: string; department?: string; role?: string; response_status?: "pending" | "accepted" | "declined" }
   owner?: { full_name: string }
+}
+
+const responseBadge: Record<string, { label: string; className: string }> = {
+  pending: { label: "Awaiting your response", className: "bg-amber-50 text-amber-700" },
+  accepted: { label: "Accepted", className: "bg-green-50 text-green-700" },
+  declined: { label: "Declined", className: "bg-red-50 text-red-700" },
 }
 
 export function MyCallSheets() {
@@ -27,7 +33,7 @@ export function MyCallSheets() {
       const response = await fetch("/api/call-sheets", { credentials: "include" })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error || "Could not load call sheets")
-      setCallSheets(payload.call_sheets || [])
+      setCallSheets(payload.received || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load call sheets")
     } finally {
@@ -72,7 +78,16 @@ export function MyCallSheets() {
                 <FileText className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">{sheet.project_name || "Untitled production"}</span>
+                <span className="flex items-center gap-2">
+                  <span className="truncate font-semibold">{sheet.project_name || "Untitled production"}</span>
+                  {sheet.my_entry?.response_status && (
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${responseBadge[sheet.my_entry.response_status].className}`}
+                    >
+                      {responseBadge[sheet.my_entry.response_status].label}
+                    </span>
+                  )}
+                </span>
                 <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#647084]">
                   <span>{sheet.shoot_date}</span>
                   {sheet.shoot_location && (

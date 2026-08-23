@@ -2,43 +2,72 @@ import { NextResponse } from "next/server"
 import { apiError, getProfilesByIds, isApiErrorContext, requireUser, sanitizeText } from "@/lib/crew-pools/api"
 import { createAdminClient } from "@/lib/supabase/admin"
 
-// Call sheets the current user has been sent as crew (not ones they own -
-// see /api/call-sheets/[callSheetId] for the single-sheet, owner-or-crew
-// authorization check this mirrors).
+// Every call sheet the current user has a stake in: ones they created
+// (owned) and ones they've been sent as crew (received). See
+// /api/call-sheets/[callSheetId] for the single-sheet, owner-or-crew
+// authorization check this mirrors.
 export async function GET() {
   const context = await requireUser()
   if (isApiErrorContext(context)) return context
   const { supabase, user } = context
 
-  const { data: crewRows, error: crewError } = await supabase
-    .from("call_sheet_crew")
-    .select("call_sheet_id,call_time,department,role")
-    .eq("crew_member_id", user.id)
+  const [ownedResult, crewRowsResult] = await Promise.all([
+    supabase
+      .from("call_sheets")
+      .select("id,owner_id,project_name,shoot_date,shoot_location,general_call_time,status,created_at")
+      .eq("owner_id", user.id)
+      .order("shoot_date", { ascending: true }),
+    supabase.from("call_sheet_crew").select("call_sheet_id,call_time,department,role,response_status,responded_at").eq("crew_member_id", user.id),
+  ])
 
-  if (crewError) return apiError(crewError.message, 500, "CALL_SHEET_CREW_LOOKUP_FAILED")
-  if (!crewRows || crewRows.length === 0) return NextResponse.json({ call_sheets: [] })
+  if (ownedResult.error) return apiError(ownedResult.error.message, 500, "CALL_SHEET_OWNED_LIST_FAILED")
+  if (crewRowsResult.error) return apiError(crewRowsResult.error.message, 500, "CALL_SHEET_CREW_LOOKUP_FAILED")
+
+  const owned = ownedResult.data || []
+  const crewRows = crewRowsResult.data || []
 
   const admin = createAdminClient()
-  const { data: sheets, error: sheetsError } = await admin
-    .from("call_sheets")
-    .select("id,owner_id,project_name,shoot_date,shoot_location,general_call_time,status,created_at")
-    .in(
-      "id",
-      crewRows.map((row: any) => row.call_sheet_id),
-    )
-    .eq("status", "sent")
-    .order("shoot_date", { ascending: true })
 
-  if (sheetsError) return apiError(sheetsError.message, 500, "CALL_SHEET_LIST_FAILED")
+  const [receivedSheetsResult, ownedCrewCountsResult] = await Promise.all([
+    crewRows.length > 0
+      ? admin
+          .from("call_sheets")
+          .select("id,owner_id,project_name,shoot_date,shoot_location,general_call_time,status,created_at")
+          .in(
+            "id",
+            crewRows.map((row: any) => row.call_sheet_id),
+          )
+          .eq("status", "sent")
+          .order("shoot_date", { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
+    owned.length > 0
+      ? admin
+          .from("call_sheet_crew")
+          .select("call_sheet_id")
+          .in(
+            "call_sheet_id",
+            owned.map((sheet: any) => sheet.id),
+          )
+      : Promise.resolve({ data: [], error: null }),
+  ])
 
+  if (receivedSheetsResult.error) return apiError(receivedSheetsResult.error.message, 500, "CALL_SHEET_RECEIVED_LIST_FAILED")
+
+  const received = receivedSheetsResult.data || []
+  const crewByCallSheet = new Map(crewRows.map((row: any) => [row.call_sheet_id, row]))
   const ownerProfiles = await getProfilesByIds(
     admin,
-    (sheets || []).map((sheet: any) => sheet.owner_id),
+    received.map((sheet: any) => sheet.owner_id),
   )
-  const crewByCallSheet = new Map(crewRows.map((row: any) => [row.call_sheet_id, row]))
+
+  const crewCountByCallSheet = new Map<string, number>()
+  for (const row of ownedCrewCountsResult.data || []) {
+    crewCountByCallSheet.set(row.call_sheet_id, (crewCountByCallSheet.get(row.call_sheet_id) || 0) + 1)
+  }
 
   return NextResponse.json({
-    call_sheets: (sheets || []).map((sheet: any) => ({
+    owned: owned.map((sheet: any) => ({ ...sheet, crew_count: crewCountByCallSheet.get(sheet.id) || 0 })),
+    received: received.map((sheet: any) => ({
       ...sheet,
       my_entry: crewByCallSheet.get(sheet.id),
       owner: ownerProfiles.get(sheet.owner_id),

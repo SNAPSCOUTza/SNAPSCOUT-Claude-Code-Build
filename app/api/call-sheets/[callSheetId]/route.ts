@@ -26,7 +26,7 @@ export async function GET(_request: Request, { params }: { params: { callSheetId
 
   const { data: crew, error: crewError } = await admin
     .from("call_sheet_crew")
-    .select("id,call_sheet_id,crew_member_id,call_time,department,role")
+    .select("id,call_sheet_id,crew_member_id,call_time,department,role,response_status,responded_at")
     .eq("call_sheet_id", params.callSheetId)
     .order("call_time", { ascending: true })
 
@@ -46,11 +46,14 @@ export async function GET(_request: Request, { params }: { params: { callSheetId
     callSheet.owner_id,
   ])
 
+  const myEntry = (crew || []).find((entry: any) => entry.crew_member_id === user.id)
+
   return NextResponse.json({
     call_sheet: {
       ...callSheet,
       is_owner: isOwner,
       owner: profileMap.get(callSheet.owner_id),
+      my_response_status: !isOwner ? myEntry?.response_status : undefined,
       crew: (crew || []).map((entry: any) => ({
         ...entry,
         profile: profileMap.get(entry.crew_member_id),

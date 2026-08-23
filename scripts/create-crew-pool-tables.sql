@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS call_sheet_crew (
   call_time TEXT DEFAULT '06:00',
   department TEXT,
   role TEXT,
+  response_status TEXT NOT NULL DEFAULT 'pending' CHECK (response_status IN ('pending', 'accepted', 'declined')),
+  responded_at TIMESTAMPTZ,
   UNIQUE(call_sheet_id, crew_member_id)
 );
 

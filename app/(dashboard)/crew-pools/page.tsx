@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowRight, FolderKanban, Plus, RefreshCw } from "lucide-react"
+import { ArrowRight, FileText, FolderKanban, Plus, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -46,14 +46,22 @@ export default function CrewPoolsPage() {
               Save trusted creatives into named pools, check availability, and build call sheets from confirmed crew.
             </p>
           </div>
-          <Button
-            type="button"
-            onClick={() => setCreateOpen(true)}
-            className="h-12 rounded-full bg-[#ef1218] px-6 text-white hover:bg-[#d90d12]"
-          >
-            <Plus className="h-4 w-4" />
-            New Pool
-          </Button>
+          <div className="flex gap-3">
+            <Button asChild variant="outline" className="h-12 rounded-full px-6">
+              <Link href="/crew-pools/call-sheets">
+                <FileText className="h-4 w-4" />
+                Call Sheets
+              </Link>
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              className="h-12 rounded-full bg-[#ef1218] px-6 text-white hover:bg-[#d90d12]"
+            >
+              <Plus className="h-4 w-4" />
+              New Pool
+            </Button>
+          </div>
         </div>
 
         {error && (

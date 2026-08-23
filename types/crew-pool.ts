@@ -65,6 +65,9 @@ export type CallSheet = {
   // to. Drives whether the page renders edit controls or a read-only view.
   is_owner?: boolean
   owner?: CrewProfile
+  // Present only when the viewer is a crew member on this sheet - their own
+  // accept/decline status, mirrored from their call_sheet_crew row.
+  my_response_status?: "pending" | "accepted" | "declined"
 }
 
 export type CallSheetCrewEntry = {
@@ -74,5 +77,7 @@ export type CallSheetCrewEntry = {
   call_time: string
   department?: string
   role?: string
+  response_status?: "pending" | "accepted" | "declined"
+  responded_at?: string | null
   profile?: CrewProfile
 }

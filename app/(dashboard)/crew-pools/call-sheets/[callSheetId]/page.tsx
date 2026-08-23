@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { motion } from "framer-motion"
-import { ArrowLeft, Clock, CreditCard, Printer, Send } from "lucide-react"
+import { ArrowLeft, Check, Clock, CreditCard, Printer, Send, X } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -106,6 +106,27 @@ export default function CallSheetPage() {
     }
   }
 
+  const respondToCallSheet = async (status: "accepted" | "declined") => {
+    setSaving(status)
+    setError("")
+    try {
+      const response = await fetch(`/api/call-sheets/${params.callSheetId}/respond`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || "Could not send your response")
+      setCallSheet((prev) => (prev ? { ...prev, my_response_status: payload.crew.response_status } : prev))
+      setMessage(status === "accepted" ? "You accepted this call sheet" : "You declined this call sheet")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send your response")
+    } finally {
+      setSaving("")
+    }
+  }
+
   const sendCallSheet = async () => {
     setSaving("send")
     setError("")
@@ -171,13 +192,66 @@ export default function CallSheetPage() {
                     </span>
                   </div>
                 </div>
-                <Badge className={callSheet?.status === "sent" ? "bg-green-100 text-green-800" : "bg-[#f4f7fb] text-[#07111f]"}>
-                  {callSheet?.status || "draft"}
-                </Badge>
+                {isOwner ? (
+                  <Badge className={callSheet?.status === "sent" ? "bg-green-100 text-green-800" : "bg-[#f4f7fb] text-[#07111f]"}>
+                    {callSheet?.status || "draft"}
+                  </Badge>
+                ) : (
+                  <Badge
+                    className={
+                      callSheet?.my_response_status === "accepted"
+                        ? "bg-green-100 text-green-800"
+                        : callSheet?.my_response_status === "declined"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-amber-100 text-amber-800"
+                    }
+                  >
+                    {callSheet?.my_response_status === "accepted"
+                      ? "You accepted"
+                      : callSheet?.my_response_status === "declined"
+                        ? "You declined"
+                        : "Awaiting your response"}
+                  </Badge>
+                )}
               </div>
             </>
           )}
         </div>
+
+        {!loading && !isOwner && (
+          <div className="mt-5 flex flex-col gap-3 rounded-[28px] border border-[#e4ebf3] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between print:hidden">
+            <p className="text-sm text-[#5d6b82]">
+              {callSheet?.my_response_status === "pending"
+                ? "Let the producer know if you're locked in for this shoot."
+                : "You can change your response any time before the shoot."}
+            </p>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                disabled={saving === "accepted"}
+                onClick={() => respondToCallSheet("accepted")}
+                className={`h-11 rounded-full px-5 ${
+                  callSheet?.my_response_status === "accepted"
+                    ? "bg-green-600 text-white hover:bg-green-700"
+                    : "bg-[#111318] text-white hover:bg-black"
+                }`}
+              >
+                <Check className="h-4 w-4" />
+                Accept
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={saving === "declined"}
+                onClick={() => respondToCallSheet("declined")}
+                className={`h-11 rounded-full px-5 ${callSheet?.my_response_status === "declined" ? "border-red-300 bg-red-50 text-red-700" : "bg-white"}`}
+              >
+                <X className="h-4 w-4" />
+                Decline
+              </Button>
+            </div>
+          </div>
+        )}
 
         {error && <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
         {message && <p className="mt-5 rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-700">{message}</p>}
