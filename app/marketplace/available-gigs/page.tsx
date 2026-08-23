@@ -7,11 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, MapPin, Clock, DollarSign, Users, Plus, CheckCircle } from "lucide-react"
+import { Search, MapPin, Clock, DollarSign, Users, Plus, CheckCircle, Crown } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
 import MobileShell from "@/components/mobile/mobile-shell"
+import { useAuth } from "@/contexts/auth-context"
+
+// Mirrors the eligibility gate on the gig apply page (app/marketplace/gigs/[id]/page.tsx) -
+// scouts and unpaid accounts can browse gigs but can't apply.
+const GIG_ELIGIBLE_ACCOUNT_TYPES = ["film_crew", "content_creator", "studio", "store"]
 
 // Mock data fallback when database is empty
 const mockGigs = [
@@ -125,6 +130,11 @@ const locationOptions = ["All Locations", "Cape Town", "Johannesburg", "Durban",
 
 export default function AvailableGigsPage() {
   const searchParams = useSearchParams()
+  const { user, profile, isLoading: authLoading } = useAuth()
+  const accountType = (profile?.account_type || profile?.user_type || "").toLowerCase()
+  const canApplyForGigs =
+    !!user && GIG_ELIGIBLE_ACCOUNT_TYPES.includes(accountType) && profile?.subscription_status === "active"
+  const showEligibilityNotice = !authLoading && !canApplyForGigs
   const [gigs, setGigs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [usingMockData, setUsingMockData] = useState(false)
@@ -374,6 +384,28 @@ export default function AvailableGigsPage() {
             </div>
           </div>
         </motion.section>
+
+        {showEligibilityNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-3 rounded-[24px] bg-amber-50 p-4 text-amber-900 ring-1 ring-amber-200 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex items-start gap-3">
+              <Crown className="mt-0.5 h-5 w-5 shrink-0" />
+              <p className="text-sm font-semibold leading-5">
+                {user
+                  ? "You can browse every gig, but applying needs an active Creator, Studio/Store, or Film Crew subscription."
+                  : "Sign in with a Creator, Studio/Store, or Film Crew account to apply for gigs. Browsing is open to everyone."}
+              </p>
+            </div>
+            <Link href={user ? "/subscribe/plans" : "/auth/login"} className="shrink-0">
+              <Button className="h-10 rounded-full bg-amber-900 px-5 text-xs font-bold text-white hover:bg-amber-800">
+                {user ? "View Plans" : "Sign In"}
+              </Button>
+            </Link>
+          </motion.div>
+        )}
 
         <section className="rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-black/5">
           <div className="relative">
