@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,11 @@ import {
   FolderKanban,
   Compass,
   MapPin,
+  MoreHorizontal,
+  CalendarDays,
+  ShieldCheck,
+  Megaphone,
+  FileText,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { NavBar } from "@/components/ui/tubelight-navbar"
@@ -31,8 +36,33 @@ import { StaggeredMenu, AnimatedMenuIcon } from "@/components/ui/staggered-menu"
 export default function Header() {
   const { user, profile, isLoading, signOut: handleAuthSignOut } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [crewPoolCount, setCrewPoolCount] = useState(0)
   const router = useRouter()
+  const isAdmin = profile?.role === "admin" || profile?.role === "super_admin"
+  const headerRef = useRef<HTMLElement>(null)
+  const [headerHeight, setHeaderHeight] = useState(88)
+
+  useEffect(() => {
+    if (!isMoreMenuOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMoreMenuOpen(false)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [isMoreMenuOpen])
+
+  useEffect(() => {
+    // The "More" panel is fixed-positioned, so it needs the header's real
+    // rendered height (not a guessed Tailwind top-N class) to sit flush
+    // below it instead of overlapping the toolbar row.
+    const measure = () => {
+      if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight)
+    }
+    measure()
+    window.addEventListener("resize", measure)
+    return () => window.removeEventListener("resize", measure)
+  }, [])
 
   useEffect(() => {
     if (!user) {
@@ -59,7 +89,9 @@ export default function Header() {
     try {
       await handleAuthSignOut()
       setIsMobileMenuOpen(false)
-      router.push("/")
+      // Hard navigation, not router.push - see the matching comment in
+      // app/dashboard/page.tsx's handleSignOut for why.
+      window.location.href = "/"
     } catch (error) {
       console.error("Sign out error:", error)
     }
@@ -174,7 +206,31 @@ export default function Header() {
         { label: "Messages", icon: MessageCircle, href: "/messages" },
         { label: "Saved", icon: Heart, href: "/saved-profiles" },
         { label: "Dashboard", icon: User, href: getDashboardLink() },
+        { label: "More", icon: MoreHorizontal, onClick: () => setIsMoreMenuOpen((value) => !value) },
         { label: "Sign Out", icon: LogOut, onClick: handleSignOut },
+      ]
+    : []
+
+  // Desktop has no room for the full mobile bottom nav + hamburger menu, so
+  // this fills the gap with the items that only exist there today (see
+  // components/mobile/mobile-shell.tsx's menuItems/quickMenuItems). Find
+  // Crew/Creators/Studios/Locations/Gigs are already in the center NavBar,
+  // and Notifications/Messages/Saved/Dashboard are already in the toolbar
+  // above, so neither set is repeated here.
+  const moreMenuItems = user
+    ? [
+        { name: "Crew Pools", url: "/crew-pools", icon: FolderKanban, badgeCount: crewPoolCount },
+        { name: "Community", url: "/community", icon: Compass },
+        { name: "Hire Requests", url: "/hire-requests", icon: CalendarDays },
+        ...(isAdmin
+          ? [
+              { name: "Admin Console", url: "/admin", icon: ShieldCheck },
+              { name: "Sponsored Ads", url: "/admin/ads", icon: Megaphone },
+              { name: "Blog Posts", url: "/admin/articles", icon: FileText },
+              { name: "Events", url: "/admin/events", icon: CalendarDays },
+              { name: "Site Content", url: "/admin/homepage-content", icon: Home },
+            ]
+          : []),
       ]
     : []
 
@@ -190,7 +246,7 @@ export default function Header() {
 
   return (
     <div className="hidden md:block">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <header ref={headerRef} className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16 py-[7px] my-3">
             {/* Desktop Logo */}
@@ -263,6 +319,54 @@ export default function Header() {
           </div>
         </div>
       </header>
+
+      <AnimatePresence>
+        {isMoreMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 hidden bg-black/40 backdrop-blur-sm md:block"
+              onClick={() => setIsMoreMenuOpen(false)}
+            />
+            <motion.div
+              initial={{ y: "-100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "-100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              style={{ top: headerHeight }}
+              className="fixed inset-x-0 z-50 hidden max-h-[50vh] overflow-y-auto border-b border-gray-200 bg-white shadow-2xl md:block"
+            >
+              <div className="container mx-auto px-4 py-8">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">More tools</p>
+                <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {moreMenuItems.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.url}
+                        onClick={() => setIsMoreMenuOpen(false)}
+                        className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-gray-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Icon className="h-5 w-5 shrink-0" />
+                        <span className="font-medium">{item.name}</span>
+                        {"badgeCount" in item && item.badgeCount > 0 && (
+                          <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                            {item.badgeCount}
+                          </span>
+                        )}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isMobileMenuOpen && (
