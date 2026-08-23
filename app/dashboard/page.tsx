@@ -1401,7 +1401,14 @@ export default function DashboardPage() {
 
   const handleSignOut = async () => {
     await signOut()
-    router.push("/")
+    // Hard navigation, not router.push - this page uses lib/auth.ts's
+    // signOut(), a separate Supabase client instance from the one
+    // AuthContext (which the header reads) subscribes to for
+    // onAuthStateChange. A client-side route change doesn't reliably
+    // remount AuthProvider to pick up the now-cleared session, which left
+    // the header showing a stale logged-in state after sign-out. A full
+    // reload re-reads the real session from scratch.
+    window.location.href = "/"
   }
 
   const removePortfolioImage = (index: number) => {

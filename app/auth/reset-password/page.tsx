@@ -116,10 +116,12 @@ function ResetPasswordContent() {
       } else {
         console.log("[v0] Password updated successfully")
         setSuccess(true)
-        // Sign out to force re-login with new password
+        // Sign out to force re-login with new password. Hard navigation,
+        // not router.push - see the matching comment in
+        // app/dashboard/page.tsx's handleSignOut for why.
         await supabase.auth.signOut()
         setTimeout(() => {
-          router.push("/auth/login")
+          window.location.href = "/auth/login"
         }, 3000)
       }
     } catch (err) {
