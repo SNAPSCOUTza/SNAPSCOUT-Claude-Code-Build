@@ -14,7 +14,13 @@ export type AvailabilityEntry = {
 }
 
 export function formatDateKey(date: Date) {
-  return date.toISOString().slice(0, 10)
+  // Local date components, not toISOString() - that converts through UTC
+  // first, which silently shifts the date by a day in any timezone ahead of
+  // UTC (e.g. SAST, UTC+2) since local midnight is still "yesterday" in UTC.
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
 }
 
 export function startOfMonth(date: Date) {

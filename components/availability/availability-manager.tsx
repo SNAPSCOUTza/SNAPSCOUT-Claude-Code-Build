@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   addMonths,
   buildIcsCalendar,
-  buildMockAvailability,
   formatDateKey,
   getAvailabilityMap,
   getMonthDays,
@@ -29,7 +28,9 @@ const statusOrder: Array<AvailabilityStatus | "reset"> = ["available", "blocked"
 
 export function AvailabilityManager({ ownerId, ownerType = "crew" }: AvailabilityManagerProps) {
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
-  const [entries, setEntries] = useState<AvailabilityEntry[]>(() => buildMockAvailability(ownerId, ownerType))
+  const [entries, setEntries] = useState<AvailabilityEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   const [editorOpen, setEditorOpen] = useState(false)
   const [editorMonth, setEditorMonth] = useState(() => startOfMonth(new Date()))
@@ -54,6 +55,25 @@ export function AvailabilityManager({ ownerId, ownerType = "crew" }: Availabilit
       }
     }
   }, [])
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    fetch("/api/availability", { credentials: "include" })
+      .then((response) => (response.ok ? response.json() : { entries: [] }))
+      .then((payload) => {
+        if (active) setEntries(payload.entries || [])
+      })
+      .catch(() => {
+        if (active) setEntries([])
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [ownerId])
 
   const openEditor = () => {
     setEditorEntries(entries)
@@ -81,10 +101,34 @@ export function AvailabilityManager({ ownerId, ownerType = "crew" }: Availabilit
     }, 140)
   }
 
-  const applyEditor = () => {
+  const applyEditor = async () => {
+    setSaving(true)
+    // Optimistic - the editor already reflects the intended end state.
     setEntries(editorEntries)
     setMonth(editorMonth)
     closeEditor()
+
+    try {
+      const response = await fetch("/api/availability", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          owner_type: ownerType,
+          entries: editorEntries
+            .filter((entry) => entry.status !== "booked")
+            .map((entry) => ({ date: entry.date, status: entry.status, note: entry.note })),
+        }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (response.ok && payload?.entries) {
+        setEntries(payload.entries)
+      }
+    } catch {
+      // Optimistic state stands; next load will reconcile with the server.
+    } finally {
+      setSaving(false)
+    }
   }
 
   const updateDate = (date: string) => {
@@ -139,7 +183,9 @@ export function AvailabilityManager({ ownerId, ownerType = "crew" }: Availabilit
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-[24px] font-bold leading-tight">Availability</h2>
-            <p className="text-[14px] text-muted-foreground">Compact dashboard view. Open full screen to edit dates.</p>
+            <p className="text-[14px] text-muted-foreground">
+              {saving ? "Saving..." : "Compact dashboard view. Open full screen to edit dates."}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <motion.button
@@ -158,7 +204,9 @@ export function AvailabilityManager({ ownerId, ownerType = "crew" }: Availabilit
         </div>
 
         <div className="grid gap-3 lg:grid-cols-[1fr_1.25fr]">
-          {nextBooking ? (
+          {loading ? (
+            <div className="rounded-2xl border bg-muted p-4 text-[14px] text-muted-foreground">Loading availability...</div>
+          ) : nextBooking ? (
             <div className="rounded-2xl border bg-muted p-4 text-[14px]">
               <div className="flex items-center gap-2 font-semibold">
                 <CalendarClock className="h-4 w-4 text-primary" />
@@ -170,7 +218,7 @@ export function AvailabilityManager({ ownerId, ownerType = "crew" }: Availabilit
                   month: "long",
                   year: "numeric",
                 })}{" "}
-                - Client booking
+                - {nextBooking.note || "Client booking"}
               </p>
             </div>
           ) : (
@@ -268,7 +316,7 @@ export function AvailabilityManager({ ownerId, ownerType = "crew" }: Availabilit
                       month: "long",
                       year: "numeric",
                     })}{" "}
-                    - Client booking
+                    - {nextBooking.note || "Client booking"}
                   </p>
                 </div>
               )}
