@@ -33,6 +33,7 @@ export interface AuthContextType {
   user: User | null
   profile: UserProfile | null
   isLoading: boolean
+  isProfileLoading: boolean
   isAuthenticated: boolean
   isAuthorized: boolean
   signIn: (email: string, password: string) => Promise<void>
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isProfileLoading, setIsProfileLoading] = useState(false)
 
   const isLoadingProfile = useRef(false)
   const lastLoadedUserId = useRef<string | null>(null)
@@ -76,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       isLoadingProfile.current = true
+      setIsProfileLoading(true)
       console.log("[v0] Loading profile from API for user:", userId)
 
       try {
@@ -85,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!response.ok) {
           console.error("[v0] Profile load API error:", result.error)
           isLoadingProfile.current = false
+          setIsProfileLoading(false)
           return
         }
 
@@ -104,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("[v0] Profile load error:", error?.message || error)
       } finally {
         isLoadingProfile.current = false
+        setIsProfileLoading(false)
       }
     },
     [profile],
@@ -133,6 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (event === "SIGNED_OUT") {
         setUser(null)
         setProfile(null)
+        setIsProfileLoading(false)
         lastLoadedUserId.current = null
         profileCache.clear()
       } else if (event === "TOKEN_REFRESHED" && session?.user) {
@@ -243,6 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         profile,
         isLoading,
+        isProfileLoading,
         isAuthenticated,
         isAuthorized,
         signIn,

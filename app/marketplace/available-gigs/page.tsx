@@ -130,11 +130,13 @@ const locationOptions = ["All Locations", "Cape Town", "Johannesburg", "Durban",
 
 export default function AvailableGigsPage() {
   const searchParams = useSearchParams()
-  const { user, profile, isLoading: authLoading } = useAuth()
+  const { user, profile, isLoading: authLoading, isProfileLoading } = useAuth()
   const accountType = (profile?.account_type || profile?.user_type || "").toLowerCase()
   const canApplyForGigs =
     !!user && GIG_ELIGIBLE_ACCOUNT_TYPES.includes(accountType) && profile?.subscription_status === "active"
-  const showEligibilityNotice = !authLoading && !canApplyForGigs
+  // While signed in but the profile hasn't loaded yet, account_type/subscription_status
+  // are unknown - wait rather than flashing the notice at an eligible, paying user.
+  const showEligibilityNotice = !authLoading && !(user && isProfileLoading) && !canApplyForGigs
   const [gigs, setGigs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [usingMockData, setUsingMockData] = useState(false)
