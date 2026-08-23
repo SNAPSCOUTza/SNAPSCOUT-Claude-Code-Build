@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import dynamic from "next/dynamic"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import {
@@ -25,11 +26,17 @@ import { Badge } from "@/components/ui/badge"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
 import { LeaveReviewButton } from "@/components/reviews/leave-review-button"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
-import { PortfolioLightbox } from "@/components/portfolio/portfolio-lightbox"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { mockCrewMembers, type MockCrewMember } from "@/lib/mock-data/crew-data"
 import { parseTalentPackages, normalizeVisiblePackageCount } from "@/lib/mock-data/talent-dashboard-preview"
 import type { LightboxPortfolioItem } from "@/types/portfolio"
+
+// Client-only overlay with no SSR value - only mounts once a photo is
+// clicked, so it shouldn't be in this page's initial bundle.
+const PortfolioLightbox = dynamic(
+  () => import("@/components/portfolio/portfolio-lightbox").then((mod) => mod.PortfolioLightbox),
+  { ssr: false },
+)
 
 interface CrewProfile {
   id: string

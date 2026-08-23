@@ -2,14 +2,23 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
+import dynamic from "next/dynamic"
 import { motion } from "framer-motion"
 import { ExternalLink, Facebook, Instagram, Play } from "lucide-react"
-import { PortfolioLightbox } from "@/components/portfolio/portfolio-lightbox"
 import {
   normalizePortfolioItem,
   type LightboxPortfolioItem,
   type ProfilePortfolioItem,
 } from "@/types/portfolio"
+
+// Lazy-loaded: the lightbox (and the gsap-driven DepthCarousel it renders)
+// only ever mounts once a user clicks a thumbnail, so it shouldn't ship in
+// every profile page's initial bundle. No SSR value either - it's a
+// client-only interactive overlay with nothing to render server-side.
+const PortfolioLightbox = dynamic(
+  () => import("@/components/portfolio/portfolio-lightbox").then((mod) => mod.PortfolioLightbox),
+  { ssr: false },
+)
 
 type ProfilePortfolioGalleryProps = {
   userId?: string

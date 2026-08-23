@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import {
   ArrowLeft,
   Bath,
@@ -32,8 +33,14 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import type { ShootLocation, ShootLocationPhoto, ShootLocationReview } from "@/lib/locations/types"
 import { LocationPhotoUploadSheet } from "@/components/locations/location-photo-upload-sheet"
-import { PortfolioLightbox } from "@/components/portfolio/portfolio-lightbox"
 import type { LightboxPortfolioItem } from "@/types/portfolio"
+
+// Client-only overlay with no SSR value - only mounts once a photo is
+// clicked, so it shouldn't be in this page's initial bundle.
+const PortfolioLightbox = dynamic(
+  () => import("@/components/portfolio/portfolio-lightbox").then((mod) => mod.PortfolioLightbox),
+  { ssr: false },
+)
 
 function formatRelativeDate(value: string) {
   const diffMs = Date.now() - new Date(value).getTime()

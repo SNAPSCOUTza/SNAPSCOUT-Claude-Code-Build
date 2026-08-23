@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
+import dynamic from "next/dynamic"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import {
@@ -30,8 +31,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
-import { PortfolioLightbox } from "@/components/portfolio/portfolio-lightbox"
 import type { LightboxPortfolioItem } from "@/types/portfolio"
+
+// Client-only overlay with no SSR value - only mounts once a photo is
+// clicked, so it shouldn't be in this page's initial bundle.
+const PortfolioLightbox = dynamic(
+  () => import("@/components/portfolio/portfolio-lightbox").then((mod) => mod.PortfolioLightbox),
+  { ssr: false },
+)
 import { getStudioStoreById, type StudioStoreItem } from "@/lib/mock-data/studios-stores-data"
 import {
   STUDIO_STORE_DASHBOARD_PREVIEW_KEY,
