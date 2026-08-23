@@ -1,5 +1,6 @@
 export const CREATOR_SPECIALIZATION_OPTIONS = [
   "Portrait Photography",
+  "Headshots",
   "Wedding",
   "Maternity",
   "Fashion Shoots",
@@ -14,6 +15,8 @@ export const CREATOR_SPECIALIZATION_OPTIONS = [
   "Nature",
   "Family/Newborn",
   "Boudoir",
+  "Sports",
+  "Pet Photography",
   "Architectural",
   "Music Videos",
   "Commercial/Ads",

@@ -34,6 +34,8 @@ type LiveCreator = MockCreator & {
   hourly_rate?: string | number | null
   daily_rate?: string | number | null
   pricing?: string | null
+  specializations?: string[]
+  skills?: string[]
 }
 
 function mapLiveProfileToCreator(profile: any): LiveCreator {
@@ -54,6 +56,8 @@ function mapLiveProfileToCreator(profile: any): LiveCreator {
     hourly_rate: profile.hourly_rate,
     daily_rate: profile.daily_rate,
     pricing: profile.pricing,
+    specializations: Array.isArray(profile.specializations) ? profile.specializations : [],
+    skills: Array.isArray(profile.skills) ? profile.skills : [],
   }
 }
 
@@ -162,7 +166,7 @@ export default function CreatorProfilePage() {
     supabase
       .from("user_profiles")
       .select(
-        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, pricing, hourly_rate, daily_rate, rating, review_count",
+        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, pricing, hourly_rate, daily_rate, rating, review_count, specializations, skills",
       )
       .eq("user_id", params.id)
       .maybeSingle()
@@ -216,6 +220,13 @@ export default function CreatorProfilePage() {
         ? { priceLabel: liveCreator.pricing, rateSuffix: "" }
         : null
 
+  // Prefer what the creator actually picked in their dashboard (specializations,
+  // falling back to skills) over the profession-inferred canned list - that
+  // list is only a placeholder for profiles that haven't set either yet.
+  const realServices = (liveCreator?.specializations?.length ? liveCreator.specializations : liveCreator?.skills) || []
+  const inferredServices = inferDefaultServices(creator.profession)
+  const resolvedServices = realServices.length > 0 ? realServices : inferredServices
+
   const defaults = creatorDetailDefaults[creator.id] ?? {
     priceLabel: liveRate?.priceLabel ?? "R1,500",
     rateSuffix: liveRate?.rateSuffix ?? "/day",
@@ -223,8 +234,8 @@ export default function CreatorProfilePage() {
     experienceLabel: "6 years",
     memberSince: "Mar 2022",
     projectsLabel: creator.portfolioCount > 0 ? `${creator.portfolioCount}+` : "New",
-    services: inferDefaultServices(creator.profession),
-    highlights: inferDefaultServices(creator.profession).slice(0, 3),
+    services: resolvedServices,
+    highlights: resolvedServices.slice(0, 3),
     phone: "+27 71 555 0101",
   }
 

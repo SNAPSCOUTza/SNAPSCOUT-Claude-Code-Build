@@ -65,6 +65,7 @@ import { PortfolioManager } from "@/components/dashboard/portfolio-manager"
 import { calculateProfileCompleteness } from "@/lib/profile-utils"
 import { resizeImageFile } from "@/lib/image-resize"
 import { CREATOR_SPECIALIZATION_OPTIONS } from "@/lib/creator-specializations"
+import { STUDIO_STORE_SERVICE_OPTIONS } from "@/lib/studio-store-services"
 import { AvailabilityManager } from "@/components/availability/availability-manager"
 import type { AvailabilityOwnerType } from "@/lib/availability"
 import { IncomingAvailabilityRequests } from "@/components/crew/IncomingAvailabilityRequests"
@@ -232,15 +233,27 @@ const ACCOUNT_TYPE_OPTIONS = [
 const CREW_ROLE_OPTIONS = [
   "Director",
   "Producer",
+  "Line Producer",
   "Director of Photography",
   "Cinematographer / DOP",
   "Camera Operator",
+  "1st Assistant Camera (Focus Puller)",
+  "2nd Assistant Camera (Clapper Loader)",
+  "Drone Pilot",
   "Sound Engineer",
+  "Sound Mixer",
   "Boom Operator",
   "Gaffer",
+  "Key Grip",
   "Editor",
+  "Colorist",
+  "VFX Artist",
+  "Production Designer",
+  "Art Director",
   "Script Supervisor",
+  "Production Assistant",
   "Makeup Artist",
+  "Wardrobe Stylist",
 ]
 
 const DEPARTMENT_OPTIONS = [
@@ -258,17 +271,31 @@ const DEPARTMENT_OPTIONS = [
 
 const SKILL_OPTIONS = [
   "Natural Light",
-  "Color Grading",
+  "Studio Lighting",
+  "Portrait Lighting",
+  "Lighting Design",
+  "Camera Operation",
   "Drone Operations",
+  "Steadicam / Gimbal Operation",
+  "Underwater Filming",
   "Location Recording",
+  "Sound Design",
   "Post-Production Mixing",
   "Foley Design",
-  "Portrait Lighting",
-  "Studio Lighting",
+  "Color Grading",
+  "Video Editing",
+  "Motion Graphics",
+  "VFX Compositing",
   "Commercial Beauty",
-  "Brand Campaigns",
   "Product Retouching",
+  "Set Design",
+  "Wardrobe Styling",
+  "Hair & Makeup",
+  "SFX Makeup",
   "Client Direction",
+  "Brand Campaigns",
+  "Live Event Coverage",
+  "Documentary Filming",
 ]
 
 const STUDIO_STORE_AMENITY_OPTIONS = [
@@ -2503,6 +2530,15 @@ export default function DashboardPage() {
                         value={studioStoreSettings.operating_hours}
                         onChange={(e) => handleStudioStoreSettingChange("operating_hours", e.target.value)}
                         placeholder="Mon-Fri 08:00-18:00"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <ChipPicker
+                        label="Core services"
+                        description="Shown on your public listing so clients know what you offer at a glance."
+                        options={STUDIO_STORE_SERVICE_OPTIONS}
+                        value={profileData.skills}
+                        onChange={(value) => handleInputChange("skills", value)}
                       />
                     </div>
                   </CardContent>

@@ -322,6 +322,19 @@ export default function StudioStoreDetailPage() {
             })}
           </div>
 
+          {item.services.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-[#e6ebf3] bg-white p-4">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Core services</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {item.services.map((service) => (
+                  <span key={service} className="rounded-full bg-[#f3f5f8] px-3 py-1.5 text-[12px] font-medium text-[#3e4652]">
+                    {service}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="mt-5 flex items-end justify-between gap-3">
             <div>
               <p className="text-[13px] text-[#6c7380]">From</p>
