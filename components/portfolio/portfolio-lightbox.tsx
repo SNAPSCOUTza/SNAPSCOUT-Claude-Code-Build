@@ -186,7 +186,7 @@ export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLig
             <button
               type="button"
               onClick={() => carouselApiRef.current?.prev()}
-              className="grid h-11 w-11 place-items-center rounded-full bg-gray-900 text-white transition-colors hover:bg-black active:scale-[0.96]"
+              className="grid h-11 w-11 place-items-center rounded-full bg-gray-500 text-white transition-colors hover:bg-gray-600 active:scale-[0.96]"
               aria-label="Previous image"
             >
               <ChevronLeft className="h-5 w-5" />
@@ -194,7 +194,7 @@ export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLig
             <button
               type="button"
               onClick={() => carouselApiRef.current?.next()}
-              className="grid h-11 w-11 place-items-center rounded-full bg-gray-900 text-white transition-colors hover:bg-black active:scale-[0.96]"
+              className="grid h-11 w-11 place-items-center rounded-full bg-gray-500 text-white transition-colors hover:bg-gray-600 active:scale-[0.96]"
               aria-label="Next image"
             >
               <ChevronRight className="h-5 w-5" />
