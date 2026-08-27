@@ -122,6 +122,10 @@ const DepthCarousel = ({
   const wheelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const autoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const reducedRef = useRef(false)
+  // pointermove/wheel can fire far more often than the screen repaints -
+  // batch their layout() writes to once per animation frame instead of
+  // once per raw event.
+  const rafRef = useRef<number | null>(null)
 
   const [active, setActive] = useState(0)
 
@@ -163,27 +167,53 @@ const DepthCarousel = ({
       const az = Math.abs(d)
       const shown = az <= cfg.visibleCards + 0.5
 
+      if (!shown) {
+        // Fully out of the visible stack - skip recomputing transform/
+        // filter entirely instead of doing full per-frame work for cards
+        // nobody can see. A portfolio can have far more images than
+        // visibleCards ever shows at once, so this is real savings, not
+        // just for a handful of items.
+        if (el.style.opacity !== "0") el.style.opacity = "0"
+        if (el.style.pointerEvents !== "none") el.style.pointerEvents = "none"
+        if (el.style.willChange !== "auto") el.style.willChange = "auto"
+        continue
+      }
+
       const tz = -cfg.depth * d
       const tx = dir * cfg.spread * d
       const ry = dir * cfg.tilt * clamp(d, 0, 1)
 
-      let opacity = d < 0 ? Math.max(0, 1 + d) : 1
-      if (!shown) opacity = 0
+      const opacity = d < 0 ? Math.max(0, 1 + d) : 1
 
       const brightness = Math.max(0.15, 1 - back * cfg.falloff)
       const blurPx = cfg.blur > 0 ? Math.min(cfg.blur, (back / Math.max(1, cfg.visibleCards)) * cfg.blur) : 0
       const zi = Math.round(2000 - d * 20)
 
+      // Only cards currently in the visible stack get promoted to their
+      // own layer - see the matching CSS comment on .depth-carousel__card.
+      el.style.willChange = "transform, opacity, filter"
       el.style.transform = `translate(-50%, -50%) scale(${sc}) translateX(${tx.toFixed(2)}px) translateZ(${tz.toFixed(2)}px) rotateY(${ry.toFixed(3)}deg)`
       el.style.opacity = opacity.toFixed(3)
       el.style.filter = `brightness(${brightness.toFixed(3)}) blur(${blurPx.toFixed(2)}px)`
       el.style.zIndex = String(zi)
-      el.style.pointerEvents = shown && opacity > 0.05 ? "auto" : "none"
+      el.style.pointerEvents = opacity > 0.05 ? "auto" : "none"
 
       const ov = overlayRefs.current[i]
       if (ov) ov.style.opacity = clamp(back * cfg.falloff * 1.25, 0, 0.86).toFixed(3)
     }
   }, [])
+
+  const scheduleLayout = useCallback(
+    (pos: number) => {
+      posRef.current = pos
+      if (rafRef.current != null) return
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null
+        layout(posRef.current)
+      })
+    },
+    [layout],
+  )
 
   const notify = useCallback(
     (idx: number) => {
@@ -196,6 +226,10 @@ const DepthCarousel = ({
   const tweenTo = useCallback(
     (target: number, animate: boolean) => {
       tweenRef.current?.kill()
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
       const cfg = cfgRef.current
       const proxy = { p: posRef.current }
       const dur = animate && !reducedRef.current ? cfg.duration / 1000 : 0
@@ -264,8 +298,7 @@ const DepthCarousel = ({
       const raw = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
       const delta = e.deltaMode === 1 ? raw * 24 : raw
       const step = clamp(delta / (cfg.cardWidth * 0.9), -0.6, 0.6)
-      posRef.current += step
-      layout(posRef.current)
+      scheduleLayout(posRef.current + step)
       if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current)
       wheelTimerRef.current = setTimeout(() => setFocus(Math.round(posRef.current), true), 130)
     }
@@ -274,7 +307,7 @@ const DepthCarousel = ({
       el.removeEventListener("wheel", onWheel)
       if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current)
     }
-  }, [layout, setFocus])
+  }, [scheduleLayout, setFocus])
 
   const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     const cfg = cfgRef.current
@@ -308,10 +341,9 @@ const DepthCarousel = ({
       drag.v = (e.clientX - drag.lastX) / dt
       drag.lastX = e.clientX
       drag.lastT = now
-      posRef.current = drag.startPos - dx / stepPx
-      layout(posRef.current)
+      scheduleLayout(drag.startPos - dx / stepPx)
     },
-    [layout],
+    [scheduleLayout],
   )
 
   const onPointerEnd = useCallback(() => {
@@ -400,6 +432,7 @@ const DepthCarousel = ({
       tweenRef.current?.kill()
       if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current)
       if (autoTimerRef.current) clearInterval(autoTimerRef.current)
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
     },
     [],
   )

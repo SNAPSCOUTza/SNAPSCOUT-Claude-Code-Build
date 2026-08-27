@@ -41,7 +41,10 @@
   box-shadow:
     0 30px 60px -20px rgba(0, 0, 0, 0.65),
     0 8px 20px -10px rgba(0, 0, 0, 0.5);
-  will-change: transform, opacity, filter;
+  /* will-change is set in JS only on cards currently in the visible stack
+     (see layout() in depth-carousel.tsx) - a portfolio can have far more
+     cards than are ever shown at once, and promoting all of them to their
+     own layer permanently costs more GPU memory than it saves. */
   cursor: pointer;
   transform: translate(-50%, -50%);
 }
