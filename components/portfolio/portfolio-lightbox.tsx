@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useCallback, useMemo, useRef, useState } from "react"
-import { X, Facebook, Instagram } from "lucide-react"
+import { X, ChevronLeft, ChevronRight, Facebook, Instagram } from "lucide-react"
 import { motion } from "framer-motion"
-import DepthCarousel from "@/components/ui/depth-carousel"
+import DepthCarousel, { type DepthCarouselHandle } from "@/components/ui/depth-carousel"
 import type { LightboxPortfolioItem } from "@/types/portfolio"
 
 interface PortfolioLightboxProps {
@@ -24,6 +24,7 @@ const extractVimeoId = (url: string) => {
 
 export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLightboxProps) {
   const carouselWrapRef = useRef<HTMLDivElement>(null)
+  const carouselApiRef = useRef<DepthCarouselHandle>(null)
 
   // DepthCarousel always starts at position 0 with no controlled "start
   // index" prop, so the item the user actually clicked is rotated to the
@@ -71,98 +72,133 @@ export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLig
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#08090c]/97 px-2 py-[max(10px,env(safe-area-inset-top))]"
+      transition={{ duration: 0.22, ease: "easeInOut" }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      onClick={onClose}
     >
-      {/* Close Button */}
-      <button
-        onClick={onClose}
-        className="absolute right-4 top-[max(16px,env(safe-area-inset-top))] z-20 grid h-12 w-12 place-items-center rounded-full bg-white text-[#111318] shadow-[0_14px_30px_rgba(0,0,0,0.26)] transition-[transform,background-color] duration-200 hover:bg-white/90 active:scale-[0.96]"
-        aria-label="Close lightbox"
-      >
-        <X className="h-6 w-6" />
-      </button>
-
-      {/* Content - sized to "contain" fit an 0.8 (4:5) aspect ratio inside
-          the available viewport, so the DepthCarousel's own width-based
-          scaling (see components/ui/depth-carousel.tsx's ResizeObserver)
-          fills the box on BOTH axes instead of leaving it width-constrained
-          on tall/narrow mobile screens with empty space above/below. */}
+      {/* The frame - a white rounded sheet matching the app's own card/
+          modal language, rather than a full-bleed dark photo lightbox.
+          Sized to 80% of the viewport per request, capped so it doesn't
+          balloon on very wide desktop screens. */}
       <motion.div
-        ref={carouselWrapRef}
-        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        initial={{ opacity: 0, y: 24, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        className="relative mx-auto"
-        style={{ width: "min(92vw, 85dvh * 0.8)", height: "min(85dvh, 92vw / 0.8)" }}
+        exit={{ opacity: 0, y: 12, scale: 0.98 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative flex w-[80vw] max-w-[720px] flex-col overflow-hidden rounded-[32px] bg-white shadow-2xl"
+        style={{ height: "80dvh" }}
       >
-        <DepthCarousel
-          items={carouselSlides}
-          cardWidth={640}
-          cardHeight={800}
-          tint="#08090c"
-          spread={20}
-          tilt={10}
-          depth={110}
-          visibleCards={3}
-          blur={4}
-          onChange={(index) => setActiveIndex(index)}
-        />
+        {/* Top bar - sits below the dynamic island / notch on mobile */}
+        <div className="flex shrink-0 items-center justify-between gap-3 px-4 pb-2 pt-[max(14px,env(safe-area-inset-top))]">
+          <span className="h-9 w-9" aria-hidden="true" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Swipe to scroll</p>
+          <button
+            onClick={onClose}
+            className="grid h-9 w-9 place-items-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200 active:scale-[0.96]"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-        {/* Videos and link-out permalinks aren't real images - the depth
-            stack still shows their thumbnails for browsing, but the
-            actual player/link-card overlays on top once one is centered. */}
-        {currentItem.type !== "image" && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-4">
-            {currentItem.type === "link" ? (
-              <div
-                className={`pointer-events-auto aspect-video w-full max-w-lg overflow-hidden rounded-[28px] shadow-[0_22px_52px_rgba(0,0,0,0.45)] outline outline-1 outline-white/10 ${
-                  currentItem.platform === "facebook" ? "bg-[#1877f2]" : "bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af]"
-                }`}
-              >
-                <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-white">
-                  {currentItem.platform === "facebook" ? <Facebook className="h-12 w-12" /> : <Instagram className="h-12 w-12" />}
-                  <p className="text-sm font-semibold">No preview available for this link</p>
-                  {currentItem.link && (
-                    <a
-                      href={currentItem.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-full bg-white/95 px-5 py-2.5 text-sm font-bold text-[#111318]"
-                    >
-                      View on {currentItem.platform === "facebook" ? "Facebook" : "Instagram"}
-                    </a>
+        {/* Carousel */}
+        <div ref={carouselWrapRef} className="relative min-h-0 flex-1">
+          <DepthCarousel
+            ref={carouselApiRef}
+            items={carouselSlides}
+            cardWidth={640}
+            cardHeight={800}
+            tint="#0b0d12"
+            spread={20}
+            tilt={10}
+            depth={110}
+            visibleCards={3}
+            blur={4}
+            showControls={false}
+            showIndicators={false}
+            onChange={(index) => setActiveIndex(index)}
+          />
+
+          {/* Videos and link-out permalinks aren't real images - the depth
+              stack still shows their thumbnails for browsing, but the
+              actual player/link-card overlays on top once one is centered. */}
+          {currentItem.type !== "image" && (
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-4">
+              {currentItem.type === "link" ? (
+                <div
+                  className={`pointer-events-auto aspect-video w-full max-w-md overflow-hidden rounded-[24px] shadow-[0_22px_52px_rgba(0,0,0,0.35)] ${
+                    currentItem.platform === "facebook" ? "bg-[#1877f2]" : "bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af]"
+                  }`}
+                >
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-white">
+                    {currentItem.platform === "facebook" ? <Facebook className="h-12 w-12" /> : <Instagram className="h-12 w-12" />}
+                    <p className="text-sm font-semibold">No preview available for this link</p>
+                    {currentItem.link && (
+                      <a
+                        href={currentItem.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-full bg-white/95 px-5 py-2.5 text-sm font-bold text-[#111318]"
+                      >
+                        View on {currentItem.platform === "facebook" ? "Facebook" : "Instagram"}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="pointer-events-auto aspect-video w-full max-w-md overflow-hidden rounded-[24px] bg-black shadow-[0_22px_52px_rgba(0,0,0,0.35)]">
+                  {currentItem.embedUrl ? (
+                    <iframe
+                      src={currentItem.embedUrl}
+                      className="h-full w-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                      allowFullScreen
+                    />
+                  ) : currentItem.platform === "youtube" && currentItem.link ? (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${extractYouTubeId(currentItem.link)}?autoplay=1`}
+                      className="h-full w-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : currentItem.platform === "vimeo" && currentItem.link ? (
+                    <iframe
+                      src={`https://player.vimeo.com/video/${extractVimeoId(currentItem.link)}?autoplay=1`}
+                      className="h-full w-full"
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video src={currentItem.fullUrl || currentItem.thumbnail} controls autoPlay className="h-full w-full" />
                   )}
                 </div>
-              </div>
-            ) : (
-              <div className="pointer-events-auto aspect-video w-full max-w-lg overflow-hidden rounded-[28px] bg-black shadow-[0_22px_52px_rgba(0,0,0,0.45)] outline outline-1 outline-white/10">
-                {currentItem.embedUrl ? (
-                  <iframe
-                    src={currentItem.embedUrl}
-                    className="h-full w-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                    allowFullScreen
-                  />
-                ) : currentItem.platform === "youtube" && currentItem.link ? (
-                  <iframe
-                    src={`https://www.youtube.com/embed/${extractYouTubeId(currentItem.link)}?autoplay=1`}
-                    className="h-full w-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : currentItem.platform === "vimeo" && currentItem.link ? (
-                  <iframe
-                    src={`https://player.vimeo.com/video/${extractVimeoId(currentItem.link)}?autoplay=1`}
-                    className="h-full w-full"
-                    allow="autoplay; fullscreen; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : (
-                  <video src={currentItem.fullUrl || currentItem.thumbnail} controls autoPlay className="h-full w-full" />
-                )}
-              </div>
-            )}
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom nav - back/forward buttons, matching the app's own
+            button language instead of the carousel's built-in edge arrows
+            (disabled above via showControls={false}). */}
+        {carouselSlides.length > 1 && (
+          <div className="flex shrink-0 items-center justify-center gap-4 px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3">
+            <button
+              type="button"
+              onClick={() => carouselApiRef.current?.prev()}
+              className="grid h-11 w-11 place-items-center rounded-full bg-gray-900 text-white transition-colors hover:bg-black active:scale-[0.96]"
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => carouselApiRef.current?.next()}
+              className="grid h-11 w-11 place-items-center rounded-full bg-gray-900 text-white transition-colors hover:bg-black active:scale-[0.96]"
+              aria-label="Next image"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
           </div>
         )}
       </motion.div>

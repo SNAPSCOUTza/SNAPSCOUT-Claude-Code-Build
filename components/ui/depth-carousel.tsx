@@ -1,8 +1,10 @@
 "use client"
 
 import {
+  forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -76,10 +78,16 @@ const DEFAULT_ITEMS: DepthCarouselItem[] = [
   { image: "https://picsum.photos/seed/depth6/800/1000", alt: "Slide 6" },
 ]
 
+export interface DepthCarouselHandle {
+  next: () => void
+  prev: () => void
+  goTo: (index: number) => void
+}
+
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max)
 const normalizeItem = (it: DepthCarouselItem) => (typeof it === "string" ? { image: it, alt: "" } : it)
 
-const DepthCarousel = ({
+const DepthCarousel = forwardRef<DepthCarouselHandle, DepthCarouselProps>(({
   items = DEFAULT_ITEMS,
   cardWidth = 300,
   cardHeight = 380,
@@ -102,7 +110,7 @@ const DepthCarousel = ({
   showIndicators = true,
   onChange,
   className = "",
-}: DepthCarouselProps) => {
+}: DepthCarouselProps, ref) => {
   const data = useMemo(() => (Array.isArray(items) ? items : []).map(normalizeItem), [items])
   const count = data.length
 
@@ -272,6 +280,16 @@ const DepthCarousel = ({
   )
 
   const navigateBy = useCallback((step: number) => setFocus(focusRef.current + step, true), [setFocus])
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      next: () => navigateBy(1),
+      prev: () => navigateBy(-1),
+      goTo: (index: number) => setFocus(index, true),
+    }),
+    [navigateBy, setFocus],
+  )
 
   useEffect(() => {
     const root = rootRef.current
@@ -520,6 +538,8 @@ const DepthCarousel = ({
       )}
     </div>
   )
-}
+})
+
+DepthCarousel.displayName = "DepthCarousel"
 
 export default DepthCarousel
