@@ -180,24 +180,28 @@ export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLig
 
         {/* Bottom nav - back/forward buttons, matching the app's own
             button language instead of the carousel's built-in edge arrows
-            (disabled above via showControls={false}). */}
+            (disabled above via showControls={false}). Glass-pill styling
+            adapted from card-fan-carousel's ARROW_CLASSES - opacities bumped
+            up from that component's originals since those were tuned to
+            float over varied photo backgrounds, not sit in a plain white
+            bar the way they do here. */}
         {carouselSlides.length > 1 && (
           <div className="flex shrink-0 items-center justify-center gap-4 px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3">
             <button
               type="button"
               onClick={() => carouselApiRef.current?.prev()}
-              className="grid h-11 w-11 place-items-center rounded-full bg-gray-500 text-white transition-colors hover:bg-gray-600 active:scale-[0.96]"
+              className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full border-[1.5px] border-black/10 bg-black/[0.06] text-gray-600 shadow-[0_4px_20px_rgba(0,0,0,0.1)] backdrop-blur-[16px] outline-none transition-colors duration-300 before:pointer-events-none before:absolute before:inset-[3px] before:rounded-full before:border before:border-black/[0.04] before:content-[''] hover:border-black/20 hover:bg-black/10 hover:text-gray-900 active:opacity-70"
               aria-label="Previous image"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="relative z-[2] h-5 w-5" />
             </button>
             <button
               type="button"
               onClick={() => carouselApiRef.current?.next()}
-              className="grid h-11 w-11 place-items-center rounded-full bg-gray-500 text-white transition-colors hover:bg-gray-600 active:scale-[0.96]"
+              className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full border-[1.5px] border-black/10 bg-black/[0.06] text-gray-600 shadow-[0_4px_20px_rgba(0,0,0,0.1)] backdrop-blur-[16px] outline-none transition-colors duration-300 before:pointer-events-none before:absolute before:inset-[3px] before:rounded-full before:border before:border-black/[0.04] before:content-[''] hover:border-black/20 hover:bg-black/10 hover:text-gray-900 active:opacity-70"
               aria-label="Next image"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="relative z-[2] h-5 w-5" />
             </button>
           </div>
         )}
