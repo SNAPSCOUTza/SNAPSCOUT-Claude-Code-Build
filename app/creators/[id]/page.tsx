@@ -340,6 +340,11 @@ export default function CreatorProfilePage() {
             <div
               ref={heroScrollerRef}
               className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              onScroll={(event) => {
+                const target = event.currentTarget
+                if (!target.clientWidth) return
+                setCurrentHeroIndex(Math.round(target.scrollLeft / target.clientWidth))
+              }}
             >
               {heroImages.map((image, index) => (
                 <div key={`${image.src}-${index}`} className="min-w-full snap-center">
