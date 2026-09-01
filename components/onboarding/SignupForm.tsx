@@ -71,14 +71,7 @@ export function SignupForm({
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <div className="overflow-hidden rounded-[28px] bg-[#fbfaf8]">
-            <img
-              src="/images/onboarding-all-set.png"
-              alt="SnapScout creatives ready to collaborate"
-              className="h-auto w-full object-cover"
-            />
-          </div>
-          <div className="px-2 pb-2 pt-5">
+          <div className="px-2 pb-2 pt-1">
             <p className="text-xs font-black uppercase tracking-[0.24em] text-[#ff111b]">Final step</p>
             <h1 className="mt-2 text-[34px] font-black leading-none tracking-tight">You are all set.</h1>
             <p className="mt-3 text-[16px] leading-6 text-[#667085]">

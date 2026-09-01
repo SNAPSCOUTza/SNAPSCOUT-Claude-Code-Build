@@ -11,6 +11,7 @@ import { QuestionScreen } from "@/components/onboarding/QuestionScreen"
 import { StudioStoreIntro } from "@/components/onboarding/StudioStoreIntro"
 import { AhaMoment } from "@/components/onboarding/AhaMoment"
 import { SignupForm } from "@/components/onboarding/SignupForm"
+import { AccountCreatedScreen } from "@/components/onboarding/AccountCreatedScreen"
 import { FeatureTour } from "@/components/onboarding/FeatureTour"
 import { CompleteScreen } from "@/components/onboarding/CompleteScreen"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,7 +22,17 @@ import { useAuth } from "@/contexts/auth-context"
 import { createClient } from "@/lib/supabase/client"
 import type { OnboardingData as LegacyOnboardingData } from "@/types/onboarding"
 
-type Screen = "goal" | "role" | "studio_store_intro" | "branch" | "questions" | "aha" | "signup" | "tour" | "complete"
+type Screen =
+  | "goal"
+  | "role"
+  | "studio_store_intro"
+  | "branch"
+  | "questions"
+  | "aha"
+  | "signup"
+  | "account_created"
+  | "tour"
+  | "complete"
 export type OnboardingData = LegacyOnboardingData
 
 function ProgressBar({ total, current }: { total: number; current: number }) {
@@ -167,7 +178,7 @@ export default function OnboardingPage() {
         // they'll get bounced to login at the very end of the flow.
         const { data } = supabase ? await supabase.auth.getUser() : { data: { user: null } }
         if (!data.user) {
-          setSignupError("Account created! Check your email and click the confirmation link, then sign in.")
+          setScreen("account_created")
           setSubmitting(false)
           return
         }
@@ -321,6 +332,14 @@ export default function OnboardingPage() {
                 onBack={() => setScreen("aha")}
                 loading={submitting}
                 error={signupError}
+              />
+            ) : null}
+
+            {screen === "account_created" ? (
+              <AccountCreatedScreen
+                email={email}
+                primaryButtonClass={primaryClass}
+                onContinue={() => router.push("/auth/login")}
               />
             ) : null}
 

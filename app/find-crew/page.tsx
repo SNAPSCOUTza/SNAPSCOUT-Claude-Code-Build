@@ -14,6 +14,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { MessageButton } from "@/components/messaging/message-button"
 import { SaveProfileButton } from "@/components/messaging/save-profile-button"
+import { DemoCardWrap } from "@/components/ui/demo-card-wrap"
+import { DemoProfileBadge } from "@/components/ui/demo-profile-badge"
 import { SaveToPoolButton } from "@/components/crew/SaveToPoolButton"
 import { mockCrewMembers } from "@/lib/mock-data/crew-data"
 import Link from "next/link"
@@ -144,6 +146,7 @@ export default function FindCrewPage() {
         `)
         .eq("is_profile_visible", true)
         .eq("talent_type", "crew")
+        .eq("subscription_status", "active")
         .order("created_at", { ascending: false })
 
       if (error) throw error
@@ -486,6 +489,7 @@ export default function FindCrewPage() {
 
                   return (
                   <StickyScrollCard key={member.id} top="88px" delay={0.08 + index * 0.08}>
+                  <DemoCardWrap isDemo={!member.isLiveProfile} borderRadius={22}>
                   <Card className="overflow-hidden rounded-[22px] border-[#eee6db] bg-white shadow-sm">
                     <CardContent className="p-0">
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.38, ease: "easeOut" }}>
@@ -499,6 +503,9 @@ export default function FindCrewPage() {
                         <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#111318]">
                           {member.department || "Crew"}
                         </span>
+                        {!member.isLiveProfile && (
+                          <DemoProfileBadge className="absolute right-3 top-3 bg-white/95 shadow-md" />
+                        )}
                         </Link>
                       </motion.div>
                       <div className="p-3">
@@ -573,21 +580,32 @@ export default function FindCrewPage() {
 
                         <div className="mt-3 grid grid-cols-2 gap-2">
                             <MessageButton recipientId={member.user_id} recipientName={member.display_name} variant="outline" className="h-9 w-full rounded-full border-[#e7e0d6] bg-white text-[12px]" />
-                            <Button
-                              type="button"
-                              onClick={(event) => {
-                                event.preventDefault()
-                                event.stopPropagation()
-                                openHireRequest(member)
-                              }}
-                              className="h-9 w-full rounded-full bg-[#ef1218] text-[12px] font-semibold text-white shadow-[0_14px_26px_rgba(242,13,20,0.18)] hover:bg-[#d90d12]"
-                            >
-                              Hire
-                            </Button>
+                            {member.isLiveProfile ? (
+                              <Button
+                                type="button"
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  event.stopPropagation()
+                                  openHireRequest(member)
+                                }}
+                                className="h-9 w-full rounded-full bg-[#ef1218] text-[12px] font-semibold text-white shadow-[0_14px_26px_rgba(242,13,20,0.18)] hover:bg-[#d90d12]"
+                              >
+                                Hire
+                              </Button>
+                            ) : (
+                              <Button
+                                type="button"
+                                disabled
+                                className="h-9 w-full rounded-full bg-[#ef1218]/40 text-[12px] font-semibold text-white"
+                              >
+                                Not hireable
+                              </Button>
+                            )}
                         </div>
                       </div>
                     </CardContent>
                   </Card>
+                  </DemoCardWrap>
                   </StickyScrollCard>
                   )
                   })}
@@ -921,10 +939,14 @@ export default function FindCrewPage() {
               <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {filteredCrew.map((member, index) => (
                   <StickyScrollCard key={member.id} top="116px" delay={0.08 + index * 0.06}>
+                  <DemoCardWrap isDemo={!member.isLiveProfile} borderRadius={12}>
                   <Card
-                    className="overflow-hidden bg-card border-border hover:shadow-lg transition-shadow cursor-pointer"
+                    className="relative overflow-hidden bg-card border-border hover:shadow-lg transition-shadow cursor-pointer"
                     onClick={() => handleViewProfile(member)}
                   >
+                    {!member.isLiveProfile && (
+                      <DemoProfileBadge className="absolute right-4 top-4 z-10 bg-white/95 shadow-md" />
+                    )}
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4">
                         <Avatar className="h-16 w-16 border-2 border-border">
@@ -1066,6 +1088,7 @@ export default function FindCrewPage() {
                       </div>
                     </CardContent>
                   </Card>
+                  </DemoCardWrap>
                   </StickyScrollCard>
                 ))}
               </div>

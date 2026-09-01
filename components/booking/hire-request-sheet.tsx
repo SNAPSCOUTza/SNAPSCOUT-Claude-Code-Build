@@ -1,7 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { motion } from "framer-motion"
+import type React from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer"
 import { CalendarDays, Check, ChevronLeft, ChevronRight, MapPin, Send, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -241,6 +243,19 @@ export function HireRequestSheet({
 }: HireRequestSheetProps) {
   const { user, profile } = useAuth()
   const [step, setStep] = useState(1)
+  // Which way the step content should slide - mutated right before each
+  // setStep call so AnimatePresence's `custom` picks it up for both the
+  // entering step and the one that's exiting (see Framer Motion's paginate
+  // pattern: exit variants are re-evaluated against the latest `custom`,
+  // not the value captured when that step first mounted).
+  const stepDirectionRef = useRef(1)
+  const prefersReducedMotion = useReducedMotion()
+  const stepVariants = {
+    enter: (direction: number) => ({ opacity: 0, x: prefersReducedMotion ? 0 : direction > 0 ? 16 : -16 }),
+    center: { opacity: 1, x: 0 },
+    exit: (direction: number) => ({ opacity: 0, x: prefersReducedMotion ? 0 : direction > 0 ? -16 : 16 }),
+  }
+  const stepTransition = { duration: prefersReducedMotion ? 0.15 : 0.28, ease: [0.22, 1, 0.36, 1] as const }
   const dateOptions = useMemo(() => buildDateOptions(initialDate), [initialDate])
   const finalBookingTypeOptions = useMemo(
     () => bookingTypeOptions?.filter(Boolean) || bookingTypeOptionsByTalent[talentType],
@@ -260,6 +275,9 @@ export function HireRequestSheet({
   const [isClosing, setIsClosing] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [confirmationVariant, setConfirmationVariant] = useState<HireConfirmationVariant>("photographer")
+  // Below lg we render the sheet in a native vaul Drawer for real drag-to-dismiss
+  // physics; at lg+ it stays the centered Dialog. Both share the same body JSX.
+  const [isDesktop, setIsDesktop] = useState(false)
   const isListingBooking = talentType === "studio" || talentType === "store"
   const titleTarget = isListingBooking ? talentName : talentName.split(" ")[0]
   const actionLabel = isListingBooking ? "booking" : "hire"
@@ -329,6 +347,15 @@ export function HireRequestSheet({
     return undefined
   }, [open])
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const query = window.matchMedia("(min-width: 1024px)")
+    const update = () => setIsDesktop(query.matches)
+    update()
+    query.addEventListener("change", update)
+    return () => query.removeEventListener("change", update)
+  }, [])
+
   const handleDateSelect = (dateKey: string) => {
     if (!selectedStartDate || selectedEndDate || dateKey < selectedStartDate) {
       setSelectedStartDate(dateKey)
@@ -351,6 +378,18 @@ export function HireRequestSheet({
       setIsClosing(false)
       onOpenChange(false)
     }, 560)
+  }
+
+  // The Dialog (desktop) has no built-in exit animation, so requestClose fakes
+  // one with a class + timeout. The Drawer (mobile) is vaul-driven and animates
+  // its own close - closing it just needs the real state flip.
+  const closeSheet = () => {
+    if (isDesktop) {
+      requestClose()
+      return
+    }
+    setIsClosing(true)
+    onOpenChange(false)
   }
 
   const handleSubmit = () => {
@@ -393,6 +432,7 @@ export function HireRequestSheet({
   }, [])
 
   const handleContinue = () => {
+    stepDirectionRef.current = 1
     if (step === 1 && bookingType) setStep(2)
     if (step === 2 && hasDateStepValid && duration) setStep(3)
     if (step === 3 && hasDetailsStepValid) setStep(4)
@@ -405,40 +445,14 @@ export function HireRequestSheet({
     (step === 3 && !hasDetailsStepValid) ||
     (step === 4 && sent)
 
-  return (
-    <>
-      <HireConfirmationOverlay
-        open={showConfirmation}
-        variant={confirmationVariant}
-        onComplete={handleConfirmationComplete}
-      />
-      <Dialog
-        open={open}
-        onOpenChange={(nextOpen) => {
-          if (nextOpen) {
-            onOpenChange(true)
-            return
-          }
-          if (showConfirmation) return
-          requestClose()
-        }}
-      >
-        <DialogContent
-          data-hire-request-sheet-open={open ? "true" : undefined}
-          unstyled
-          showCloseButton={false}
-          onPointerDownOutside={(event) => event.preventDefault()}
-          onInteractOutside={(event) => event.preventDefault()}
-          onEscapeKeyDown={(event) => event.preventDefault()}
-          className={cn(
-            "fixed inset-x-1.5 bottom-0 top-auto z-[180] flex h-[80vh] max-h-[calc(100dvh-18px)] w-auto max-w-none translate-x-0 translate-y-0 flex-col overflow-hidden rounded-b-none rounded-t-[30px] border-x-0 border-b-0 border-t border-[#e5e9f2] bg-white p-0 text-[#0b0b0d] shadow-[0_-24px_70px_rgba(0,0,0,0.22)] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] supports-[height:80svh]:h-[80svh] supports-[height:80dvh]:h-[80dvh] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom lg:inset-x-auto lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:h-auto lg:max-h-[92dvh] lg:w-full lg:max-w-md lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-[28px] lg:border",
-            isClosing && "translate-y-[112%] opacity-0 lg:translate-y-6",
-          )}
-        >
+  const renderSheetBody = (
+    Title: React.ComponentType<{ className?: string; children?: React.ReactNode }>,
+    Description: React.ComponentType<{ className?: string; children?: React.ReactNode }>,
+  ) => (
         <motion.div
           initial={{ y: 14, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+          transition={prefersReducedMotion ? { duration: 0.15 } : { type: "spring", stiffness: 380, damping: 32, mass: 0.9 }}
           className="flex min-h-0 flex-1 flex-col bg-white"
         >
         <div className="shrink-0 border-b border-[#e8edf5] bg-white">
@@ -446,16 +460,16 @@ export function HireRequestSheet({
           <DialogHeader className="px-5 pb-3 pt-3 text-left">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <DialogTitle className="truncate text-[clamp(19px,5.2vw,22px)] leading-tight">
+                <Title className="truncate text-[clamp(19px,5.2vw,22px)] leading-tight">
                   {isListingBooking ? "Book" : "Hire"} {titleTarget}
-                </DialogTitle>
-                <DialogDescription className="mt-1 max-w-[30ch] text-[13px] leading-5 text-[#667085]">
+                </Title>
+                <Description className="mt-1 max-w-[30ch] text-[13px] leading-5 text-[#667085]">
                   Send a {actionLabel} request in stages and confirm before submitting.
-                </DialogDescription>
+                </Description>
               </div>
               <motion.button
                 type="button"
-                onClick={requestClose}
+                onClick={closeSheet}
                 aria-label="Close hire request"
                 whileTap={{ scale: 0.9, rotate: -8 }}
                 animate={isClosing ? { opacity: 0, scale: 0.7, rotate: 45 } : { opacity: 1, scale: 1, rotate: 0 }}
@@ -475,7 +489,10 @@ export function HireRequestSheet({
                 <button
                   type="button"
                   onClick={() => {
-                    if (item.index < step) setStep(item.index)
+                    if (item.index < step) {
+                      stepDirectionRef.current = -1
+                      setStep(item.index)
+                    }
                   }}
                   className={cn(
                     "grid h-7 w-7 place-items-center rounded-full border text-[11px] font-bold transition-colors",
@@ -508,8 +525,18 @@ export function HireRequestSheet({
             <p className="mt-1 break-words font-mono text-[clamp(27px,7vw,34px)] font-black leading-none">{priceLabel}</p>
           </div>
 
+          <AnimatePresence mode="wait" initial={false} custom={stepDirectionRef.current}>
           {step === 1 && (
-            <div className="mt-5 grid gap-2">
+            <motion.div
+              key="step-1"
+              custom={stepDirectionRef.current}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={stepTransition}
+              className="mt-5 grid gap-2"
+            >
               <Label className="text-[14px] font-bold">
                 {bookingTypeLabel ||
                   (talentType === "creator"
@@ -530,11 +557,20 @@ export function HireRequestSheet({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </motion.div>
           )}
 
           {step === 2 && (
-            <div className="mt-5">
+            <motion.div
+              key="step-2"
+              custom={stepDirectionRef.current}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={stepTransition}
+              className="mt-5"
+            >
               <div className="mb-3 flex items-center justify-between">
                 <Label className="text-[14px] font-bold">Select date</Label>
                 <motion.button
@@ -671,11 +707,20 @@ export function HireRequestSheet({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {step === 3 && (
-            <div className="mt-5 grid gap-5">
+            <motion.div
+              key="step-3"
+              custom={stepDirectionRef.current}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={stepTransition}
+              className="mt-5 grid gap-5"
+            >
               <div className="grid gap-2">
                 <Label className="text-[14px] font-bold">Province</Label>
                 <Select
@@ -736,11 +781,20 @@ export function HireRequestSheet({
                   className="min-h-[118px] rounded-2xl border-[#e1e7f1] bg-white text-[14px]"
                 />
               </div>
-            </div>
+            </motion.div>
           )}
 
           {step === 4 && (
-            <div className="mt-5">
+            <motion.div
+              key="step-4"
+              custom={stepDirectionRef.current}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={stepTransition}
+              className="mt-5"
+            >
               <div className="rounded-[22px] border border-[#e8edf5] bg-white p-4">
                 <h4 className="text-[16px] font-bold text-[#111318]">Review & Confirm</h4>
                 <div className="mt-4 grid gap-2 text-[14px]">
@@ -784,8 +838,9 @@ export function HireRequestSheet({
                     : `${durationLabelValue} - ${effectiveDays} day${effectiveDays > 1 ? "s" : ""}`}
                 </p>
               </div>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
 
         <div className="shrink-0 border-t border-[#e8edf5] bg-white px-5 pb-[max(22px,calc(env(safe-area-inset-bottom)+14px))] pt-3 shadow-[0_-10px_26px_rgba(15,23,42,0.08)]">
@@ -793,7 +848,10 @@ export function HireRequestSheet({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setStep((current) => Math.max(1, current - 1))}
+              onClick={() => {
+                stepDirectionRef.current = -1
+                setStep((current) => Math.max(1, current - 1))
+              }}
               disabled={step === 1}
               className="h-[52px] flex-1 rounded-full border-[#dbe3ee] bg-white text-[15px] font-semibold text-[#111318]"
             >
@@ -831,8 +889,65 @@ export function HireRequestSheet({
           </div>
         </div>
         </motion.div>
-      </DialogContent>
-      </Dialog>
+  )
+
+  return (
+    <>
+      <HireConfirmationOverlay
+        open={showConfirmation}
+        variant={confirmationVariant}
+        onComplete={handleConfirmationComplete}
+      />
+      {isDesktop ? (
+        <Dialog
+          open={open}
+          onOpenChange={(nextOpen) => {
+            if (nextOpen) {
+              onOpenChange(true)
+              return
+            }
+            if (showConfirmation) return
+            requestClose()
+          }}
+        >
+          <DialogContent
+            data-hire-request-sheet-open={open ? "true" : undefined}
+            unstyled
+            showCloseButton={false}
+            onPointerDownOutside={(event) => event.preventDefault()}
+            onInteractOutside={(event) => event.preventDefault()}
+            onEscapeKeyDown={(event) => event.preventDefault()}
+            className={cn(
+              "fixed left-1/2 top-1/2 z-[180] flex h-auto max-h-[92dvh] w-full max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[28px] border border-[#e5e9f2] bg-white p-0 text-[#0b0b0d] shadow-[0_-24px_70px_rgba(0,0,0,0.22)] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+              isClosing && "translate-y-6 opacity-0",
+            )}
+          >
+            {renderSheetBody(DialogTitle, DialogDescription)}
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer
+          open={open}
+          onOpenChange={(nextOpen) => {
+            if (nextOpen) {
+              onOpenChange(true)
+              return
+            }
+            if (showConfirmation) return
+            setIsClosing(true)
+            onOpenChange(false)
+          }}
+          shouldScaleBackground={false}
+        >
+          <DrawerContent
+            data-hire-request-sheet-open={open ? "true" : undefined}
+            unstyled
+            className="fixed inset-x-1.5 bottom-0 top-auto z-[180] flex h-[80vh] max-h-[calc(100dvh-18px)] w-auto max-w-none flex-col overflow-hidden rounded-b-none rounded-t-[30px] border-x-0 border-b-0 border-t border-[#e5e9f2] bg-white p-0 text-[#0b0b0d] shadow-[0_-24px_70px_rgba(0,0,0,0.22)] outline-none supports-[height:80svh]:h-[80svh] supports-[height:80dvh]:h-[80dvh]"
+          >
+            {renderSheetBody(DrawerTitle, DrawerDescription)}
+          </DrawerContent>
+        </Drawer>
+      )}
     </>
   )
 }

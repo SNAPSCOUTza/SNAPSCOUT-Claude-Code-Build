@@ -143,7 +143,9 @@ export default function MobileShell({
       const messagingState = loadMockMessagingState()
       const requests = loadMockHireRequests()
       const readState = loadNotificationReadState()
-      const profileIds = new Set(messagingState.profiles.map((entry) => entry.user_id))
+      const profileIds = new Set(
+        (messagingState.profiles || []).filter(Boolean).map((entry) => entry.user_id),
+      )
 
       if (!profileIds.has(activeProfileId)) {
         setNotificationCount(0)

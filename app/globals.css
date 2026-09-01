@@ -319,6 +319,22 @@ html[data-mobile-preview-embedded="true"] .overflow-auto::-webkit-scrollbar {
   }
 }
 
+@keyframes heartPop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-heart-pop {
+  animation: heartPop 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @keyframes iconBounce {
   0%,
   100% {

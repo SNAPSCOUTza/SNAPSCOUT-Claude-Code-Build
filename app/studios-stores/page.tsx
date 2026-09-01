@@ -14,6 +14,8 @@ import { motion } from "framer-motion"
 import { AvailabilityStatusBadge } from "@/components/availability/availability-status-badge"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
 import { studiosStoresData, type StudioStoreItem } from "@/lib/mock-data/studios-stores-data"
+import { DemoCardWrap } from "@/components/ui/demo-card-wrap"
+import { DemoProfileBadge } from "@/components/ui/demo-profile-badge"
 import { AnimatedCount } from "@/components/ui/animated-count"
 import { MotionRevealGroup, MotionRevealItem } from "@/components/ui/motion-reveal"
 import { StickyScrollCard } from "@/components/ui/sticky-scroll-card"
@@ -74,6 +76,7 @@ export default function StudiosStoresPage() {
       .select(STUDIO_STORE_PROFILE_COLUMNS)
       .in("account_type", ["studio", "store"])
       .eq("is_profile_visible", true)
+      .eq("subscription_status", "active")
       .order("created_at", { ascending: false })
       .then(({ data }: { data: any[] | null }) => {
         if (cancelled) return
@@ -173,8 +176,11 @@ export default function StudiosStoresPage() {
             </MotionRevealItem>
 
             <MotionRevealGroup className="mt-4 space-y-3">
-              {filteredStudiosStores.map((item, index) => (
+              {filteredStudiosStores.map((item, index) => {
+                const isDemo = !item.isLiveProfile && !item.isUploadedLocation
+                return (
                 <StickyScrollCard key={item.id} top="88px" delay={0.1 + index * 0.08}>
+                  <DemoCardWrap isDemo={isDemo} borderRadius={22}>
                   <Card className="overflow-hidden rounded-[22px] border-[#eee6db] bg-white">
                     <CardContent className="p-0">
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.38, ease: "easeOut" }}>
@@ -183,6 +189,7 @@ export default function StudiosStoresPage() {
                           <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#111318]">
                             {item.isUploadedLocation ? "Shoot Location" : studioStoreTypeLabel(item.type)}
                           </span>
+                          {isDemo && <DemoProfileBadge className="absolute right-3 top-3 bg-white/95 shadow-md" />}
                         </Link>
                       </motion.div>
                       <div className="p-3">
@@ -244,18 +251,21 @@ export default function StudiosStoresPage() {
                           >
                             <Button
                               type="button"
+                              disabled={isDemo}
                               onClick={() => setBookingItem(item)}
-                              className="h-9 w-full rounded-full bg-[#f20d14] text-[12px] text-white hover:bg-[#d80a10]"
+                              className="h-9 w-full rounded-full bg-[#f20d14] text-[12px] text-white hover:bg-[#d80a10] disabled:bg-[#f20d14]/40"
                             >
-                              Book
+                              {isDemo ? "Not bookable" : "Book"}
                             </Button>
                           </motion.div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
+                  </DemoCardWrap>
                 </StickyScrollCard>
-              ))}
+                )
+              })}
             </MotionRevealGroup>
 
             {filteredStudiosStores.length === 0 && (
@@ -401,8 +411,11 @@ export default function StudiosStoresPage() {
         </div>
 
         <div className="grid gap-6">
-          {filteredStudiosStores.map((item, index) => (
+          {filteredStudiosStores.map((item, index) => {
+            const isDemo = !item.isLiveProfile && !item.isUploadedLocation
+            return (
             <StickyScrollCard key={item.id} top="116px" delay={0.08 + index * 0.06}>
+              <DemoCardWrap isDemo={isDemo} borderRadius={12}>
               <Card className="overflow-hidden transition-shadow hover:shadow-lg">
                 <div className="md:flex">
                   <div className="md:w-1/3">
@@ -416,7 +429,11 @@ export default function StudiosStoresPage() {
                           {item.isUploadedLocation ? "Shoot Location" : studioStoreTypeLabel(item.type)}
                         </Badge>
                       </div>
-                      {item.isUploadedLocation ? (
+                      {isDemo ? (
+                        <div className="absolute top-4 right-4">
+                          <DemoProfileBadge />
+                        </div>
+                      ) : item.isUploadedLocation ? (
                         <div className="absolute top-4 right-4">
                           <Badge className="bg-red-100 text-red-700 border-none">Premium listing</Badge>
                         </div>
@@ -508,19 +525,22 @@ export default function StudiosStoresPage() {
                         </Button>
                         <Button
                           type="button"
+                          disabled={isDemo}
                           onClick={() => setBookingItem(item)}
-                          className="bg-red-600 hover:bg-red-700"
+                          className="bg-red-600 hover:bg-red-700 disabled:bg-red-600/40"
                           size="sm"
                         >
-                          Book Now
+                          {isDemo ? "Not bookable" : "Book Now"}
                         </Button>
                       </div>
                     </div>
                   </CardContent>
                 </div>
               </Card>
+              </DemoCardWrap>
             </StickyScrollCard>
-          ))}
+            )
+          })}
         </div>
 
         {filteredStudiosStores.length === 0 && (

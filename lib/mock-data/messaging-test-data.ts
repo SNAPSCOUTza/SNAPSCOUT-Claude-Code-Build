@@ -1,5 +1,3 @@
-import { mockCreators } from "@/lib/mock-data/creators-data"
-
 export type MockMessagingProfile = {
   user_id: string
   display_name: string
@@ -71,15 +69,50 @@ export function buildMockMessagingProfiles(): MockMessagingProfile[] {
     profile_picture: "https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=400",
   }
 
-  const creatorProfiles = mockCreators.slice(0, 12).map((creator) => ({
-    user_id: creator.user_id,
-    display_name: creator.display_name,
-    profession: creator.profession,
-    city: creator.city,
-    profile_picture: creator.profile_picture,
-  }))
+  // Self-contained on purpose - this messaging test harness needs a stable
+  // set of participants regardless of how many demo profiles a listing page
+  // chooses to show publicly (that count changed independently when the
+  // public mock data was trimmed to 3 per page, which is what broke this
+  // when it used to borrow directly from creators-data.ts).
+  const testProfiles: MockMessagingProfile[] = [
+    {
+      user_id: "test-thandi",
+      display_name: "Thandi Mokoena",
+      profession: "Photographer",
+      city: "Cape Town",
+      profile_picture: "https://images.pexels.com/photos/3756679/pexels-photo-3756679.jpeg?auto=compress&cs=tinysrgb&w=400",
+    },
+    {
+      user_id: "test-sipho",
+      display_name: "Sipho Ndlovu",
+      profession: "Videographer",
+      city: "Johannesburg",
+      profile_picture: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400",
+    },
+    {
+      user_id: "test-lerato",
+      display_name: "Lerato van der Berg",
+      profession: "Photographer",
+      city: "Durban",
+      profile_picture: "https://images.pexels.com/photos/3768894/pexels-photo-3768894.jpeg?auto=compress&cs=tinysrgb&w=400",
+    },
+    {
+      user_id: "test-marcus",
+      display_name: "Marcus Joubert",
+      profession: "Gaffer",
+      city: "Cape Town",
+      profile_picture: "https://images.pexels.com/photos/2182970/pexels-photo-2182970.jpeg?auto=compress&cs=tinysrgb&w=400",
+    },
+    {
+      user_id: "test-sixth",
+      display_name: "Nolwazi Zulu",
+      profession: "Sound Engineer",
+      city: "Pretoria",
+      profile_picture: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=400",
+    },
+  ]
 
-  return [brad, ...creatorProfiles]
+  return [brad, ...testProfiles]
 }
 
 function seedConversation(

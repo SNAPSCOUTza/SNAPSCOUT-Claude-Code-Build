@@ -24,6 +24,8 @@ import MobileShell from "@/components/mobile/mobile-shell"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
+import { DemoProfileBadge } from "@/components/ui/demo-profile-badge"
+import { DemoProfileNotice } from "@/components/ui/demo-profile-notice"
 import { LeaveReviewButton } from "@/components/reviews/leave-review-button"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
 import { createBrowserClient } from "@/lib/supabase/client"
@@ -370,6 +372,7 @@ export default function CrewProfilePage() {
             <Badge variant="outline" className="h-10 rounded-full border-[#d8efe3] bg-[#effaf4] px-4 text-[13px] text-[#16794c]">
               Available this week
             </Badge>
+            {mockProfile && <DemoProfileBadge className="h-10 px-4 text-[13px]" />}
           </div>
 
           <div className="no-scrollbar -mx-1 mt-4 flex gap-3 overflow-x-auto px-1 pb-2">
@@ -390,13 +393,17 @@ export default function CrewProfilePage() {
               <p className="text-[42px] font-semibold leading-none text-[#111318]">{pricingValue}</p>
               <p className="text-[15px] text-[#111318]/80">/hr</p>
             </div>
-            <Button
-              type="button"
-              onClick={() => openHireSheet()}
-              className="h-14 rounded-full bg-[#f20d14] px-10 text-[18px] font-semibold text-white hover:bg-[#d80a10]"
-            >
-              Hire {firstName}
-            </Button>
+            {mockProfile ? (
+              <DemoProfileNotice className="w-full sm:max-w-[280px]" />
+            ) : (
+              <Button
+                type="button"
+                onClick={() => openHireSheet()}
+                className="h-14 rounded-full bg-[#f20d14] px-10 text-[18px] font-semibold text-white hover:bg-[#d80a10]"
+              >
+                Hire {firstName}
+              </Button>
+            )}
           </div>
 
           <div className={`mt-4 grid gap-3 ${profile.contactNumber ? "grid-cols-2" : "grid-cols-1"}`}>
@@ -554,45 +561,51 @@ export default function CrewProfilePage() {
                 )
               })}
             </div>
-            <Button
-              type="button"
-              onClick={() => openHireSheet()}
-              className="mt-4 h-12 w-full rounded-full bg-[#f20d14] text-[15px] font-semibold text-white hover:bg-[#d80a10]"
-            >
-              {selectedPackage?.availability === "Available" ? "Book Selected Package" : "Check Availability"}
-            </Button>
+            {mockProfile ? (
+              <DemoProfileNotice className="mt-4" />
+            ) : (
+              <Button
+                type="button"
+                onClick={() => openHireSheet()}
+                className="mt-4 h-12 w-full rounded-full bg-[#f20d14] text-[15px] font-semibold text-white hover:bg-[#d80a10]"
+              >
+                {selectedPackage?.availability === "Available" ? "Book Selected Package" : "Check Availability"}
+              </Button>
+            )}
           </div>
 
-          <div className="mt-4 rounded-2xl border border-[#e6ebf3] bg-white p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Live availability</p>
-                <p className="mt-2 text-[14px] leading-relaxed text-[#2b3340]">
-                  Share your date and project details to check whether {firstName} is available for your shoot.
-                </p>
+          {!mockProfile && (
+            <div className="mt-4 rounded-2xl border border-[#e6ebf3] bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Live availability</p>
+                  <p className="mt-2 text-[14px] leading-relaxed text-[#2b3340]">
+                    Share your date and project details to check whether {firstName} is available for your shoot.
+                  </p>
+                </div>
+                <Badge variant="outline" className="rounded-full border-[#d8efe3] bg-[#effaf4] px-3 py-1 text-[12px] text-[#16794c]">
+                  Open
+                </Badge>
               </div>
-              <Badge variant="outline" className="rounded-full border-[#d8efe3] bg-[#effaf4] px-3 py-1 text-[12px] text-[#16794c]">
-                Open
-              </Badge>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-[#f7f9fc] p-4">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Best for</p>
+                  <p className="mt-2 text-[15px] font-semibold text-[#111318]">Day shoots, interviews, branded sets</p>
+                </div>
+                <div className="rounded-2xl bg-[#f7f9fc] p-4">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Response window</p>
+                  <p className="mt-2 text-[15px] font-semibold text-[#111318]">Usually within 24 hours</p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                onClick={() => openHireSheet(undefined, "availability")}
+                className="mt-4 h-12 w-full rounded-full bg-[#f20d14] text-white hover:bg-[#d80a10]"
+              >
+                Check Availability
+              </Button>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-[#f7f9fc] p-4">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Best for</p>
-                <p className="mt-2 text-[15px] font-semibold text-[#111318]">Day shoots, interviews, branded sets</p>
-              </div>
-              <div className="rounded-2xl bg-[#f7f9fc] p-4">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Response window</p>
-                <p className="mt-2 text-[15px] font-semibold text-[#111318]">Usually within 24 hours</p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              onClick={() => openHireSheet(undefined, "availability")}
-              className="mt-4 h-12 w-full rounded-full bg-[#f20d14] text-white hover:bg-[#d80a10]"
-            >
-              Check Availability
-            </Button>
-          </div>
+          )}
         </div>
       </section>
 

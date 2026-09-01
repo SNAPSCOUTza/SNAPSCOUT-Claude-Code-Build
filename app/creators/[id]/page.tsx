@@ -23,6 +23,8 @@ import {
 
 import MobileShell from "@/components/mobile/mobile-shell"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
+import { DemoProfileBadge } from "@/components/ui/demo-profile-badge"
+import { DemoProfileNotice } from "@/components/ui/demo-profile-notice"
 import { LeaveReviewButton } from "@/components/reviews/leave-review-button"
 import { SaveProfileButton } from "@/components/messaging/save-profile-button"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
@@ -455,6 +457,7 @@ export default function CreatorProfilePage() {
                 <Badge className="h-11 rounded-full border border-[#d8ece3] bg-[#eefaf3] px-4 text-[14px] font-semibold text-[#2e8f5b] hover:bg-[#eefaf3]">
                   Available this week
                 </Badge>
+                {mockCreator && <DemoProfileBadge className="h-11 px-4 text-[13px]" />}
               </div>
             </div>
 
@@ -481,13 +484,17 @@ export default function CreatorProfilePage() {
                 <p className="mt-1 text-[18px] text-slate-600">{defaults.rateSuffix}</p>
               </div>
 
-              <Button
-                type="button"
-                className="h-14 shrink-0 rounded-full bg-[#ff1c1c] px-8 text-[18px] font-semibold text-white shadow-[0_18px_40px_rgba(255,28,28,0.28)] hover:bg-[#e21818]"
-                onClick={() => openHireSheet()}
-              >
-                Hire {creator.name.split(" ")[0]}
-              </Button>
+              {mockCreator ? (
+                <DemoProfileNotice className="w-full sm:max-w-[280px]" />
+              ) : (
+                <Button
+                  type="button"
+                  className="h-14 shrink-0 rounded-full bg-[#ff1c1c] px-8 text-[18px] font-semibold text-white shadow-[0_18px_40px_rgba(255,28,28,0.28)] hover:bg-[#e21818]"
+                  onClick={() => openHireSheet()}
+                >
+                  Hire {creator.name.split(" ")[0]}
+                </Button>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -642,29 +649,35 @@ export default function CreatorProfilePage() {
                 })}
               </div>
 
-              <Button
-                type="button"
-                onClick={() => openHireSheet()}
-                className="mt-4 h-12 w-full rounded-full bg-[#ff1c1c] text-[15px] font-semibold text-white hover:bg-[#e21818]"
-              >
-                {selectedPackage?.availability === "Available" ? "Book Selected Package" : "Check Availability"}
-              </Button>
+              {mockCreator ? (
+                <DemoProfileNotice className="mt-4" />
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => openHireSheet()}
+                  className="mt-4 h-12 w-full rounded-full bg-[#ff1c1c] text-[15px] font-semibold text-white hover:bg-[#e21818]"
+                >
+                  {selectedPackage?.availability === "Available" ? "Book Selected Package" : "Check Availability"}
+                </Button>
+              )}
             </div>
 
-            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-5">
-              <p className="text-[13px] font-black uppercase tracking-[0.18em] text-slate-500">Availability</p>
-              <p className="mt-2 text-[16px] leading-7 text-slate-600">
-                Need to check dates or confirm timing? Start the booking flow to request availability.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-4 h-11 w-full rounded-full border-slate-200 text-[14px] font-semibold text-[#111318] hover:bg-slate-50"
-                onClick={() => openHireSheet(undefined, "availability")}
-              >
-                Check Availability
-              </Button>
-            </div>
+            {!mockCreator && (
+              <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-5">
+                <p className="text-[13px] font-black uppercase tracking-[0.18em] text-slate-500">Availability</p>
+                <p className="mt-2 text-[16px] leading-7 text-slate-600">
+                  Need to check dates or confirm timing? Start the booking flow to request availability.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-4 h-11 w-full rounded-full border-slate-200 text-[14px] font-semibold text-[#111318] hover:bg-slate-50"
+                  onClick={() => openHireSheet(undefined, "availability")}
+                >
+                  Check Availability
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </section>

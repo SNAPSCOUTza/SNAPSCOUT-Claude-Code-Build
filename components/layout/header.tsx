@@ -171,10 +171,6 @@ export default function Header() {
   }
 
   const getDashboardLink = () => {
-    const accountType = profile?.account_type
-    if (accountType === "studio" || accountType === "store" || accountType === "scout") {
-      return "/client-dashboard"
-    }
     return "/dashboard"
   }
 

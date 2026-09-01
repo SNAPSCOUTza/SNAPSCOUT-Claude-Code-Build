@@ -6,8 +6,26 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { Mail, Loader, CheckCircle, Eye, EyeOff, Lock, ChevronDown, Check } from "lucide-react"
+import { RollingNumber } from "@/components/ui/rolling-number"
+import { BillingCycleToggle, type BillingCycle } from "@/components/ui/billing-cycle-toggle"
 
 type OnboardingStep = "account" | "verification" | "payment"
+
+// Annual amounts/plan codes match the live Paystack plans (all tiers are a flat
+// R5,868/year - a break-even for Studio, not a discount for Creator).
+const PLAN_PRICING: Record<
+  "creator" | "studio",
+  { monthly: { amount: number; planCode: string }; annual: { amount: number; planCode: string } }
+> = {
+  creator: {
+    monthly: { amount: 60, planCode: "PLN_creator_monthly" },
+    annual: { amount: 5868, planCode: "PLN_3b3uvdzv8ulrsu6" },
+  },
+  studio: {
+    monthly: { amount: 489, planCode: "PLN_studio_monthly" },
+    annual: { amount: 5868, planCode: "PLN_gnjcpfjzyokacs5" },
+  },
+}
 
 interface OnboardingFormData {
   userType: "creator" | "scout" | "studio"
@@ -44,6 +62,7 @@ export default function OnboardingAccountPage() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [paymentError, setPaymentError] = useState("")
   const [showFeatures, setShowFeatures] = useState(false)
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly")
   const [debugInfo, setDebugInfo] = useState<string[]>([])
   const [userId, setUserId] = useState<string | null>(null)
 
@@ -399,10 +418,10 @@ export default function OnboardingAccountPage() {
     addDebugLog("=== STARTING PAYMENT ===")
 
     try {
-      const planCode = formData.selectedPlan === "creator" ? "PLN_creator_monthly" : "PLN_studio_monthly"
-      const amount = formData.selectedPlan === "creator" ? 60 : 489
+      const planKey = formData.selectedPlan === "creator" ? "creator" : "studio"
+      const { amount, planCode } = PLAN_PRICING[planKey][billingCycle]
 
-      addDebugLog(`Plan: ${formData.selectedPlan}, Code: ${planCode}, Amount: R${amount}`)
+      addDebugLog(`Plan: ${formData.selectedPlan}, Cycle: ${billingCycle}, Code: ${planCode}, Amount: R${amount}`)
 
       const {
         data: { user },
@@ -750,6 +769,11 @@ export default function OnboardingAccountPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-2 text-center">Activate Your Subscription</h1>
           <p className="text-gray-600 text-center mb-6">Get full access to SnapScout and start getting booked</p>
 
+          {/* Billing Cycle Toggle */}
+          <div className="flex items-center justify-center mb-6">
+            <BillingCycleToggle cycle={billingCycle} onChange={setBillingCycle} />
+          </div>
+
           {/* Plan Summary Card */}
           <div className="bg-gradient-to-br from-red-50 to-yellow-50 border-2 border-red-600 rounded-xl p-6 mb-6">
             <div className="flex justify-between items-start mb-4">
@@ -757,11 +781,18 @@ export default function OnboardingAccountPage() {
                 <h3 className="text-lg font-bold text-gray-900">
                   {formData.selectedPlan === "creator" ? "Creator Plan" : "Studio Plan"}
                 </h3>
-                <p className="text-sm text-gray-600">Monthly subscription</p>
+                <p className="text-sm text-gray-600">
+                  {billingCycle === "annual" ? "Annual subscription" : "Monthly subscription"}
+                </p>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-bold text-red-600">R{formData.selectedPlan === "creator" ? "60" : "489"}</p>
-                <p className="text-sm text-gray-600">/month</p>
+                <RollingNumber
+                  value={PLAN_PRICING[formData.selectedPlan === "creator" ? "creator" : "studio"][billingCycle].amount}
+                  fontSize={30}
+                  className="justify-end font-bold text-red-600"
+                  prefix="R"
+                />
+                <p className="text-sm text-gray-600">{billingCycle === "annual" ? "/year" : "/month"}</p>
               </div>
             </div>
 
@@ -851,7 +882,9 @@ export default function OnboardingAccountPage() {
           </div>
 
           <p className="text-xs text-center text-gray-500 mt-4">
-            Your card will be charged R{formData.selectedPlan === "creator" ? "60" : "489"} monthly. Cancel anytime.
+            Your card will be charged R
+            {PLAN_PRICING[formData.selectedPlan === "creator" ? "creator" : "studio"][billingCycle].amount}{" "}
+            {billingCycle === "annual" ? "yearly" : "monthly"}. Cancel anytime.
           </p>
         </div>
       )}

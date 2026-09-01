@@ -49,6 +49,7 @@ export default function StoresPage() {
         .select("*")
         .eq("account_type", "store")
         .eq("is_profile_visible", true)
+        .eq("subscription_status", "active")
         .order("featured", { ascending: false })
         .order("rating", { ascending: false })
 

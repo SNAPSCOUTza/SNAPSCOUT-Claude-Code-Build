@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { apiError, isApiErrorContext, requireUser, sanitizeText } from "@/lib/crew-pools/api"
+import { getPortfolioItemCount, getPortfolioUploadLimit } from "@/lib/portfolio/portfolio-service"
 import type { PortfolioMediaType, PortfolioSourcePlatform } from "@/types/portfolio"
 
 function parseUrl(rawUrl: unknown) {
@@ -17,9 +18,18 @@ function youtubeId(url: URL) {
   return null
 }
 
-function vimeoId(url: URL) {
+function vimeoParts(url: URL): { id: string; hash: string | null } | null {
   if (!url.hostname.includes("vimeo.com")) return null
-  return url.pathname.split("/").filter(Boolean).find((part) => /^\d+$/.test(part)) || null
+  const segments = url.pathname.split("/").filter(Boolean)
+  const idIndex = segments.findIndex((part) => /^\d+$/.test(part))
+  if (idIndex === -1) return null
+  // Unlisted/private Vimeo links - the standard way creatives share client
+  // work that isn't meant to be public - carry a hash as the next path
+  // segment (vimeo.com/{id}/{hash}) or as a ?h= query param. Without it in
+  // the embed URL, the player just shows "This video is private."
+  const hashSegment = segments[idIndex + 1]
+  const hash = (hashSegment && /^[a-zA-Z0-9]+$/.test(hashSegment) ? hashSegment : null) || url.searchParams.get("h")
+  return { id: segments[idIndex], hash }
 }
 
 // Vimeo's oEmbed endpoint is public - no API key needed - and returns a real
@@ -56,12 +66,12 @@ function classifyUrl(url: URL): {
     }
   }
 
-  const detectedVimeoId = vimeoId(url)
-  if (detectedVimeoId) {
+  const detectedVimeo = vimeoParts(url)
+  if (detectedVimeo) {
     return {
       source_platform: "vimeo",
       media_type: "video",
-      embed_url: `https://player.vimeo.com/video/${detectedVimeoId}`,
+      embed_url: `https://player.vimeo.com/video/${detectedVimeo.id}${detectedVimeo.hash ? `?h=${detectedVimeo.hash}` : ""}`,
       thumbnail_url: "/video-reel-showcase.png",
     }
   }
@@ -97,6 +107,18 @@ export async function POST(request: Request) {
 
   if (!parsed) {
     return apiError("Paste a valid Instagram, Facebook, Vimeo, IMDb, YouTube, or media URL", 400, "INVALID_PORTFOLIO_URL")
+  }
+
+  const { data: profileRow } = await supabase
+    .from("user_profiles")
+    .select("account_type")
+    .eq("user_id", user.id)
+    .maybeSingle()
+  const uploadLimit = getPortfolioUploadLimit(profileRow?.account_type)
+
+  const existingCount = await getPortfolioItemCount(supabase, user.id)
+  if (existingCount >= uploadLimit) {
+    return apiError(`You can feature up to ${uploadLimit} portfolio items.`, 400, "PORTFOLIO_LINK_LIMIT_REACHED")
   }
 
   const classified = classifyUrl(parsed)

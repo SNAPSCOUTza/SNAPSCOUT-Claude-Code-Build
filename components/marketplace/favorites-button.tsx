@@ -23,6 +23,10 @@ export function FavoritesButton({
 }: FavoritesButtonProps) {
   const [isFavorited, setIsFavorited] = useState(false)
   const [loading, setLoading] = useState(false)
+  // Only true right after the user's own click adds a favorite - never on
+  // the initial load-time check - so the pop reads as a response to their
+  // tap instead of firing on every profile that happens to already be saved.
+  const [justFavorited, setJustFavorited] = useState(false)
   const supabase = createClient()
 
   // Check if freelancer is already favorited
@@ -83,6 +87,7 @@ export function FavoritesButton({
         }
 
         setIsFavorited(false)
+        setJustFavorited(false)
         toast.success("Removed from favorites")
       } else {
         // Add to favorites
@@ -99,6 +104,7 @@ export function FavoritesButton({
         }
 
         setIsFavorited(true)
+        setJustFavorited(true)
         toast.success("Added to favorites")
       }
     } catch (error) {
@@ -123,7 +129,9 @@ export function FavoritesButton({
         isFavorited ? "text-red-600 hover:text-red-700" : "text-gray-600 hover:text-red-600"
       }`}
     >
-      <Heart className={`h-4 w-4 ${isFavorited ? "fill-current" : ""}`} />
+      <Heart
+        className={`h-4 w-4 ${isFavorited ? "fill-current" : ""} ${isFavorited && justFavorited ? "animate-heart-pop" : ""}`}
+      />
       {showText && (isFavorited ? "Saved" : "Save")}
     </Button>
   )

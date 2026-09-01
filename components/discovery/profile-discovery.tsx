@@ -26,6 +26,7 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { toast } from "sonner"
 
 interface ProfileData {
   user_id: string
@@ -73,8 +74,81 @@ export default function ProfileDiscovery() {
     sortBy: "rating",
   })
 
+  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set())
+  const [togglingFavoriteId, setTogglingFavoriteId] = useState<string | null>(null)
+  // Which profile's heart just got favorited by the user's own click - not
+  // on the initial favorited-status fetch - so the pop reads as a response
+  // to their tap instead of firing on every profile that's already saved.
+  const [justFavoritedId, setJustFavoritedId] = useState<string | null>(null)
+
   const supabase = createClient()
   const profilesPerPage = 12
+
+  const fetchFavoritedIds = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data, error } = await supabase.from("user_favorites").select("favorited_user_id").eq("user_id", user.id)
+
+    if (error) {
+      console.error("[v0] Error fetching favorited profiles:", error)
+      return
+    }
+
+    setFavoritedIds(new Set((data || []).map((row: { favorited_user_id: string }) => row.favorited_user_id)))
+  }
+
+  const toggleFavorite = async (profileId: string) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      toast.error("You must be logged in to save favorites")
+      return
+    }
+
+    const alreadyFavorited = favoritedIds.has(profileId)
+    setTogglingFavoriteId(profileId)
+
+    try {
+      if (alreadyFavorited) {
+        const { error } = await supabase
+          .from("user_favorites")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("favorited_user_id", profileId)
+
+        if (error) throw error
+
+        setFavoritedIds((current) => {
+          const next = new Set(current)
+          next.delete(profileId)
+          return next
+        })
+        setJustFavoritedId(null)
+        toast.success("Removed from favorites")
+      } else {
+        const { error } = await supabase.from("user_favorites").insert({
+          user_id: user.id,
+          favorited_user_id: profileId,
+        })
+
+        if (error && error.code !== "23505") throw error
+
+        setFavoritedIds((current) => new Set(current).add(profileId))
+        setJustFavoritedId(profileId)
+        toast.success("Added to favorites")
+      }
+    } catch (error) {
+      console.error("[v0] Error toggling favorite:", error)
+      toast.error("Failed to update favorites")
+    } finally {
+      setTogglingFavoriteId(null)
+    }
+  }
 
   const fetchProfiles = async () => {
     try {
@@ -107,7 +181,7 @@ export default function ProfileDiscovery() {
         `,
         )
         .eq("is_profile_visible", true)
-        .or("account_type.eq.Scout,user_subscriptions.status.eq.active")
+        .eq("user_subscriptions.status", "active")
 
       if (error) {
         console.error("[v0] Error fetching profiles:", error)
@@ -229,6 +303,7 @@ export default function ProfileDiscovery() {
 
   useEffect(() => {
     fetchProfiles()
+    fetchFavoritedIds()
   }, [])
 
   useEffect(() => {
@@ -398,8 +473,19 @@ export default function ProfileDiscovery() {
                       </CardDescription>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm">
-                    <Heart className="h-4 w-4" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleFavorite(profile.user_id)}
+                    disabled={togglingFavoriteId === profile.user_id}
+                    aria-label={favoritedIds.has(profile.user_id) ? "Remove from favorites" : "Add to favorites"}
+                    className={favoritedIds.has(profile.user_id) ? "text-red-600 hover:text-red-700" : ""}
+                  >
+                    <Heart
+                      className={`h-4 w-4 ${favoritedIds.has(profile.user_id) ? "fill-current" : ""} ${
+                        favoritedIds.has(profile.user_id) && justFavoritedId === profile.user_id ? "animate-heart-pop" : ""
+                      }`}
+                    />
                   </Button>
                 </div>
               </CardHeader>
@@ -479,8 +565,19 @@ export default function ProfileDiscovery() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Heart className="h-4 w-4" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleFavorite(profile.user_id)}
+                          disabled={togglingFavoriteId === profile.user_id}
+                          aria-label={favoritedIds.has(profile.user_id) ? "Remove from favorites" : "Add to favorites"}
+                          className={favoritedIds.has(profile.user_id) ? "text-red-600 hover:text-red-700" : ""}
+                        >
+                          <Heart
+                            className={`h-4 w-4 ${favoritedIds.has(profile.user_id) ? "fill-current" : ""} ${
+                              favoritedIds.has(profile.user_id) && justFavoritedId === profile.user_id ? "animate-heart-pop" : ""
+                            }`}
+                          />
                         </Button>
                         <Link href={`/crew/${profile.user_id}`}>
                           <Button size="sm">View Profile</Button>

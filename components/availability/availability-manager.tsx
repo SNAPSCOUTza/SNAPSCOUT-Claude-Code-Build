@@ -254,7 +254,7 @@ export function AvailabilityManager({ ownerId, ownerType = "crew" }: Availabilit
                 return (
                   <div
                     key={key}
-                    className={`grid h-10 place-items-center rounded-xl border font-mono text-[11px] ${dayClasses}`}
+                    className={`grid aspect-square min-h-9 place-items-center rounded-xl border font-mono text-[11px] ${dayClasses}`}
                   >
                     {date.getDate()}
                   </div>

@@ -136,6 +136,9 @@ const DepthCarousel = forwardRef<DepthCarouselHandle, DepthCarouselProps>(({
   const rafRef = useRef<number | null>(null)
 
   const [active, setActive] = useState(0)
+  const [autoPaused, setAutoPaused] = useState(false)
+  const autoPausedRef = useRef(false)
+  autoPausedRef.current = autoPaused
 
   onChangeRef.current = onChange
   cfgRef.current = {
@@ -410,7 +413,7 @@ const DepthCarousel = forwardRef<DepthCarouselHandle, DepthCarouselProps>(({
       stop()
       autoTimerRef.current = setInterval(
         () => {
-          if (!hovered && !focused) navigateBy(1)
+          if (!hovered && !focused && !autoPausedRef.current) navigateBy(1)
         },
         Math.max(cfgRef.current.autoplayDelay, 600),
       )
@@ -519,6 +522,27 @@ const DepthCarousel = forwardRef<DepthCarouselHandle, DepthCarouselProps>(({
             </svg>
           </button>
         </>
+      )}
+
+      {autoplay && count > 1 && (
+        <button
+          type="button"
+          className="depth-carousel__arrow depth-carousel__pause"
+          aria-label={autoPaused ? "Play automatic slideshow" : "Pause automatic slideshow"}
+          aria-pressed={autoPaused}
+          onClick={() => setAutoPaused((p) => !p)}
+        >
+          {autoPaused ? (
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M7 5l12 7-12 7V5z" fill="currentColor" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <rect x="6" y="5" width="4" height="14" fill="currentColor" />
+              <rect x="14" y="5" width="4" height="14" fill="currentColor" />
+            </svg>
+          )}
+        </button>
       )}
 
       {showIndicators && count > 1 && (

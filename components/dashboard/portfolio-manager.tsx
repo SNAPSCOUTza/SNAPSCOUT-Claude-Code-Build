@@ -54,6 +54,7 @@ type PortfolioManagerProps = {
   onItemsLoaded: (items: ProfilePortfolioItem[]) => void
   onRefresh: () => Promise<void> | void
   onPreviewGallery: () => void
+  maxItems?: number
 }
 
 type Status = "idle" | "loading" | "success" | "error"
@@ -118,6 +119,7 @@ export function PortfolioManager({
   onItemsLoaded,
   onRefresh,
   onPreviewGallery,
+  maxItems = DISPLAY_LIMIT,
 }: PortfolioManagerProps) {
   const searchParams = useSearchParams()
   const [source, setSource] = useState<"upload" | "instagram">("upload")
@@ -137,8 +139,8 @@ export function PortfolioManager({
   const [projectStatus, setProjectStatus] = useState<Status>("idle")
   const [projectMessage, setProjectMessage] = useState("")
 
-  const visibleItems = useMemo(() => items.slice(0, DISPLAY_LIMIT), [items])
-  const emptySlots = Math.max(0, DISPLAY_LIMIT - visibleItems.length)
+  const visibleItems = useMemo(() => items.slice(0, maxItems), [items, maxItems])
+  const emptySlots = Math.max(0, maxItems - visibleItems.length)
 
   const availableMap = useMemo(() => {
     const map = new Map<string, ProfilePortfolioItem>()
@@ -187,7 +189,7 @@ export function PortfolioManager({
     setMessage(
       routeMessage ||
         (instagramState === "connected"
-          ? "Instagram connected. Choose the nine posts you want on your profile."
+          ? `Instagram connected. Choose the ${maxItems} post${maxItems === 1 ? "" : "s"} you want on your profile.`
           : "Instagram could not be connected."),
     )
   }, [searchParams])
@@ -367,9 +369,9 @@ export function PortfolioManager({
       return
     }
 
-    if (selectedDraftIds.length >= DISPLAY_LIMIT) {
+    if (selectedDraftIds.length >= maxItems) {
       setInstagramStatus("error")
-      setMessage("You can show up to 9 Instagram posts on your profile.")
+      setMessage(`You can show up to ${maxItems} Instagram post${maxItems === 1 ? "" : "s"} on your profile.`)
       return
     }
 
@@ -387,8 +389,8 @@ export function PortfolioManager({
     })
   }
 
-  const selectLatestNine = () => {
-    const next = availableInstagramItems.slice(0, DISPLAY_LIMIT).map(getSelectionId)
+  const selectLatestForCap = () => {
+    const next = availableInstagramItems.slice(0, maxItems).map(getSelectionId)
     setSelectedDraftIds(next)
   }
 
@@ -436,7 +438,7 @@ export function PortfolioManager({
             <div>
               <h3 className="text-lg font-bold text-[#101318]">Upload Portfolio Images</h3>
               <p className="mt-1 text-sm leading-6 text-[#667085]">
-                Feature up to 9 images directly on your SnapScout profile.
+                Feature up to {maxItems} image{maxItems === 1 ? "" : "s"} directly on your SnapScout profile.
               </p>
             </div>
           </div>
@@ -495,12 +497,12 @@ export function PortfolioManager({
 
           <Button
             type="button"
-            disabled={uploadStatus === "loading" || visibleItems.length >= DISPLAY_LIMIT}
+            disabled={uploadStatus === "loading" || visibleItems.length >= maxItems}
             onClick={handleUpload}
             className="mt-4 h-[52px] w-full rounded-full bg-[#f20d14] text-white hover:bg-[#d9070d]"
           >
             {uploadStatus === "loading" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-            {visibleItems.length >= DISPLAY_LIMIT ? "9 portfolio images added" : "Upload Image"}
+            {visibleItems.length >= maxItems ? `${maxItems} portfolio image${maxItems === 1 ? "" : "s"} added` : "Upload Image"}
           </Button>
         </motion.section>
 
@@ -517,7 +519,8 @@ export function PortfolioManager({
             <div>
               <h3 className="text-lg font-bold text-[#101318]">Connect Instagram</h3>
               <p className="mt-1 text-sm leading-6 text-[#667085]">
-                Authorize through Instagram, then choose the 9 posts clients see on your SnapScout profile.
+                Authorize through Instagram, then choose the {maxItems} post{maxItems === 1 ? "" : "s"} clients see on
+                your SnapScout profile.
               </p>
             </div>
           </div>
@@ -632,12 +635,12 @@ export function PortfolioManager({
 
         <Button
           type="button"
-          disabled={projectStatus === "loading" || visibleItems.length >= DISPLAY_LIMIT}
+          disabled={projectStatus === "loading" || visibleItems.length >= maxItems}
           onClick={handleAddProject}
           className="mt-4 h-[52px] w-full rounded-full bg-[#f20d14] text-white hover:bg-[#d9070d]"
         >
           {projectStatus === "loading" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-          {visibleItems.length >= DISPLAY_LIMIT ? "9 portfolio items added" : "Add Project"}
+          {visibleItems.length >= maxItems ? `${maxItems} portfolio item${maxItems === 1 ? "" : "s"} added` : "Add Project"}
         </Button>
 
         {projectMessage && (
@@ -652,14 +655,16 @@ export function PortfolioManager({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[#f20d14]">Instagram Grid</p>
-              <h3 className="mt-1 text-lg font-bold text-[#101318]">Choose 9 posts for your profile</h3>
+              <h3 className="mt-1 text-lg font-bold text-[#101318]">
+                Choose {maxItems} post{maxItems === 1 ? "" : "s"} for your profile
+              </h3>
               <p className="mt-1 text-sm leading-6 text-[#667085]">
                 Pick from your cached Instagram feed. Drag-free ordering uses the arrow buttons so it works reliably on mobile.
               </p>
             </div>
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={selectLatestNine} className="h-11 rounded-full bg-white">
-                Latest 9
+              <Button type="button" variant="outline" onClick={selectLatestForCap} className="h-11 rounded-full bg-white">
+                Latest {maxItems}
               </Button>
               <Button
                 type="button"
@@ -675,7 +680,7 @@ export function PortfolioManager({
 
           <div className="mt-4 rounded-[24px] bg-[#fff8f8] p-3">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-[#101318]">Selected {selectedDraftIds.length}/9</p>
+              <p className="text-sm font-semibold text-[#101318]">Selected {selectedDraftIds.length}/{maxItems}</p>
               {selectedInstagramIds.join("|") !== selectedDraftIds.join("|") && (
                 <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">Unsaved changes</span>
               )}
@@ -711,7 +716,7 @@ export function PortfolioManager({
                   </div>
                 )
               })}
-              {Array.from({ length: Math.max(0, DISPLAY_LIMIT - selectedDraftIds.length) }).map((_, index) => (
+              {Array.from({ length: Math.max(0, maxItems - selectedDraftIds.length) }).map((_, index) => (
                 <div key={`selection-empty-${index}`} className="grid aspect-square place-items-center rounded-[18px] border border-dashed border-[#f5c3c6] bg-white text-[#c9a1a3]">
                   <ImageIcon className="h-5 w-5" />
                 </div>
@@ -765,7 +770,9 @@ export function PortfolioManager({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-lg font-bold text-[#101318]">Profile Gallery Preview</h3>
-            <p className="mt-1 text-sm text-[#667085]">A 9-image grid is what clients see first on your public profile.</p>
+            <p className="mt-1 text-sm text-[#667085]">
+              A {maxItems}-image grid is what clients see first on your public profile.
+            </p>
           </div>
           <Button type="button" variant="outline" onClick={onPreviewGallery} className="h-11 rounded-full bg-white">
             <ExternalLink className="mr-2 h-4 w-4" />
@@ -775,7 +782,7 @@ export function PortfolioManager({
 
         <div className="mt-5 grid grid-cols-3 gap-3">
           {loading
-            ? Array.from({ length: DISPLAY_LIMIT }).map((_, index) => <div key={index} className="aspect-square animate-pulse rounded-[22px] bg-[#eef2f6]" />)
+            ? Array.from({ length: maxItems }).map((_, index) => <div key={index} className="aspect-square animate-pulse rounded-[22px] bg-[#eef2f6]" />)
             : visibleItems.map((item, index) => {
                 const linkCard = linkCardFor(item)
                 const BadgeIcon = platformBadge(item)

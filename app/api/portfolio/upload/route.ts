@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { apiError, isApiErrorContext, requireUser, sanitizeText } from "@/lib/crew-pools/api"
-import { PORTFOLIO_DISPLAY_LIMIT, normalizeUploadItem } from "@/lib/portfolio/portfolio-service"
+import { getPortfolioItemCount, getPortfolioUploadLimit, normalizeUploadItem } from "@/lib/portfolio/portfolio-service"
 import { isR2Configured } from "@/lib/r2/client"
 import { deleteFromR2, uploadToR2 } from "@/lib/r2/storage"
 
@@ -24,15 +24,16 @@ export async function POST(request: Request) {
   if (!file.type.startsWith("image/")) return apiError("Portfolio uploads must be images", 400, "PORTFOLIO_UPLOAD_INVALID_TYPE")
   if (file.size > 8 * 1024 * 1024) return apiError("Portfolio images must be smaller than 8MB", 400, "PORTFOLIO_UPLOAD_TOO_LARGE")
 
-  const { count, error: countError } = await supabase
-    .from("portfolio_uploads")
-    .select("id", { count: "exact", head: true })
+  const { data: profileRow } = await supabase
+    .from("user_profiles")
+    .select("account_type")
     .eq("user_id", user.id)
-    .eq("status", "visible")
+    .maybeSingle()
+  const uploadLimit = getPortfolioUploadLimit(profileRow?.account_type)
 
-  if (countError) return apiError(countError.message, 500, "PORTFOLIO_UPLOAD_COUNT_FAILED")
-  if ((count || 0) >= PORTFOLIO_DISPLAY_LIMIT) {
-    return apiError(`You can feature up to ${PORTFOLIO_DISPLAY_LIMIT} portfolio images.`, 400, "PORTFOLIO_UPLOAD_LIMIT_REACHED")
+  const count = await getPortfolioItemCount(supabase, user.id)
+  if (count >= uploadLimit) {
+    return apiError(`You can feature up to ${uploadLimit} portfolio images.`, 400, "PORTFOLIO_UPLOAD_LIMIT_REACHED")
   }
 
   if (!isR2Configured()) return apiError("Storage is not configured", 500, "PORTFOLIO_STORAGE_NOT_CONFIGURED")

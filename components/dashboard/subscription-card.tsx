@@ -20,6 +20,8 @@ import {
 } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
 import { callPaystackFunction } from "@/lib/paystack-edge"
+import { RollingNumber } from "@/components/ui/rolling-number"
+import { BillingCycleToggle, type BillingCycle } from "@/components/ui/billing-cycle-toggle"
 
 interface Subscription {
   id: string
@@ -40,50 +42,84 @@ interface SubscriptionCardProps {
   onSubscriptionChange?: () => void
 }
 
+// Annual amounts/plan codes match the live Paystack plans (all tiers are a flat
+// R5,868/year - a break-even for Studio/Store, not a discount for Creator/Crew).
 const ROLE_PLANS = [
   {
     id: "creator",
     planId: "creator-membership",
     name: "Creator Membership",
-    price: 129,
-    priceInKobo: 12900,
-    planCode: "PLN_gwa1ou57v0y52f9",
-    paymentUrl: "https://paystack.shop/pay/pf9ytcte3l",
     icon: Camera,
     features: ["Professional profile page", "Portfolio showcase", "Direct messaging with clients"],
+    monthly: {
+      price: 129,
+      priceInKobo: 12900,
+      planCode: "PLN_gwa1ou57v0y52f9",
+      paymentUrl: "https://paystack.shop/pay/pf9ytcte3l",
+    },
+    annual: {
+      price: 5868,
+      priceInKobo: 586800,
+      planCode: "PLN_3b3uvdzv8ulrsu6",
+      paymentUrl: "",
+    },
   },
   {
     id: "crew",
     planId: "crew-membership",
     name: "Crew Membership",
-    price: 129,
-    priceInKobo: 12900,
-    planCode: "PLN_fqc6pjz44yoxxjt",
-    paymentUrl: "https://paystack.shop/pay/x2cgr11mqs",
     icon: Users,
     features: ["Team collaboration tools", "Enhanced visibility", "Project management"],
+    monthly: {
+      price: 129,
+      priceInKobo: 12900,
+      planCode: "PLN_fqc6pjz44yoxxjt",
+      paymentUrl: "https://paystack.shop/pay/x2cgr11mqs",
+    },
+    annual: {
+      price: 5868,
+      priceInKobo: 586800,
+      planCode: "PLN_ot761hgwe40o0bd",
+      paymentUrl: "",
+    },
   },
   {
     id: "studio",
     planId: "studio-membership",
     name: "Studio Membership",
-    price: 489,
-    priceInKobo: 48900,
-    planCode: "PLN_mwe361yl6kncc9a",
-    paymentUrl: "https://paystack.shop/pay/zqmjtj7zo6",
     icon: Building2,
     features: ["Advanced analytics", "Custom branding", "Priority listing"],
+    monthly: {
+      price: 489,
+      priceInKobo: 48900,
+      planCode: "PLN_mwe361yl6kncc9a",
+      paymentUrl: "https://paystack.shop/pay/zqmjtj7zo6",
+    },
+    annual: {
+      price: 5868,
+      priceInKobo: 586800,
+      planCode: "PLN_gnjcpfjzyokacs5",
+      paymentUrl: "",
+    },
   },
   {
     id: "store",
     planId: "store-membership",
     name: "Store Membership",
-    price: 489,
-    priceInKobo: 48900,
-    planCode: "PLN_l0ye33gc0dmtdpb",
-    paymentUrl: "https://paystack.shop/pay/rnkw0lackt",
     icon: Store,
     features: ["E-commerce integration", "Inventory management", "Sales analytics"],
+    monthly: {
+      price: 489,
+      priceInKobo: 48900,
+      planCode: "PLN_l0ye33gc0dmtdpb",
+      paymentUrl: "https://paystack.shop/pay/rnkw0lackt",
+    },
+    annual: {
+      price: 5868,
+      priceInKobo: 586800,
+      planCode: "PLN_7xiimhxnt5ftwq9",
+      paymentUrl: "",
+    },
   },
 ]
 
@@ -91,6 +127,7 @@ export function SubscriptionCard({ subscription, userEmail, onSubscriptionChange
   const [showRoleModal, setShowRoleModal] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [selectedRole, setSelectedRole] = useState<string | null>(null)
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly")
   const [isLoading, setIsLoading] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
@@ -214,10 +251,13 @@ export function SubscriptionCard({ subscription, userEmail, onSubscriptionChange
         return
       }
 
+      const cyclePlan = selectedPlan[billingCycle]
+
       console.log("[v0] Initializing payment for plan:", {
         planId: selectedPlan.planId,
-        planCode: selectedPlan.planCode,
-        price: selectedPlan.price,
+        planCode: cyclePlan.planCode,
+        billingCycle,
+        price: cyclePlan.price,
         userId: currentUserId,
         email: userEmail,
       })
@@ -228,15 +268,16 @@ export function SubscriptionCard({ subscription, userEmail, onSubscriptionChange
 
       const response = await callPaystackFunction("paystack-initialize", currentSession?.access_token, {
         email: userEmail,
-        amount: selectedPlan.priceInKobo,
+        amount: cyclePlan.priceInKobo,
         plan: selectedPlan.planId,
-        plan_code: selectedPlan.planCode,
+        plan_code: cyclePlan.planCode,
         accountType: selectedPlan.id,
         userId: currentUserId,
         metadata: {
           user_id: currentUserId,
           plan_id: selectedPlan.planId,
           plan_name: selectedPlan.name,
+          billing_cycle: billingCycle,
         },
         callback_url: `${window.location.origin}/dashboard?payment=success&plan=${selectedPlan.id}`,
       })
@@ -251,8 +292,8 @@ export function SubscriptionCard({ subscription, userEmail, onSubscriptionChange
         onSubscriptionChange?.()
       } else {
         console.log("[v0] API failed, trying direct payment URL")
-        if (selectedPlan.paymentUrl) {
-          const paymentUrlWithParams = `${selectedPlan.paymentUrl}?email=${encodeURIComponent(userEmail)}&metadata[user_id]=${encodeURIComponent(currentUserId)}&metadata[plan_id]=${encodeURIComponent(selectedPlan.planId)}`
+        if (cyclePlan.paymentUrl) {
+          const paymentUrlWithParams = `${cyclePlan.paymentUrl}?email=${encodeURIComponent(userEmail)}&metadata[user_id]=${encodeURIComponent(currentUserId)}&metadata[plan_id]=${encodeURIComponent(selectedPlan.planId)}`
           window.location.href = paymentUrlWithParams
         } else {
           setError(data.message || data.error || "Failed to initialize payment")
@@ -262,9 +303,10 @@ export function SubscriptionCard({ subscription, userEmail, onSubscriptionChange
       console.error("[v0] Error initializing payment:", error)
 
       const selectedPlan = ROLE_PLANS.find((p) => p.id === selectedRole)
-      if (selectedPlan?.paymentUrl) {
+      const cyclePlan = selectedPlan?.[billingCycle]
+      if (cyclePlan?.paymentUrl) {
         console.log("[v0] Using fallback payment URL")
-        window.location.href = selectedPlan.paymentUrl
+        window.location.href = cyclePlan.paymentUrl
       } else {
         setError("Failed to connect to payment service. Please try again.")
       }
@@ -429,47 +471,76 @@ export function SubscriptionCard({ subscription, userEmail, onSubscriptionChange
                 </div>
               )}
 
+              {/* Billing Cycle Toggle */}
+              <div className="flex items-center justify-center mb-6">
+                <BillingCycleToggle cycle={billingCycle} onChange={setBillingCycle} />
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {ROLE_PLANS.map((plan) => (
-                  <div
-                    key={plan.id}
-                    onClick={() => setSelectedRole(plan.id)}
-                    className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md ${
-                      selectedRole === plan.id ? "border-primary bg-primary/10" : "border-border hover:border-border/80"
-                    }`}
-                  >
-                    {selectedRole === plan.id && (
-                      <div className="absolute top-3 right-3 h-6 w-6 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="h-4 w-4 text-primary-foreground" />
-                      </div>
-                    )}
+                {ROLE_PLANS.map((plan) => {
+                  const cyclePlan = plan[billingCycle]
+                  const monthlyEquivalent =
+                    billingCycle === "annual" ? Math.round(plan.annual.price / 12) : plan.monthly.price
 
-                    <div className="flex items-center gap-3 mb-3">
-                      <div
-                        className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                          selectedRole === plan.id ? "bg-primary/20" : "bg-muted"
-                        }`}
-                      >
-                        <plan.icon
-                          className={`h-5 w-5 ${selectedRole === plan.id ? "text-primary" : "text-muted-foreground"}`}
-                        />
+                  return (
+                    <div
+                      key={plan.id}
+                      onClick={() => setSelectedRole(plan.id)}
+                      className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md ${
+                        selectedRole === plan.id
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-border/80"
+                      }`}
+                    >
+                      {selectedRole === plan.id && (
+                        <div className="absolute top-3 right-3 h-6 w-6 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="h-4 w-4 text-primary-foreground" />
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-3 mb-3">
+                        <div
+                          className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                            selectedRole === plan.id ? "bg-primary/20" : "bg-muted"
+                          }`}
+                        >
+                          <plan.icon
+                            className={`h-5 w-5 ${selectedRole === plan.id ? "text-primary" : "text-muted-foreground"}`}
+                          />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-foreground">{plan.name}</h3>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-primary">
+                              <RollingNumber
+                                value={cyclePlan.price}
+                                fontSize={16}
+                                className="font-bold"
+                                prefix="R"
+                                suffix={billingCycle === "annual" ? "/year" : "/month"}
+                              />
+                            </span>
+                            {billingCycle === "annual" && (
+                              <span className="text-muted-foreground">
+                                (
+                                <RollingNumber value={monthlyEquivalent} fontSize={12} prefix="R" suffix="/mo" />)
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">{plan.name}</h3>
-                        <p className="text-primary font-bold">R{plan.price}/month</p>
-                      </div>
+
+                      <ul className="space-y-2">
+                        {plan.features.map((feature, i) => (
+                          <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                            <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-
-                    <ul className="space-y-2">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                          <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 

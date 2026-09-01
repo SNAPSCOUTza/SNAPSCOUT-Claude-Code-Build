@@ -26,6 +26,8 @@ import { MessageButton } from "@/components/messaging/message-button"
 import { SaveProfileButton } from "@/components/messaging/save-profile-button"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { mockStudios, type StudioData } from "@/lib/mock-data/studios-data"
+import { DemoCardWrap } from "@/components/ui/demo-card-wrap"
+import { DemoProfileBadge } from "@/components/ui/demo-profile-badge"
 import { AvailabilityStatusBadge } from "@/components/availability/availability-status-badge"
 import { AnimatedCount } from "@/components/ui/animated-count"
 import { MotionRevealGroup, MotionRevealItem, MotionRevealSolo } from "@/components/ui/motion-reveal"
@@ -52,9 +54,10 @@ export default function StudiosPage() {
             id, user_id, full_name, display_name, username, email, account_type, profession, bio,
             location, city, province, profile_image_url, profile_picture, avatar_url,
             availability, availability_status, pricing, hourly_rate, daily_rate, project_rate,
-            skills, social_links, portfolio_images, is_public, is_profile_visible, created_at
+            skills, social_links, portfolio_images, is_public, is_profile_visible, subscription_status, created_at
           `)
           .eq("is_profile_visible", true)
+          .eq("subscription_status", "active")
           .order("created_at", { ascending: false })
 
         if (error) throw error
@@ -167,14 +170,6 @@ export default function StudiosPage() {
             </Button>
           }
         >
-          {useMockData && (
-            <MotionRevealSolo className="mb-4">
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
-                Showing mock studios while live studio data loads.
-              </div>
-            </MotionRevealSolo>
-          )}
-
           <MotionRevealGroup className="rounded-[28px] border border-[#ece4da] bg-white p-4 shadow-[0_14px_34px_rgba(0,0,0,0.05)]">
             <MotionRevealItem className="flex items-center gap-2 rounded-2xl border border-[#e7e0d6] bg-white px-3 py-3">
               <Search className="h-4 w-4 text-[#73757d]" />
@@ -221,6 +216,7 @@ export default function StudiosPage() {
               {filteredStudios.map((studio, index) => (
                 <StickyScrollCard key={studio.id} top="88px" delay={0.1 + index * 0.08}>
                   <MotionRevealItem>
+                    <DemoCardWrap isDemo={useMockData} borderRadius={22}>
                     <Card className="overflow-hidden rounded-[22px] border-[#eee6db] bg-white">
                       <CardContent className="p-0">
                         <motion.div className="relative h-40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.38, ease: "easeOut" }}>
@@ -233,6 +229,7 @@ export default function StudiosPage() {
                           <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#111318]">
                             {studio.type === "studio" ? "Studio" : "Equipment Store"}
                           </span>
+                          {useMockData && <DemoProfileBadge className="absolute right-3 top-3 bg-white/95 shadow-md" />}
                         </motion.div>
                         <div className="p-3">
                           <div className="flex items-start justify-between gap-2">
@@ -310,6 +307,7 @@ export default function StudiosPage() {
                         </div>
                       </CardContent>
                     </Card>
+                    </DemoCardWrap>
                   </MotionRevealItem>
                 </StickyScrollCard>
               ))}
@@ -445,17 +443,14 @@ export default function StudiosPage() {
 
           <div className="mb-6 flex items-center gap-2">
             <p className="text-muted-foreground">Showing {filteredStudios.length} results</p>
-            {useMockData && (
-              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
-                Mock data for testing
-              </Badge>
-            )}
           </div>
 
           <div className="space-y-5">
             {filteredStudios.map((studio, index) => (
               <StickyScrollCard key={studio.id} top="116px" delay={0.08 + index * 0.06}>
-                <Card className="overflow-hidden">
+                <DemoCardWrap isDemo={useMockData} borderRadius={12}>
+                <Card className="relative overflow-hidden">
+                  {useMockData && <DemoProfileBadge className="absolute right-3 top-3 z-10 bg-white/95 shadow-md" />}
                   <CardContent className="p-0">
                     <div className="flex flex-col md:flex-row">
                       <div className="relative h-52 w-full shrink-0 md:w-80">
@@ -548,6 +543,7 @@ export default function StudiosPage() {
                     </div>
                   </CardContent>
                 </Card>
+                </DemoCardWrap>
               </StickyScrollCard>
             ))}
           </div>

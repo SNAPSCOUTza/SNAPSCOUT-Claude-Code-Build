@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useMemo, useRef, useState } from "react"
 import { X, ChevronLeft, ChevronRight, Facebook, Instagram } from "lucide-react"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import DepthCarousel, { type DepthCarouselHandle } from "@/components/ui/depth-carousel"
 import type { LightboxPortfolioItem } from "@/types/portfolio"
 
@@ -25,6 +25,9 @@ const extractVimeoId = (url: string) => {
 export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLightboxProps) {
   const carouselWrapRef = useRef<HTMLDivElement>(null)
   const carouselApiRef = useRef<DepthCarouselHandle>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+  const prefersReducedMotion = useReducedMotion()
 
   // DepthCarousel always starts at position 0 with no controlled "start
   // index" prop, so the item the user actually clicked is rotated to the
@@ -47,7 +50,28 @@ export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLig
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
+      if (e.key === "Escape") {
+        onClose()
+        return
+      }
+      if (e.key !== "Tab") return
+      // Focus trap: keep Tab cycling inside the dialog instead of leaking
+      // out to the (still-mounted) page behind the fixed overlay.
+      const dialog = dialogRef.current
+      if (!dialog) return
+      const focusable = dialog.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, iframe, [tabindex]:not([tabindex="-1"])',
+      )
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
     },
     [onClose],
   )
@@ -62,7 +86,11 @@ export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLig
   }, [handleKeyDown])
 
   useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement | null
     carouselWrapRef.current?.querySelector<HTMLDivElement>(".depth-carousel")?.focus()
+    return () => {
+      previousFocusRef.current?.focus?.()
+    }
   }, [])
 
   if (!currentItem) return null
@@ -72,7 +100,7 @@ export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLig
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.22, ease: "easeInOut" }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.22, ease: "easeInOut" }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
@@ -81,26 +109,37 @@ export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLig
           Sized to 80% of the viewport per request, capped so it doesn't
           balloon on very wide desktop screens. */}
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Portfolio image viewer, ${currentItem.title || currentItem.caption || `image ${activeIndex + 1} of ${carouselSlides.length}`}`}
         initial={{ opacity: 0, y: 24, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 12, scale: 0.98 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.3, ease: "easeInOut" }}
         onClick={(e) => e.stopPropagation()}
         className="relative flex w-[80vw] max-w-[720px] flex-col overflow-hidden rounded-[32px] bg-white shadow-2xl"
         style={{ height: "80dvh" }}
       >
         {/* Top bar - sits below the dynamic island / notch on mobile */}
         <div className="flex shrink-0 items-center justify-between gap-3 px-4 pb-2 pt-[max(14px,env(safe-area-inset-top))]">
-          <span className="h-9 w-9" aria-hidden="true" />
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Swipe to scroll</p>
+          <span className="h-11 w-11" aria-hidden="true" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-600">Swipe to scroll</p>
           <button
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200 active:scale-[0.96]"
+            className="grid h-11 w-11 place-items-center rounded-full bg-gray-100 text-gray-700 outline-none transition-colors hover:bg-gray-200 focus-visible:ring-2 focus-visible:ring-black/50 focus-visible:ring-offset-2 active:scale-[0.96]"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Screen-reader-only position announcement - the visual dots/nav
+            already convey this, but nothing previously told assistive tech
+            users which slide they landed on after prev/next. */}
+        <p className="sr-only" aria-live="polite">
+          {carouselSlides.length > 1 ? `Image ${activeIndex + 1} of ${carouselSlides.length}` : ""}
+        </p>
 
         {/* Carousel */}
         <div ref={carouselWrapRef} className="relative min-h-0 flex-1">
@@ -150,6 +189,7 @@ export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLig
                 <div className="pointer-events-auto aspect-video w-full max-w-md overflow-hidden rounded-[24px] bg-black shadow-[0_22px_52px_rgba(0,0,0,0.35)]">
                   {currentItem.embedUrl ? (
                     <iframe
+                      title={currentItem.title || currentItem.caption || "Embedded video"}
                       src={currentItem.embedUrl}
                       className="h-full w-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
@@ -157,20 +197,28 @@ export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLig
                     />
                   ) : currentItem.platform === "youtube" && currentItem.link ? (
                     <iframe
-                      src={`https://www.youtube.com/embed/${extractYouTubeId(currentItem.link)}?autoplay=1`}
+                      title={currentItem.title || currentItem.caption || "YouTube video"}
+                      src={`https://www.youtube.com/embed/${extractYouTubeId(currentItem.link)}?autoplay=1&mute=1`}
                       className="h-full w-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />
                   ) : currentItem.platform === "vimeo" && currentItem.link ? (
                     <iframe
-                      src={`https://player.vimeo.com/video/${extractVimeoId(currentItem.link)}?autoplay=1`}
+                      title={currentItem.title || currentItem.caption || "Vimeo video"}
+                      src={`https://player.vimeo.com/video/${extractVimeoId(currentItem.link)}?autoplay=1&muted=1`}
                       className="h-full w-full"
                       allow="autoplay; fullscreen; picture-in-picture"
                       allowFullScreen
                     />
                   ) : (
-                    <video src={currentItem.fullUrl || currentItem.thumbnail} controls autoPlay className="h-full w-full" />
+                    <video
+                      src={currentItem.fullUrl || currentItem.thumbnail}
+                      controls
+                      autoPlay
+                      muted
+                      className="h-full w-full"
+                    />
                   )}
                 </div>
               )}
@@ -190,7 +238,7 @@ export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLig
             <button
               type="button"
               onClick={() => carouselApiRef.current?.prev()}
-              className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full border-[1.5px] border-black/10 bg-black/[0.06] text-gray-600 shadow-[0_4px_20px_rgba(0,0,0,0.1)] backdrop-blur-[16px] outline-none transition-colors duration-300 before:pointer-events-none before:absolute before:inset-[3px] before:rounded-full before:border before:border-black/[0.04] before:content-[''] hover:border-black/20 hover:bg-black/10 hover:text-gray-900 active:opacity-70"
+              className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full border-[1.5px] border-black/10 bg-black/[0.06] text-gray-600 shadow-[0_4px_20px_rgba(0,0,0,0.1)] backdrop-blur-[16px] outline-none transition-colors duration-300 before:pointer-events-none before:absolute before:inset-[3px] before:rounded-full before:border before:border-black/[0.04] before:content-[''] hover:border-black/20 hover:bg-black/10 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-black/50 focus-visible:ring-offset-2 active:opacity-70"
               aria-label="Previous image"
             >
               <ChevronLeft className="relative z-[2] h-5 w-5" />
@@ -198,7 +246,7 @@ export function PortfolioLightbox({ items, initialIndex, onClose }: PortfolioLig
             <button
               type="button"
               onClick={() => carouselApiRef.current?.next()}
-              className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full border-[1.5px] border-black/10 bg-black/[0.06] text-gray-600 shadow-[0_4px_20px_rgba(0,0,0,0.1)] backdrop-blur-[16px] outline-none transition-colors duration-300 before:pointer-events-none before:absolute before:inset-[3px] before:rounded-full before:border before:border-black/[0.04] before:content-[''] hover:border-black/20 hover:bg-black/10 hover:text-gray-900 active:opacity-70"
+              className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full border-[1.5px] border-black/10 bg-black/[0.06] text-gray-600 shadow-[0_4px_20px_rgba(0,0,0,0.1)] backdrop-blur-[16px] outline-none transition-colors duration-300 before:pointer-events-none before:absolute before:inset-[3px] before:rounded-full before:border before:border-black/[0.04] before:content-[''] hover:border-black/20 hover:bg-black/10 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-black/50 focus-visible:ring-offset-2 active:opacity-70"
               aria-label="Next image"
             >
               <ChevronRight className="relative z-[2] h-5 w-5" />

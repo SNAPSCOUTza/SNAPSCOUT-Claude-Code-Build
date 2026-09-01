@@ -2,7 +2,7 @@ import { applyStudioStoreDashboardPreview } from "@/lib/mock-data/studio-store-d
 import type { StudioStoreItem } from "@/lib/mock-data/studios-stores-data"
 
 export const STUDIO_STORE_PROFILE_COLUMNS =
-  "user_id, full_name, display_name, username, account_type, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, phone, email, social_links, availability, availability_status, onboarding_data, created_at, rating, review_count, skills"
+  "user_id, full_name, display_name, username, account_type, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, phone, email, social_links, availability, availability_status, onboarding_data, created_at, rating, review_count, skills, subscription_status"
 
 export function mapLiveProfileToStudioStoreItem(profile: any) {
   const location = profile.location || [profile.city, profile.province].filter(Boolean).join(", ")

@@ -44,6 +44,10 @@ export function SaveProfileButton({
 }: SaveProfileButtonProps) {
   const [isSaved, setIsSaved] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  // True only right after the user's own click saves the profile - not on
+  // the initial load-time check - so the pop reads as a response to their
+  // tap rather than firing on every profile that was already saved.
+  const [justSaved, setJustSaved] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const initRef = useRef(false)
   const supabase = createBrowserClient()
@@ -103,6 +107,7 @@ export function SaveProfileButton({
       }
 
       setIsSaved(nextSaved)
+      setJustSaved(nextSaved)
 
       if (!userId || !isUuid(profileId)) return
 
@@ -143,7 +148,9 @@ export function SaveProfileButton({
       )}
       aria-label={isSaved ? `Remove ${profileName} from favorites` : `Save ${profileName} to favorites`}
     >
-      <Heart className={`h-4 w-4 transition-[transform,opacity] duration-200 ${isSaved ? "fill-current scale-110" : ""}`} />
+      <Heart
+        className={`h-4 w-4 transition-[transform,opacity] duration-200 ${isSaved ? "fill-current scale-110" : ""} ${isSaved && justSaved ? "animate-heart-pop" : ""}`}
+      />
       {showText && <span className="ml-2">{isSaved ? "Saved" : "Save"}</span>}
     </Button>
   )

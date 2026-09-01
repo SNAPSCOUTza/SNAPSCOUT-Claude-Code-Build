@@ -30,6 +30,8 @@ import MobileShell from "@/components/mobile/mobile-shell"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
+import { DemoProfileBadge } from "@/components/ui/demo-profile-badge"
+import { DemoProfileNotice } from "@/components/ui/demo-profile-notice"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
 import type { LightboxPortfolioItem } from "@/types/portfolio"
 
@@ -147,6 +149,7 @@ export default function StudioStoreDetailPage() {
     if (baseItem.isUploadedLocation) return baseItem
     return applyStudioStoreDashboardPreview(baseItem as StudioStoreItem, dashboardPreviewSettings) as DetailStudioStore
   }, [baseItem, dashboardPreviewSettings, liveItem])
+  const isDemo = Boolean(baseItem) && !baseItem?.isUploadedLocation
 
   if (loadingLive) {
     return (
@@ -330,6 +333,7 @@ export default function StudioStoreDetailPage() {
             <Badge variant="outline" className="h-10 rounded-full border-[#e6ebf3] bg-white px-4 text-[13px] text-[#111318]">
               {item.availability}
             </Badge>
+            {isDemo && <DemoProfileBadge className="h-10 px-4 text-[13px]" />}
           </div>
 
           <div className="no-scrollbar -mx-1 mt-4 flex gap-3 overflow-x-auto px-1 pb-2">
@@ -363,13 +367,17 @@ export default function StudioStoreDetailPage() {
               <p className="text-[42px] font-semibold leading-none text-[#111318]">{item.hourlyRate.split(" - ")[0]}</p>
               <p className="text-[15px] text-[#111318]/80">/hr</p>
             </div>
-            <Button
-              type="button"
-              onClick={() => setBookingOpen(true)}
-              className="h-14 rounded-full bg-[#f20d14] px-10 text-[18px] font-semibold text-white hover:bg-[#d80a10]"
-            >
-              Book Now
-            </Button>
+            {isDemo ? (
+              <DemoProfileNotice className="w-full sm:max-w-[280px]" />
+            ) : (
+              <Button
+                type="button"
+                onClick={() => setBookingOpen(true)}
+                className="h-14 rounded-full bg-[#f20d14] px-10 text-[18px] font-semibold text-white hover:bg-[#d80a10]"
+              >
+                Book Now
+              </Button>
+            )}
           </div>
 
           <div className="mt-4 rounded-2xl border border-[#e6ebf3] bg-[#f7f9fc] p-4">
@@ -496,13 +504,17 @@ export default function StudioStoreDetailPage() {
                 <p className="mt-1 text-[14px] font-semibold text-[#111318]">{item.peakRate ? `${item.peakRate} · ${item.offPeakRate}` : "On request"}</p>
               </div>
             </div>
-            <Button
-              type="button"
-              onClick={() => setBookingOpen(true)}
-              className="mt-4 h-12 w-full rounded-full bg-[#f20d14] text-[15px] font-semibold text-white hover:bg-[#d80a10]"
-            >
-              {selectedPackage?.availability === "Available" ? "Book Selected Package" : "Check Availability"}
-            </Button>
+            {isDemo ? (
+              <DemoProfileNotice className="mt-4" />
+            ) : (
+              <Button
+                type="button"
+                onClick={() => setBookingOpen(true)}
+                className="mt-4 h-12 w-full rounded-full bg-[#f20d14] text-[15px] font-semibold text-white hover:bg-[#d80a10]"
+              >
+                {selectedPackage?.availability === "Available" ? "Book Selected Package" : "Check Availability"}
+              </Button>
+            )}
           </div>
 
           {item.gearInventory?.length ? (

@@ -26,6 +26,8 @@ import Image from "next/image"
 import { motion } from "framer-motion"
 import { MessageButton } from "@/components/messaging/message-button"
 import { SaveProfileButton } from "@/components/messaging/save-profile-button"
+import { DemoCardWrap } from "@/components/ui/demo-card-wrap"
+import { DemoProfileBadge } from "@/components/ui/demo-profile-badge"
 import { SaveToPoolButton } from "@/components/crew/SaveToPoolButton"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { mockCreators } from "@/lib/mock-data/creators-data"
@@ -111,6 +113,7 @@ export default function CreatorsPage() {
         `)
         .eq("is_profile_visible", true)
         .eq("talent_type", "creator")
+        .eq("subscription_status", "active")
         .order("created_at", { ascending: false })
 
       if (error) throw error
@@ -341,6 +344,7 @@ export default function CreatorsPage() {
             <div className="space-y-3 pt-px">
               {filteredCreators.map((creator) => (
                 <MotionRevealItem key={creator.id}>
+                <DemoCardWrap isDemo={!creator.isLiveProfile} borderRadius={26}>
                 <Card className="overflow-hidden rounded-[26px] border-[#ece4da] bg-white shadow-[0_16px_38px_rgba(15,23,42,0.06)]">
                   <CardContent className="p-0">
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.38, ease: "easeOut" }}>
@@ -354,9 +358,12 @@ export default function CreatorsPage() {
                         />
                         </div>
                         <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between">
-                          <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#111318] shadow-[0_8px_18px_rgba(15,23,42,0.12)]">
-                            {creator.profession || "Creative"}
-                          </span>
+                          <div className="flex flex-wrap items-start gap-1.5">
+                            <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#111318] shadow-[0_8px_18px_rgba(15,23,42,0.12)]">
+                              {creator.profession || "Creative"}
+                            </span>
+                            {!creator.isLiveProfile && <DemoProfileBadge className="bg-white/95 shadow-[0_8px_18px_rgba(15,23,42,0.12)]" />}
+                          </div>
                           <SaveProfileButton
                             profileId={creator.user_id || creator.id}
                             profileName={creator.display_name || creator.full_name}
@@ -423,10 +430,11 @@ export default function CreatorsPage() {
                         </div>
                         <Button
                           type="button"
+                          disabled={!creator.isLiveProfile}
                           onClick={() => setHireRequestCreator(creator)}
-                          className="h-14 min-w-[146px] rounded-full bg-[#ef1218] px-6 text-[16px] font-semibold text-white shadow-[0_18px_28px_rgba(242,13,20,0.18)] hover:bg-[#d90d12]"
+                          className="h-14 min-w-[146px] rounded-full bg-[#ef1218] px-6 text-[16px] font-semibold text-white shadow-[0_18px_28px_rgba(242,13,20,0.18)] hover:bg-[#d90d12] disabled:bg-[#ef1218]/40"
                         >
-                          Hire
+                          {creator.isLiveProfile ? "Hire" : "Not hireable"}
                         </Button>
                       </div>
 
@@ -485,6 +493,7 @@ export default function CreatorsPage() {
                     </div>
                   </CardContent>
                 </Card>
+                </DemoCardWrap>
                 </MotionRevealItem>
               ))}
             </div>
@@ -645,15 +654,6 @@ export default function CreatorsPage() {
 
       {/* Filters */}
       <div className="container mx-auto px-4 py-8">
-        {usingMockData && (
-          <div className="mb-4 p-3 bg-warning/10 border border-warning/20 rounded-lg flex items-center gap-2 text-warning-foreground">
-            <ImageIcon className="w-5 h-5" />
-            <span className="text-sm">
-              Showing mock data for testing. Real profiles will appear once users sign up.
-            </span>
-          </div>
-        )}
-
         <div className="bg-card rounded-lg shadow-sm p-6 mb-8">
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center space-x-2">
@@ -780,7 +780,9 @@ export default function CreatorsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCreators.map((creator, index) => (
             <StickyScrollCard key={creator.id} top="116px" delay={0.08 + index * 0.06}>
-            <Card className="hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+            <DemoCardWrap isDemo={!creator.isLiveProfile} borderRadius={12}>
+            <Card className="relative hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+              {!creator.isLiveProfile && <DemoProfileBadge className="absolute right-3 top-3 z-10 bg-white/95 shadow-md" />}
               {creator.portfolioImages && creator.portfolioImages.length > 0 && (
                 <div className="grid grid-cols-4 gap-0.5 h-24">
                   {creator.portfolioImages.slice(0, 4).map((img: string, idx: number) => (
@@ -909,6 +911,7 @@ export default function CreatorsPage() {
                 </div>
               </CardContent>
             </Card>
+            </DemoCardWrap>
             </StickyScrollCard>
           ))}
         </div>

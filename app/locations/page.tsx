@@ -25,6 +25,10 @@ export default function LocationsBrowsePage() {
   const [category, setCategory] = useState<string>("")
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [savingId, setSavingId] = useState<string | null>(null)
+  // Which card's heart just got saved by the user's own click - not on the
+  // initial saved-locations fetch - so the pop reads as a response to their
+  // tap instead of firing on every card that was already saved.
+  const [justSavedId, setJustSavedId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -89,6 +93,7 @@ export default function LocationsBrowsePage() {
         else next.add(locationId)
         return next
       })
+      setJustSavedId(isSaved ? null : locationId)
     } catch {
       window.alert("Could not update saved locations. Please try again.")
     } finally {
@@ -221,7 +226,11 @@ export default function LocationsBrowsePage() {
                         {savingId === location.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Heart className={`h-4 w-4 ${savedIds.has(location.id) ? "fill-current" : ""}`} />
+                          <Heart
+                            className={`h-4 w-4 ${savedIds.has(location.id) ? "fill-current" : ""} ${
+                              savedIds.has(location.id) && justSavedId === location.id ? "animate-heart-pop" : ""
+                            }`}
+                          />
                         )}
                       </button>
                     </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import {
   User,
   Camera,
@@ -62,6 +62,7 @@ import { supabase } from "@/lib/supabase"
 import { getCurrentUser, signOut } from "@/lib/auth"
 import { SubscriptionCard } from "@/components/dashboard/subscription-card"
 import { PortfolioManager } from "@/components/dashboard/portfolio-manager"
+import { getPortfolioUploadLimit } from "@/lib/portfolio/limits"
 import { calculateProfileCompleteness } from "@/lib/profile-utils"
 import { resizeImageFile } from "@/lib/image-resize"
 import { CREATOR_SPECIALIZATION_OPTIONS } from "@/lib/creator-specializations"
@@ -690,6 +691,7 @@ export default function DashboardPage() {
   const initialStudioStoreSettingsRef = useRef<StudioStoreDashboardSettings>(DEFAULT_STUDIO_STORE_SETTINGS)
   const initialTalentPackageSettingsRef = useRef<TalentPackageDashboardSettings>(DEFAULT_TALENT_PACKAGE_SETTINGS)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const dashboardInitializedRef = useRef(false)
 
   const [profileData, setProfileData] = useState<UserProfile>({
     full_name: "",
@@ -1052,6 +1054,9 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
+    if (dashboardInitializedRef.current) return
+    dashboardInitializedRef.current = true
+
     const initializeDashboard = async () => {
       setLoading(true)
 
@@ -1692,38 +1697,50 @@ export default function DashboardPage() {
   }
 
   const SaveStatusIndicator = () => {
-    switch (saveStatus) {
-      case "saving":
-        return (
-          <div className="flex items-center gap-2 text-blue-600">
+    const prefersReducedMotion = useReducedMotion()
+    const statusTransition = { duration: prefersReducedMotion ? 0.12 : 0.18, ease: [0.22, 1, 0.36, 1] as const }
+    const statusMotionProps = {
+      initial: { opacity: 0, y: prefersReducedMotion ? 0 : -4 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 0, y: prefersReducedMotion ? 0 : 4 },
+      transition: statusTransition,
+    }
+
+    return (
+      <AnimatePresence mode="wait">
+        {saveStatus === "saving" && (
+          <motion.div key="saving" {...statusMotionProps} className="flex items-center gap-2 text-blue-600">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-sm">Saving...</span>
-          </div>
-        )
-      case "saved":
-        return (
-          <div className="flex items-center gap-2 text-green-600">
-            <Check className="h-4 w-4" />
+          </motion.div>
+        )}
+        {saveStatus === "saved" && (
+          <motion.div key="saved" {...statusMotionProps} className="flex items-center gap-2 text-green-600">
+            <motion.span
+              initial={{ scale: prefersReducedMotion ? 1 : 0.5 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.15, ease: [0.22, 1, 0.36, 1] }}
+              className="grid place-items-center"
+            >
+              <Check className="h-4 w-4" />
+            </motion.span>
             <span className="text-sm">All changes saved</span>
-          </div>
-        )
-      case "error":
-        return (
-          <div className="flex items-center gap-2 text-red-600">
+          </motion.div>
+        )}
+        {saveStatus === "error" && (
+          <motion.div key="error" {...statusMotionProps} className="flex items-center gap-2 text-red-600">
             <AlertCircle className="h-4 w-4" />
             <span className="text-sm">{saveError || "Error saving"}</span>
-          </div>
-        )
-      case "unsaved":
-        return (
-          <div className="flex items-center gap-2 text-amber-600">
+          </motion.div>
+        )}
+        {saveStatus === "unsaved" && (
+          <motion.div key="unsaved" {...statusMotionProps} className="flex items-center gap-2 text-amber-600">
             <AlertCircle className="h-4 w-4" />
             <span className="text-sm">Unsaved changes</span>
-          </div>
-        )
-      default:
-        return null
-    }
+          </motion.div>
+        )}
+      </AnimatePresence>
+    )
   }
 
   return (
@@ -2288,6 +2305,7 @@ export default function DashboardPage() {
                 onItemsLoaded={setPortfolioItems}
                 onRefresh={loadPortfolioItems}
                 onPreviewGallery={() => setActiveSection("gallery")}
+                maxItems={getPortfolioUploadLimit(profileData.account_type)}
               />
             )}
 

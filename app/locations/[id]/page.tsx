@@ -73,6 +73,10 @@ export default function LocationDetailPage() {
   const [reviewBody, setReviewBody] = useState("")
   const [savingReview, setSavingReview] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
+  // True only right after the user's own click saves this location - not on
+  // the initial saved-status fetch - so the pop reads as a response to their
+  // tap rather than firing whenever an already-saved location loads.
+  const [justSaved, setJustSaved] = useState(false)
   const [savingLocation, setSavingLocation] = useState(false)
 
   const loadLocation = useCallback(async () => {
@@ -185,6 +189,7 @@ export default function LocationDetailPage() {
       })
       if (!response.ok) throw new Error("Could not update saved locations")
       setIsSaved(!isSaved)
+      setJustSaved(!isSaved)
       await loadLocation()
     } catch {
       window.alert("Could not update saved locations. Please try again.")
@@ -332,7 +337,9 @@ export default function LocationDetailPage() {
                   {savingLocation ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <Heart className={`h-5 w-5 ${isSaved ? "fill-current" : ""}`} />
+                    <Heart
+                      className={`h-5 w-5 ${isSaved ? "fill-current" : ""} ${isSaved && justSaved ? "animate-heart-pop" : ""}`}
+                    />
                   )}
                 </button>
               </div>
@@ -423,7 +430,9 @@ export default function LocationDetailPage() {
                 {savingLocation ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  <Heart className={`mr-2 h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
+                  <Heart
+                    className={`mr-2 h-4 w-4 ${isSaved ? "fill-current" : ""} ${isSaved && justSaved ? "animate-heart-pop" : ""}`}
+                  />
                 )}
                 {isSaved ? "Saved" : "Save Location"}
               </Button>

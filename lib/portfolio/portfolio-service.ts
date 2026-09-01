@@ -6,13 +6,28 @@ import {
   refreshInstagramAccessToken,
   type InstagramMediaRecord,
 } from "@/lib/portfolio/instagram"
+import { PORTFOLIO_DISPLAY_LIMIT, SCOUT_PORTFOLIO_LIMIT, getPortfolioUploadLimit } from "@/lib/portfolio/limits"
 
 export const PORTFOLIO_BUCKET = "portfolio-uploads"
-export const PORTFOLIO_DISPLAY_LIMIT = 9
 export const INSTAGRAM_CACHE_LIMIT = 50
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 type SupabaseLike = any
+
+// Re-exported so existing server-only callers (API routes) don't need to
+// know these moved - see lib/portfolio/limits.ts for why the split happened.
+export { PORTFOLIO_DISPLAY_LIMIT, SCOUT_PORTFOLIO_LIMIT, getPortfolioUploadLimit }
+
+// Uploads and link-imports live in separate tables (see getPublicPortfolioItems
+// below) but share one combined cap per account, so both write paths need to
+// count both tables together before allowing another item in.
+export async function getPortfolioItemCount(supabase: SupabaseLike, userId: string): Promise<number> {
+  const [{ count: uploadCount }, { count: linkCount }] = await Promise.all([
+    supabase.from("portfolio_uploads").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "visible"),
+    supabase.from("portfolio_items").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("is_visible", true),
+  ])
+  return (uploadCount || 0) + (linkCount || 0)
+}
 
 export function isUuid(value?: string | null) {
   return Boolean(value && uuidPattern.test(value))
