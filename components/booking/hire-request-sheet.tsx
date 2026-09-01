@@ -3,7 +3,7 @@
 import type React from "react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
-import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer"
+import { Drawer, DrawerContent, DrawerDescription, DrawerHandle, DrawerTitle } from "@/components/ui/drawer"
 import { CalendarDays, Check, ChevronLeft, ChevronRight, MapPin, Send, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -448,6 +448,7 @@ export function HireRequestSheet({
   const renderSheetBody = (
     Title: React.ComponentType<{ className?: string; children?: React.ReactNode }>,
     Description: React.ComponentType<{ className?: string; children?: React.ReactNode }>,
+    HandleBar: React.ElementType<{ className?: string }>,
   ) => (
         <motion.div
           initial={{ y: 14, opacity: 0 }}
@@ -456,7 +457,7 @@ export function HireRequestSheet({
           className="flex min-h-0 flex-1 flex-col bg-white"
         >
         <div className="shrink-0 border-b border-[#e8edf5] bg-white">
-          <div className="mx-auto mt-3 h-1.5 w-16 rounded-full bg-[#cfd5df] shadow-[0_1px_0_rgba(255,255,255,0.8)_inset]" />
+          <HandleBar className="mx-auto mt-3 h-1.5 w-16 rounded-full bg-[#cfd5df] shadow-[0_1px_0_rgba(255,255,255,0.8)_inset]" />
           <DialogHeader className="px-5 pb-3 pt-3 text-left">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -482,7 +483,7 @@ export function HireRequestSheet({
           </DialogHeader>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white px-5 py-4">
+        <div data-vaul-no-drag className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white px-5 py-4">
           <div className="mx-auto mb-4 flex w-full max-w-[350px] items-center justify-between">
             {flowSteps.map((item, idx) => (
               <div key={item.index} className="relative flex flex-1 flex-col items-center">
@@ -843,7 +844,7 @@ export function HireRequestSheet({
           </AnimatePresence>
         </div>
 
-        <div className="shrink-0 border-t border-[#e8edf5] bg-white px-5 pb-[max(22px,calc(env(safe-area-inset-bottom)+14px))] pt-3 shadow-[0_-10px_26px_rgba(15,23,42,0.08)]">
+        <div data-vaul-no-drag className="shrink-0 border-t border-[#e8edf5] bg-white px-5 pb-[max(22px,calc(env(safe-area-inset-bottom)+14px))] pt-3 shadow-[0_-10px_26px_rgba(15,23,42,0.08)]">
           <div className="mb-2 flex gap-2">
             <Button
               type="button"
@@ -922,7 +923,7 @@ export function HireRequestSheet({
               isClosing && "translate-y-6 opacity-0",
             )}
           >
-            {renderSheetBody(DialogTitle, DialogDescription)}
+            {renderSheetBody(DialogTitle, DialogDescription, "div")}
           </DialogContent>
         </Dialog>
       ) : (
@@ -944,7 +945,7 @@ export function HireRequestSheet({
             unstyled
             className="fixed inset-x-1.5 bottom-0 top-auto z-[180] flex h-[80vh] max-h-[calc(100dvh-18px)] w-auto max-w-none flex-col overflow-hidden rounded-b-none rounded-t-[30px] border-x-0 border-b-0 border-t border-[#e5e9f2] bg-white p-0 text-[#0b0b0d] shadow-[0_-24px_70px_rgba(0,0,0,0.22)] outline-none supports-[height:80svh]:h-[80svh] supports-[height:80dvh]:h-[80dvh]"
           >
-            {renderSheetBody(DrawerTitle, DrawerDescription)}
+            {renderSheetBody(DrawerTitle, DrawerDescription, DrawerHandle)}
           </DrawerContent>
         </Drawer>
       )}

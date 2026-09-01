@@ -58,6 +58,17 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="drawer-footer" className={cn("mt-auto flex flex-col gap-2 p-4", className)} {...props} />
 }
 
+// The only element vaul drags from when the Root is rendered with
+// `handleOnly` - keeps grabbing/scrolling the rest of the content from
+// accidentally dismissing the drawer.
+const DrawerHandle = React.forwardRef<
+  React.ElementRef<typeof DrawerPrimitive.Handle>,
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Handle>
+>(({ className, ...props }, ref) => (
+  <DrawerPrimitive.Handle ref={ref} data-slot="drawer-handle" className={cn("mx-auto mt-3 h-1.5 w-16 rounded-full bg-muted", className)} {...props} />
+))
+DrawerHandle.displayName = "DrawerHandle"
+
 const DrawerTitle = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>
@@ -83,6 +94,7 @@ export {
   DrawerContent,
   DrawerHeader,
   DrawerFooter,
+  DrawerHandle,
   DrawerTitle,
   DrawerDescription,
 }
