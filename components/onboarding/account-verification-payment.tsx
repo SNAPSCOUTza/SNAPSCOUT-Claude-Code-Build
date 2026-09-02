@@ -19,7 +19,7 @@ const PLAN_PRICING: Record<
 > = {
   creator: {
     monthly: { amount: 60, planCode: "PLN_creator_monthly" },
-    annual: { amount: 5868, planCode: "PLN_3b3uvdzv8ulrsu6" },
+    annual: { amount: 1560, planCode: "PLN_3b3uvdzv8ulrsu6" },
   },
   studio: {
     monthly: { amount: 489, planCode: "PLN_studio_monthly" },

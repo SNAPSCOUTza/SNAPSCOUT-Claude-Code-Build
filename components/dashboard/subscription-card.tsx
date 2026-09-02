@@ -46,8 +46,15 @@ interface SubscriptionCardProps {
   initialBillingCycle?: BillingCycle
 }
 
-// Annual amounts/plan codes match the live Paystack plans (all tiers are a flat
-// R5,868/year - a break-even for Studio/Store, not a discount for Creator/Crew).
+// Creator/Crew annual = R1,560 (R129.99/mo x 12, matches the displayed monthly
+// hint). Studio/Store annual is a flat R5,868 (their own real Paystack rate).
+// IMPORTANT: Paystack ignores the `amount` we send whenever a `plan` code is
+// present on the transaction (see supabase/functions/paystack-initialize) -
+// the actual charge is whatever that Paystack Plan is configured for. The
+// PLN_3b3uvdzv8ulrsu6 / PLN_ot761hgwe40o0bd plans are still set to R5,868 in
+// the live Paystack dashboard as of this change - they need to be updated to
+// R1,560 (or replaced with new plans) or customers will be charged R5,868
+// despite this UI showing R1,560.
 const ROLE_PLANS = [
   {
     id: "creator",
@@ -62,8 +69,8 @@ const ROLE_PLANS = [
       paymentUrl: "https://paystack.shop/pay/pf9ytcte3l",
     },
     annual: {
-      price: 5868,
-      priceInKobo: 586800,
+      price: 1560,
+      priceInKobo: 156000,
       planCode: "PLN_3b3uvdzv8ulrsu6",
       paymentUrl: "",
     },
@@ -81,8 +88,8 @@ const ROLE_PLANS = [
       paymentUrl: "https://paystack.shop/pay/x2cgr11mqs",
     },
     annual: {
-      price: 5868,
-      priceInKobo: 586800,
+      price: 1560,
+      priceInKobo: 156000,
       planCode: "PLN_ot761hgwe40o0bd",
       paymentUrl: "",
     },

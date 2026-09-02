@@ -95,8 +95,8 @@ const frontPageAds: FrontPageAd[] = [
 
 const previewVideoUrl = "https://www.youtube.com/watch?v=cpQKutRoglo"
 
-// Annual amounts match the live Paystack plans (a flat R5,868/year for every
-// paid tier - see components/dashboard/subscription-card.tsx for the source).
+// Annual amounts match components/dashboard/subscription-card.tsx: Creators &
+// Crew is R1,560/year (R129.99/mo x 12), Studios & Stores is a flat R5,868/year.
 const pricingPlans = [
   {
     id: "scout",
@@ -112,7 +112,7 @@ const pricingPlans = [
     name: "Creators & Crew",
     detail: "Create a public profile, show rates, portfolio, availability, and reviews.",
     monthlyPrice: 129,
-    annualPrice: 5868,
+    annualPrice: 1560,
     matchesAccountTypes: ["creator", "crew"],
     roleParam: "creator",
   },
