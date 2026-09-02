@@ -452,11 +452,11 @@ export function SubscriptionCard({
         </CardContent>
       </Card>
 
-      {/* Role Selection Modal */}
+      {/* Role Selection Modal - fills the screen on mobile, centered card on desktop */}
       {showRoleModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex flex-col bg-white lg:items-center lg:justify-center lg:bg-black/50 lg:p-4">
+          <div className="flex h-full w-full flex-col lg:h-auto lg:max-h-[90vh] lg:w-full lg:max-w-3xl lg:overflow-y-auto lg:rounded-xl lg:bg-white lg:shadow-xl">
+            <div className="flex shrink-0 items-center justify-between border-b p-6 pt-[max(24px,env(safe-area-inset-top))]">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Choose Your Role</h2>
                 <p className="text-sm text-gray-500">Select a membership plan to continue</p>
@@ -473,7 +473,7 @@ export function SubscriptionCard({
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="flex-1 overflow-y-auto p-6 lg:flex-none lg:overflow-visible">
               {error && (
                 <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
                   <AlertTriangle className="h-4 w-4 inline mr-2" />
@@ -557,7 +557,7 @@ export function SubscriptionCard({
               </div>
             </div>
 
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
+            <div className="flex shrink-0 gap-3 border-t bg-gray-50 p-6 pb-[max(24px,calc(env(safe-area-inset-bottom)+12px))] lg:justify-end lg:pb-6">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -565,14 +565,14 @@ export function SubscriptionCard({
                   setSelectedRole(null)
                   setError(null)
                 }}
-                className="bg-white"
+                className="flex-1 bg-white lg:flex-none"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSelectRole}
                 disabled={!selectedRole || isLoading}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 lg:flex-none"
               >
                 {isLoading ? (
                   <>
