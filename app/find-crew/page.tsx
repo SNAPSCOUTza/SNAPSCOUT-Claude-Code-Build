@@ -1240,11 +1240,11 @@ export default function FindCrewPage() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-2 pt-4 border-t border-border sm:flex sm:gap-3">
+                <div className="flex items-center gap-2 pt-4 border-t border-border sm:gap-3">
                   <MessageButton
                     recipientId={selectedMember.user_id}
                     recipientName={selectedMember.display_name}
-                    className="h-12 w-full rounded-full bg-primary text-[14px] font-semibold text-primary-foreground hover:bg-primary/90"
+                    className="h-12 w-12 min-w-12 shrink-0 rounded-full bg-primary p-0 text-primary-foreground hover:bg-primary/90"
                   />
                   <SaveProfileButton
                     profileId={selectedMember.user_id || selectedMember.id}
@@ -1254,15 +1254,14 @@ export default function FindCrewPage() {
                     profileImage={selectedMember.profile_picture || selectedMember.recent_work}
                     profileHref={`/crew/${selectedMember.id}`}
                     category="crew"
-                    className="h-12 w-full rounded-full"
-                    showText
+                    className="h-12 w-12 min-w-12 shrink-0 rounded-full p-0"
                   />
                   <SaveToPoolButton
                     profileId={selectedMember.user_id || selectedMember.id}
                     profileName={selectedMember.display_name}
-                    className="h-12 w-full rounded-full"
+                    className="h-12 shrink-0 rounded-full"
                   />
-                  <Link href={`/crew/${selectedMember.id}`} className="w-full">
+                  <Link href={`/crew/${selectedMember.id}`} className="flex-1">
                     <Button className="h-12 w-full rounded-full bg-red-700 text-[14px] font-semibold text-white hover:bg-red-800">
                       View Full Profile
                     </Button>
