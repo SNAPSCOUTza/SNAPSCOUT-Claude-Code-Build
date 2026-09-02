@@ -489,8 +489,11 @@ export function SubscriptionCard({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {ROLE_PLANS.map((plan) => {
                   const cyclePlan = plan[billingCycle]
-                  const monthlyEquivalent =
-                    billingCycle === "annual" ? Math.round(plan.annual.price / 12) : plan.monthly.price
+                  // Shown only in the annual view's "(Rxxx.99/mo)" hint - this is the
+                  // plan's own monthly rate, not the annual price divided by 12 (all
+                  // annual plans share one flat R5,868 total, so that math would be
+                  // wrong for Creator/Crew).
+                  const monthlyEquivalent = plan.monthly.price
 
                   return (
                     <div
@@ -533,7 +536,7 @@ export function SubscriptionCard({
                             {billingCycle === "annual" && (
                               <span className="text-muted-foreground">
                                 (
-                                <RollingNumber value={monthlyEquivalent} fontSize={12} prefix="R" suffix="/mo" />)
+                                <RollingNumber value={monthlyEquivalent} fontSize={12} prefix="R" suffix=".99/mo" />)
                               </span>
                             )}
                           </div>
