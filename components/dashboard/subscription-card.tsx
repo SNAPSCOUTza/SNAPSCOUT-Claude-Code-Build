@@ -40,6 +40,9 @@ interface SubscriptionCardProps {
   subscription: Subscription | null
   userEmail: string
   onSubscriptionChange?: () => void
+  initialShowRoleModal?: boolean
+  initialSelectedRole?: string | null
+  initialBillingCycle?: BillingCycle
 }
 
 // Annual amounts/plan codes match the live Paystack plans (all tiers are a flat
@@ -123,11 +126,18 @@ const ROLE_PLANS = [
   },
 ]
 
-export function SubscriptionCard({ subscription, userEmail, onSubscriptionChange }: SubscriptionCardProps) {
-  const [showRoleModal, setShowRoleModal] = useState(false)
+export function SubscriptionCard({
+  subscription,
+  userEmail,
+  onSubscriptionChange,
+  initialShowRoleModal = false,
+  initialSelectedRole = null,
+  initialBillingCycle = "monthly",
+}: SubscriptionCardProps) {
+  const [showRoleModal, setShowRoleModal] = useState(initialShowRoleModal)
   const [showCancelModal, setShowCancelModal] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<string | null>(null)
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly")
+  const [selectedRole, setSelectedRole] = useState<string | null>(initialSelectedRole)
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>(initialBillingCycle)
   const [isLoading, setIsLoading] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)

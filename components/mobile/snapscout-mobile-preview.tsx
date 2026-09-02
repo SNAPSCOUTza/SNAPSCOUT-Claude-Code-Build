@@ -27,6 +27,8 @@ import { AnimatePresence, motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import MobileShell from "@/components/mobile/mobile-shell"
+import { RollingNumber } from "@/components/ui/rolling-number"
+import { BillingCycleToggle, type BillingCycle } from "@/components/ui/billing-cycle-toggle"
 import { useAuth } from "@/contexts/auth-context"
 import { communitySuccessStories, regionalGroups, upcomingCommunityEvents } from "@/lib/community-data"
 import { supabase } from "@/lib/supabase"
@@ -93,21 +95,35 @@ const frontPageAds: FrontPageAd[] = [
 
 const previewVideoUrl = "https://www.youtube.com/watch?v=cpQKutRoglo"
 
-const monthlyPlans = [
+// Annual amounts match the live Paystack plans (a flat R5,868/year for every
+// paid tier - see components/dashboard/subscription-card.tsx for the source).
+const pricingPlans = [
   {
+    id: "scout",
     name: "Scout",
-    price: "Free",
     detail: "Browse profiles, save favorites, and message creatives.",
+    monthlyPrice: 0,
+    annualPrice: 0,
+    matchesAccountTypes: ["scout", "user", "client"],
+    roleParam: null as string | null,
   },
   {
+    id: "creator",
     name: "Creators & Crew",
-    price: "R129",
     detail: "Create a public profile, show rates, portfolio, availability, and reviews.",
+    monthlyPrice: 129,
+    annualPrice: 5868,
+    matchesAccountTypes: ["creator", "crew"],
+    roleParam: "creator",
   },
   {
+    id: "studio",
     name: "Studios & Stores",
-    price: "R489",
     detail: "List bookable spaces, gear, services, and manage high-intent leads.",
+    monthlyPrice: 489,
+    annualPrice: 5868,
+    matchesAccountTypes: ["studio", "store"],
+    roleParam: "studio",
   },
 ]
 
@@ -122,8 +138,10 @@ type SnapScoutMobilePreviewProps = {
 
 export default function SnapScoutMobilePreview({ entry = "explore" }: SnapScoutMobilePreviewProps) {
   const router = useRouter()
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, profile } = useAuth()
   const [splashState, setSplashState] = useState<"playing" | "done">(entry === "splash" ? "playing" : "done")
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly")
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [splashMenuReady, setSplashMenuReady] = useState(false)
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [installMessage, setInstallMessage] = useState("")
@@ -133,9 +151,33 @@ export default function SnapScoutMobilePreview({ entry = "explore" }: SnapScoutM
   const displayAds = sponsoredAds.length ? sponsoredAds : frontPageAds
   const activeAd = displayAds[activeAdIndex % displayAds.length]
 
+  const selectedPlan = pricingPlans.find((plan) => plan.id === selectedPlanId) || pricingPlans[1]
+  const currentAccountType = profile?.account_type || null
+  const matchesCurrentPlan = Boolean(
+    currentAccountType && selectedPlan.matchesAccountTypes.includes(currentAccountType),
+  )
+
+  let pricingCtaLabel = "Start with SnapScout"
+  let pricingCtaHref = "/onboarding"
+  if (isAuthenticated) {
+    if (matchesCurrentPlan || !selectedPlan.roleParam) {
+      pricingCtaLabel = "Manage Subscription"
+      pricingCtaHref = "/dashboard?section=subscription"
+    } else {
+      pricingCtaLabel = `Switch to ${selectedPlan.name}`
+      pricingCtaHref = `/dashboard?section=subscription&openRoleModal=1&plan=${selectedPlan.roleParam}&cycle=${billingCycle}`
+    }
+  }
+
   useEffect(() => {
     setSplashState(entry === "splash" ? "playing" : "done")
   }, [entry])
+
+  useEffect(() => {
+    if (selectedPlanId || !profile?.account_type) return
+    const currentPlan = pricingPlans.find((plan) => plan.matchesAccountTypes.includes(profile.account_type as string))
+    if (currentPlan) setSelectedPlanId(currentPlan.id)
+  }, [profile?.account_type, selectedPlanId])
 
   useEffect(() => {
     if (!splashPlaying) {
@@ -649,30 +691,65 @@ export default function SnapScoutMobilePreview({ entry = "explore" }: SnapScoutM
           </section>
 
           <section className="rounded-[30px] border border-[#e8e4de] bg-white p-5 shadow-[0_18px_44px_rgba(0,0,0,0.05)]">
-            <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#f20d14]">Simple monthly plans</p>
+            <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#f20d14]">Simple plans</p>
             <h2 className="mt-1 text-[22px] font-black leading-tight text-[#0b0b0d]">Choose what fits your workflow.</h2>
-            <div className="mt-4 grid gap-3">
-              {monthlyPlans.map((plan) => (
-                <motion.div
-                  key={plan.name}
-                  whileTap={{ scale: 0.98 }}
-                  className="rounded-[22px] border border-[#e8edf5] bg-white p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[16px] font-bold text-[#111318]">{plan.name}</p>
-                      <p className="mt-1 text-[12px] leading-5 text-[#667085]">{plan.detail}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-mono text-[24px] font-black text-[#111318]">{plan.price}</p>
-                      {plan.price !== "Free" && <p className="text-[11px] text-[#667085]">/month</p>}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+
+            <div className="mt-4 flex justify-center">
+              <BillingCycleToggle cycle={billingCycle} onChange={setBillingCycle} />
             </div>
+
+            <div className="mt-4 grid gap-3">
+              {pricingPlans.map((plan) => {
+                const isSelected = selectedPlan.id === plan.id
+                const isCurrent = Boolean(
+                  currentAccountType && plan.matchesAccountTypes.includes(currentAccountType),
+                )
+                const price = billingCycle === "annual" ? plan.annualPrice : plan.monthlyPrice
+                return (
+                  <motion.button
+                    key={plan.id}
+                    type="button"
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setSelectedPlanId(plan.id)}
+                    className={`w-full rounded-[22px] border p-4 text-left transition-colors ${
+                      isSelected ? "border-[#f20d14] bg-[#fff5f5]" : "border-[#e8edf5] bg-white"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[16px] font-bold text-[#111318]">{plan.name}</p>
+                          {isCurrent && (
+                            <span className="rounded-full bg-[#111318] px-2 py-0.5 text-[10px] font-semibold text-white">
+                              Your plan
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-[12px] leading-5 text-[#667085]">{plan.detail}</p>
+                      </div>
+                      <div className="text-right">
+                        {price === 0 ? (
+                          <p className="font-mono text-[24px] font-black text-[#111318]">Free</p>
+                        ) : (
+                          <>
+                            <RollingNumber
+                              value={price}
+                              fontSize={22}
+                              prefix="R"
+                              className="justify-end font-mono font-black text-[#111318]"
+                            />
+                            <p className="text-[11px] text-[#667085]">{billingCycle === "annual" ? "/year" : "/month"}</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </motion.button>
+                )
+              })}
+            </div>
+
             <Button asChild className="mt-4 h-[52px] w-full rounded-full bg-[#f20d14] text-[15px] font-semibold text-white hover:bg-[#d9070d]">
-              <Link href="/onboarding">Start with SnapScout</Link>
+              <Link href={pricingCtaHref}>{pricingCtaLabel}</Link>
             </Button>
           </section>
         </div>

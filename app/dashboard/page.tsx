@@ -727,10 +727,22 @@ export default function DashboardPage() {
   const [selectedCity, setSelectedCity] = useState<string>("")
   const [activeSection, setActiveSection] = useState("profile")
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false)
+  const [deepLinkedRole, setDeepLinkedRole] = useState<string | null>(null)
+  const [deepLinkedCycle, setDeepLinkedCycle] = useState<"monthly" | "annual">("monthly")
 
   useEffect(() => {
     const requestedSection = searchParams.get("section")
     const instagramState = searchParams.get("instagram")
+    const openRoleModal = searchParams.get("openRoleModal")
+    const plan = searchParams.get("plan")
+    const cycle = searchParams.get("cycle")
+
+    if (openRoleModal === "1") {
+      setIsRoleModalOpen(true)
+      if (plan) setDeepLinkedRole(plan)
+      if (cycle === "annual" || cycle === "monthly") setDeepLinkedCycle(cycle)
+    }
+
     if (requestedSection) {
       setActiveSection(requestedSection)
       return
@@ -3359,6 +3371,9 @@ export default function DashboardPage() {
               <SubscriptionCard
                 subscription={subscription as any}
                 userEmail={user?.email || ""}
+                initialShowRoleModal={isRoleModalOpen}
+                initialSelectedRole={deepLinkedRole}
+                initialBillingCycle={deepLinkedCycle}
                 onSubscriptionChange={() => {
                   // Refresh subscription data
                   window.location.reload()
