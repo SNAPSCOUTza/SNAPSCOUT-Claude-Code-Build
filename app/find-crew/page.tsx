@@ -54,6 +54,13 @@ interface CrewMember {
   pricing?: string
 }
 
+// The dashboard field just takes a bare number (e.g. "6"), while demo data
+// already spells out "12+ years" - append the suffix only when it's missing.
+function formatYearsExperience(value?: string) {
+  if (!value) return ""
+  return /year/i.test(value) ? value : `${value} years`
+}
+
 const departments = ["Camera", "Audio", "Lighting", "Production", "Art", "Hair & Makeup"]
 const roles = [
   "Director of Photography",
@@ -1031,7 +1038,7 @@ export default function FindCrewPage() {
                         {member.years_experience && (
                           <div className="flex items-center gap-1">
                             <Briefcase className="h-4 w-4" />
-                            <span>{member.years_experience}</span>
+                            <span>{formatYearsExperience(member.years_experience)}</span>
                           </div>
                         )}
                       </div>
@@ -1221,7 +1228,7 @@ export default function FindCrewPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-secondary/30 p-3 rounded-lg">
                       <p className="text-xs text-muted-foreground mb-1">Experience</p>
-                      <p className="text-sm font-semibold text-foreground">{selectedMember.years_experience}</p>
+                      <p className="text-sm font-semibold text-foreground">{formatYearsExperience(selectedMember.years_experience)}</p>
                     </div>
                   </div>
                 )}

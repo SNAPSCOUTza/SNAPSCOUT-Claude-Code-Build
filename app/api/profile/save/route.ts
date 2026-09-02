@@ -173,6 +173,7 @@ export async function POST(request: Request) {
       willing_to_travel: Boolean(profileData.willing_to_travel),
       rate_card_visible: profileData.rate_card_visible ?? true,
       experience_level: emptyToNull(sanitizeSingleLineInput(profileData.experience_level, 80)),
+      years_experience: emptyToNull(sanitizeSingleLineInput(profileData.years_experience, 80)),
       onboarding_data: profileData.onboarding_data || null,
       updated_at: new Date().toISOString(),
     }

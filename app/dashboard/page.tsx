@@ -127,6 +127,7 @@ interface UserProfile {
   project_rate?: string
   rate_card_visible?: boolean
   experience_level?: string
+  years_experience?: string
   pricing?: string
   subscription_status?: string
   role?: string
@@ -719,6 +720,7 @@ export default function DashboardPage() {
     project_rate: "",
     rate_card_visible: true,
     experience_level: "",
+    years_experience: "",
     role: "user",
   })
   const [subscription, setSubscription] = useState<UserSubscription | null>(null)
@@ -980,6 +982,7 @@ export default function DashboardPage() {
           project_rate: rateToString(profile.project_rate),
           rate_card_visible: profile.rate_card_visible ?? true,
           experience_level: profile.experience_level || "",
+          years_experience: profile.years_experience || "",
           social_links: {
             website: socialLinks.website || profile.website || profile.website_url || profile.portfolio_url || "",
             instagram: socialLinks.instagram || profile.instagram || profile.instagram_url || "",
@@ -1502,6 +1505,7 @@ export default function DashboardPage() {
         project_rate: profileData.project_rate || "",
         rate_card_visible: profileData.rate_card_visible ?? true,
         experience_level: profileData.experience_level || "",
+        years_experience: profileData.years_experience || "",
         onboarding_data: mergedOnboardingData,
         updated_at: new Date().toISOString(),
       }
@@ -2154,6 +2158,16 @@ export default function DashboardPage() {
                               <SelectItem value="Expert">Expert</SelectItem>
                             </SelectContent>
                           </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="years_experience">Years of Experience</Label>
+                          <Input
+                            id="years_experience"
+                            inputMode="numeric"
+                            value={profileData.years_experience || ""}
+                            onChange={(e) => handleInputChange("years_experience", e.target.value)}
+                            placeholder="e.g. 5"
+                          />
                         </div>
                         <div>
                           <Label htmlFor="hourly_rate">Hourly Rate</Label>
