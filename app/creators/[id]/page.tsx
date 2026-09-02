@@ -367,7 +367,7 @@ export default function CreatorProfilePage() {
                   <button
                     type="button"
                     onClick={() => setLightboxIndex(index)}
-                    className="relative aspect-[1.08/1] w-full overflow-hidden rounded-[28px] bg-[#f4f6fa]"
+                    className="relative h-[330px] w-full overflow-hidden rounded-[28px] bg-[#f4f6fa]"
                   >
                     <Image
                       src={image.src}
