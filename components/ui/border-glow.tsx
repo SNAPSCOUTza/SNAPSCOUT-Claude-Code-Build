@@ -102,20 +102,20 @@ function animateValue({ start = 0, end = 100, duration = 1000, delay = 0, ease =
 }
 
 // Adapted from React Bits' BorderGlow (https://reactbits.dev) - defaults
-// tuned to this app's brand red instead of the original purple/pink/blue
+// tuned to a white/silver glow instead of the original purple/pink/blue
 // mesh, since here it exists solely to flag demo/mock profiles.
 export function BorderGlow({
   children,
   className = "",
   edgeSensitivity = 30,
-  glowColor = "0 85% 58%",
+  glowColor = "0 0% 100%",
   backgroundColor = "#ffffff",
   borderRadius = 28,
   glowRadius = 32,
   glowIntensity = 1.1,
   coneSpread = 25,
   animated = false,
-  colors = ["#f20d14", "#ff5a5f", "#dc2626"],
+  colors = ["#ffffff", "#f4f4f5", "#e4e4e7"],
   fillOpacity = 0.35,
   persistent = false,
 }: BorderGlowProps) {
