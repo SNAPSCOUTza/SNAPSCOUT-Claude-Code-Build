@@ -50,6 +50,8 @@ type LiveCreator = MockCreator & {
   specializations?: string[]
   skills?: string[]
   onboarding_data?: Record<string, any> | null
+  years_experience?: string | null
+  experience_level?: string | null
 }
 
 function mapLiveProfileToCreator(profile: any): LiveCreator {
@@ -73,7 +75,15 @@ function mapLiveProfileToCreator(profile: any): LiveCreator {
     specializations: Array.isArray(profile.specializations) ? profile.specializations : [],
     skills: Array.isArray(profile.skills) ? profile.skills : [],
     onboarding_data: profile.onboarding_data && typeof profile.onboarding_data === "object" ? profile.onboarding_data : null,
+    years_experience: profile.years_experience || null,
+    experience_level: profile.experience_level || null,
   }
+}
+
+// The dashboard field just takes a bare number (e.g. "6"), while demo data
+// already spells out "12 years" - append the suffix only when it's missing.
+function formatYearsExperience(value: string) {
+  return /year/i.test(value) ? value : `${value} years`
 }
 
 type CreatorDetailDefaults = {
@@ -184,7 +194,7 @@ export default function CreatorProfilePage() {
     supabase
       .from("user_profiles")
       .select(
-        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, pricing, hourly_rate, daily_rate, rating, review_count, specializations, skills, onboarding_data",
+        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, pricing, hourly_rate, daily_rate, rating, review_count, specializations, skills, onboarding_data, years_experience, experience_level",
       )
       .eq("user_id", params.id)
       .maybeSingle()
@@ -245,11 +255,15 @@ export default function CreatorProfilePage() {
   const inferredServices = inferDefaultServices(creator.profession)
   const resolvedServices = realServices.length > 0 ? realServices : inferredServices
 
+  const realExperienceLabel = liveCreator?.years_experience
+    ? formatYearsExperience(liveCreator.years_experience)
+    : liveCreator?.experience_level || null
+
   const defaults = creatorDetailDefaults[creator.id] ?? {
     priceLabel: liveRate?.priceLabel ?? "R1,500",
     rateSuffix: liveRate?.rateSuffix ?? "/day",
     responseRate: "95%",
-    experienceLabel: "6 years",
+    experienceLabel: realExperienceLabel ?? "New to SnapScout",
     memberSince: "Mar 2022",
     projectsLabel: creator.portfolioCount > 0 ? `${creator.portfolioCount}+` : "New",
     services: resolvedServices,

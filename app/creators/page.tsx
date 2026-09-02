@@ -13,6 +13,7 @@ import {
   Camera,
   Video,
   Sparkles,
+  Briefcase,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -58,6 +59,13 @@ function inferCreatorHighlights(creator: any) {
 type CreatorHighlight = ReturnType<typeof inferCreatorHighlights>[number]
 
 const LOCATION_OPTIONS = ["Cape Town", "Johannesburg", "Durban", "Pretoria", "Port Elizabeth"]
+
+// The dashboard field just takes a bare number (e.g. "6"), while demo data
+// already spells out "12+ years" - append the suffix only when it's missing.
+function formatYearsExperience(value?: string) {
+  if (!value) return ""
+  return /year/i.test(value) ? value : `${value} years`
+}
 
 export default function CreatorsPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -109,7 +117,8 @@ export default function CreatorsPage() {
           id, user_id, full_name, display_name, username, email, profession, bio, location, city, province,
           profile_image_url, profile_picture, avatar_url, cover_image_url, availability, availability_status, pricing,
           hourly_rate, daily_rate, project_rate, skills, specializations, social_links, portfolio_images,
-          is_public, is_profile_visible, subscription_status, created_at, rating, review_count
+          is_public, is_profile_visible, subscription_status, created_at, rating, review_count,
+          years_experience, experience_level
         `)
         .eq("is_profile_visible", true)
         .eq("talent_type", "creator")
@@ -142,6 +151,8 @@ export default function CreatorsPage() {
           is_public: profile.is_profile_visible ?? profile.is_public ?? true,
           rating: profile.rating || 0,
           reviews: profile.review_count || 0,
+          years_experience: profile.years_experience || "",
+          experience_level: profile.experience_level || "",
           pricing,
           portfolioImages: profile.portfolio_images || [],
           isLiveProfile: true, // Flag to identify live profiles
@@ -483,6 +494,15 @@ export default function CreatorsPage() {
                             {creator.rating > 0 ? `${creator.rating.toFixed(1)} (${creator.reviews})` : "New"}
                           </Badge>
                           <AvailabilityStatusBadge ownerId={creator.user_id || creator.id} ownerType={getOwnerType(creator.profession)} />
+                          {(creator.years_experience || creator.experience_level) && (
+                            <Badge
+                              variant="outline"
+                              className="h-10 rounded-full border-[#e4e0d9] bg-white px-4 text-[13px] font-semibold text-[#111318]"
+                            >
+                              <Briefcase className="mr-2 h-3.5 w-3.5 text-[#6b7280]" />
+                              {creator.years_experience ? formatYearsExperience(creator.years_experience) : creator.experience_level}
+                            </Badge>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-3 gap-2">
@@ -830,14 +850,31 @@ export default function CreatorsPage() {
                       </div>
                     </div>
 
-                    {/* Location */}
-                    {creator.city && (
-                      <div className="flex items-center text-sm text-muted-foreground mt-2">
-                        <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
-                        <span className="truncate">
-                          {creator.city}, {creator.province}
-                        </span>
+                    {/* Location & Experience */}
+                    {(creator.city || creator.years_experience) && (
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                        {creator.city && (
+                          <div className="flex items-center min-w-0">
+                            <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
+                            <span className="truncate">
+                              {creator.city}, {creator.province}
+                            </span>
+                          </div>
+                        )}
+                        {creator.years_experience && (
+                          <div className="flex items-center flex-shrink-0">
+                            <Briefcase className="w-4 h-4 mr-1" />
+                            <span>{formatYearsExperience(creator.years_experience)}</span>
+                          </div>
+                        )}
                       </div>
+                    )}
+
+                    {/* Experience Level */}
+                    {creator.experience_level && (
+                      <Badge variant="outline" className="mt-2 text-xs">
+                        {creator.experience_level}
+                      </Badge>
                     )}
 
                     {/* Specializations */}
