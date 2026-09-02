@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { Bookmark, Check, FolderPlus, Loader2, Plus, X } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import { Button, type ButtonProps } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -192,7 +193,7 @@ export function SaveToPoolButton({
                       </span>
                     </span>
                     {busyPoolId === pool.id ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-[#647084]" />
+                      <LoadingDot size={10} className="text-[#647084]" />
                     ) : saved ? (
                       <Check className="h-5 w-5 text-[#ef1218]" />
                     ) : (
@@ -216,7 +217,7 @@ export function SaveToPoolButton({
                 onClick={createInlinePool}
                 className="h-12 rounded-full bg-[#111318] px-5 text-white hover:bg-black"
               >
-                {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {creating ? <LoadingDot /> : <Plus className="h-4 w-4" />}
               </Button>
             </div>
 

@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Check, Loader2, MapPin, X } from "lucide-react"
+import { Check, MapPin, X } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -87,7 +88,7 @@ export function AvailabilityResponseCard({ response, onUpdated }: AvailabilityRe
               onClick={() => updateStatus("confirmed")}
               className="h-12 rounded-full bg-green-600 text-white hover:bg-green-700"
             >
-              {busy === "confirmed" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {busy === "confirmed" ? <LoadingDot /> : <Check className="h-4 w-4" />}
               I&apos;m available
             </Button>
             <Button
@@ -97,7 +98,7 @@ export function AvailabilityResponseCard({ response, onUpdated }: AvailabilityRe
               onClick={() => updateStatus("declined")}
               className="h-12 rounded-full bg-white"
             >
-              {busy === "declined" ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+              {busy === "declined" ? <LoadingDot /> : <X className="h-4 w-4" />}
               Not available
             </Button>
           </div>

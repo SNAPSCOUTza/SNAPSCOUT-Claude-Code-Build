@@ -5,7 +5,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Bookmark, Heart, Loader2, MapPin, Plus, Search, ShieldCheck, Star } from "lucide-react"
+import { Bookmark, Heart, MapPin, Plus, Search, ShieldCheck, Star } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import MobileShell from "@/components/mobile/mobile-shell"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -224,7 +225,7 @@ export default function LocationsBrowsePage() {
                         }`}
                       >
                         {savingId === location.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <LoadingDot />
                         ) : (
                           <Heart
                             className={`h-4 w-4 ${savedIds.has(location.id) ? "fill-current" : ""} ${

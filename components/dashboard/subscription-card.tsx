@@ -16,8 +16,8 @@ import {
   Users,
   Building2,
   Store,
-  Loader2,
 } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import { createBrowserClient } from "@supabase/ssr"
 import { callPaystackFunction } from "@/lib/paystack-edge"
 import { RollingNumber } from "@/components/ui/rolling-number"
@@ -563,7 +563,7 @@ export function SubscriptionCard({ subscription, userEmail, onSubscriptionChange
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <LoadingDot className="mr-2" />
                     Processing...
                   </>
                 ) : (
@@ -615,7 +615,7 @@ export function SubscriptionCard({ subscription, userEmail, onSubscriptionChange
                 >
                   {isCancelling ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <LoadingDot className="mr-2" />
                       Cancelling...
                     </>
                   ) : (

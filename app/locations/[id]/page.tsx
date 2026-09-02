@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import dynamic from "next/dynamic"
 import {
   ArrowLeft,
@@ -335,7 +336,7 @@ export default function LocationDetailPage() {
                   }`}
                 >
                   {savingLocation ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <LoadingDot size={10} />
                   ) : (
                     <Heart
                       className={`h-5 w-5 ${isSaved ? "fill-current" : ""} ${isSaved && justSaved ? "animate-heart-pop" : ""}`}
@@ -428,7 +429,7 @@ export default function LocationDetailPage() {
                 className="h-14 w-full rounded-full bg-[#f20d14] text-[17px] font-semibold text-white hover:bg-[#d80a10]"
               >
                 {savingLocation ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <LoadingDot className="mr-2" />
                 ) : (
                   <Heart
                     className={`mr-2 h-4 w-4 ${isSaved ? "fill-current" : ""} ${isSaved && justSaved ? "animate-heart-pop" : ""}`}
@@ -533,7 +534,7 @@ export default function LocationDetailPage() {
                   disabled={savingReview || !reviewBody.trim()}
                   className="h-11 flex-1 rounded-full bg-[#f20d14] text-white hover:bg-[#d80a10]"
                 >
-                  {savingReview ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {savingReview ? <LoadingDot className="mr-2" /> : null}
                   Post
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setReviewOpen(false)} className="h-11 rounded-full">

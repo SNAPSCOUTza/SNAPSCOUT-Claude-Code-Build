@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Check, Search, MapPin, Star, Briefcase, Filter, Clock, SlidersHorizontal, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -944,18 +945,19 @@ export default function FindCrewPage() {
                     className="relative overflow-hidden bg-card border-border hover:shadow-lg transition-shadow cursor-pointer"
                     onClick={() => handleViewProfile(member)}
                   >
-                    {!member.isLiveProfile && (
-                      <DemoProfileBadge className="absolute right-4 top-4 z-10 bg-white/95 shadow-md" />
-                    )}
+                    <div className="relative h-48 w-full bg-muted">
+                      <Image
+                        src={member.profile_picture || member.recent_work || "/placeholder.svg?height=192&width=384"}
+                        alt={member.display_name}
+                        fill
+                        className="object-cover"
+                      />
+                      {!member.isLiveProfile && (
+                        <DemoProfileBadge className="absolute right-3 top-3 z-10 bg-white/95 shadow-md" />
+                      )}
+                    </div>
                     <CardContent className="p-6">
-                      <div className="flex items-start gap-4">
-                        <Avatar className="h-16 w-16 border-2 border-border">
-                          <AvatarImage src={member.profile_picture || "/placeholder.svg"} alt={member.display_name} />
-                          <AvatarFallback className="bg-muted text-muted-foreground">
-                            {member.display_name?.charAt(0) || "?"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
+                      <div className="min-w-0">
                           <div className="flex items-center justify-between">
                             <h3 className="font-semibold text-foreground truncate">{member.display_name}</h3>
                             {member.rating && (
@@ -971,7 +973,6 @@ export default function FindCrewPage() {
                               {member.recent_work_caption}
                             </p>
                           )}
-                        </div>
                       </div>
 
                       {/* Badges */}

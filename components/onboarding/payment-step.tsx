@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { CreditCard, CheckCircle, XCircle, Loader2 } from "lucide-react"
+import { CreditCard, CheckCircle, XCircle } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import type { OnboardingData } from "@/types/account-types"
 import { supabase } from "@/lib/auth"
 import { SUBSCRIPTION_PLANS, getPlanById } from "@/lib/paystack"
@@ -188,7 +189,7 @@ export default function PaymentStep({ onNext, onPrev, data, updateData }: Paymen
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <LoadingDot className="mr-2" />
                     Activating...
                   </>
                 ) : (
@@ -253,7 +254,7 @@ export default function PaymentStep({ onNext, onPrev, data, updateData }: Paymen
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <LoadingDot className="mr-2" />
                     Setting up payment...
                   </>
                 ) : (
@@ -266,7 +267,7 @@ export default function PaymentStep({ onNext, onPrev, data, updateData }: Paymen
           {paymentStatus === "processing" && (
             <div className="text-center">
               <div className="flex items-center justify-center space-x-2">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <LoadingDot size={10} className="text-primary" />
                 <span className="text-muted-foreground">Processing payment...</span>
               </div>
             </div>

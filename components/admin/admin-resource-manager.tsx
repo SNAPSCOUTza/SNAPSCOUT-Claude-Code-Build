@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState, type ChangeEvent } from "react"
-import { Check, ChevronDown, ImagePlus, Loader2, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react"
+import { Check, ChevronDown, ImagePlus, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import { adminResourceConfig } from "@/lib/admin/admin-config"
 import { cn } from "@/lib/utils"
 
@@ -383,7 +384,7 @@ export default function AdminResourceManager({ resource }: AdminResourceManagerP
               htmlFor={fieldId}
               className="flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-full bg-[#111318] px-4 text-sm font-black text-white shadow-sm transition hover:scale-[1.01] active:scale-[0.98]"
             >
-              {uploadingField === uploadKey ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+              {uploadingField === uploadKey ? <LoadingDot /> : <ImagePlus className="h-4 w-4" />}
               {previewUrl ? "Replace image" : "Upload image"}
             </label>
             <input
@@ -535,7 +536,7 @@ export default function AdminResourceManager({ resource }: AdminResourceManagerP
           disabled={saving}
           className="mt-5 inline-flex h-13 min-h-13 items-center justify-center gap-2 rounded-full bg-[#f20d14] px-6 text-sm font-black text-white shadow-[0_14px_24px_rgba(242,13,20,0.22)] transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
         >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          {saving ? <LoadingDot /> : <Plus className="h-4 w-4" />}
           Save
         </button>
       </section>

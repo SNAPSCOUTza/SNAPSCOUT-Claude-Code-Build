@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2, ShieldCheck } from "lucide-react"
+import { ShieldCheck } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 
 const roles = ["user", "client", "scout", "creator", "crew", "studio", "store", "admin", "super_admin"]
 
@@ -91,7 +92,7 @@ export default function AdminUsersManager() {
                     onClick={() => updateUser(user.user_id, { suspended: !user.suspended })}
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#dce3ee] px-4 text-sm font-bold transition hover:border-[#f20d14] hover:text-[#f20d14] active:scale-[0.98]"
                   >
-                    {savingId === user.user_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                    {savingId === user.user_id ? <LoadingDot /> : <ShieldCheck className="h-4 w-4" />}
                     {user.suspended ? "Restore" : "Suspend"}
                   </button>
                 </div>

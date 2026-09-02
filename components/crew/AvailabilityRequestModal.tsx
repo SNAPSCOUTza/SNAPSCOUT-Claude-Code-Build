@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { CalendarDays, Loader2, MapPin, Send } from "lucide-react"
+import { CalendarDays, MapPin, Send } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -209,7 +210,7 @@ export function AvailabilityRequestModal({
             onClick={submit}
             className="h-[54px] w-full rounded-full bg-[#ef1218] text-[15px] font-semibold text-white shadow-[0_14px_28px_rgba(242,13,20,0.18)] hover:bg-[#d90d12]"
           >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {submitting ? <LoadingDot /> : <Send className="h-4 w-4" />}
             Send availability check
           </Button>
         </div>

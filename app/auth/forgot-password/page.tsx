@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Mail, ArrowLeft, CheckCircle, Loader2 } from "lucide-react"
+import { Mail, ArrowLeft, CheckCircle } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -137,7 +138,7 @@ export default function ForgotPasswordPage() {
               <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <LoadingDot className="mr-2" />
                     Sending Reset Link...
                   </>
                 ) : (

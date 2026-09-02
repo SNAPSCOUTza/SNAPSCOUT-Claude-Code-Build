@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Crown, ImagePlus, Loader2, MapPin, ShieldCheck, Sparkles, X } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import {
   BATHROOM_ACCESS_OPTIONS,
   FOOD_NEARBY_OPTIONS,
@@ -403,7 +404,7 @@ export default function UploadLocationPage() {
               disabled={saving}
               className="h-14 w-full rounded-full bg-[#f20d14] text-[16px] font-semibold text-white hover:bg-[#d80a10]"
             >
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {saving ? <LoadingDot className="mr-2" /> : null}
               {saving ? "Publishing..." : "Publish Location"}
             </Button>
             {saved && (

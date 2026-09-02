@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Loader2, X } from "lucide-react"
+import { X } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -146,7 +147,7 @@ export function LocationPhotoUploadSheet({ open, onOpenChange, locationId, onUpl
             disabled={!file || uploading}
             className="mt-6 h-14 w-full rounded-full bg-[#f20d14] text-[16px] font-semibold text-white hover:bg-[#d80a10]"
           >
-            {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {uploading ? <LoadingDot className="mr-2" /> : null}
             {uploading ? "Posting..." : "Post"}
           </Button>
         </div>

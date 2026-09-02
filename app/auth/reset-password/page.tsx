@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Lock, ArrowLeft, CheckCircle, Loader2, ShieldCheck, XCircle } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import Link from "next/link"
 import Image from "next/image"
 import { updatePassword, supabase } from "@/lib/auth"
@@ -345,7 +346,7 @@ function ResetPasswordContent() {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <LoadingDot className="mr-2" />
                     Updating Password...
                   </>
                 ) : (

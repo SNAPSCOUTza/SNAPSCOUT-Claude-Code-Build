@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import { format } from "date-fns"
 import {
   ArrowLeft,
@@ -14,7 +15,6 @@ import {
   EllipsisVertical,
   Flag,
   Home,
-  Loader2,
   Paperclip,
   Phone,
   Plus,
@@ -1395,7 +1395,7 @@ function MockMessagesContent() {
               disabled={reporting}
               className="mt-4 inline-flex h-13 w-full items-center justify-center gap-2 rounded-full bg-[#f20d14] text-sm font-black text-white shadow-[0_16px_30px_rgba(242,13,20,0.22)] transition hover:scale-[1.01] active:scale-[0.98] disabled:opacity-60"
             >
-              {reporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flag className="h-4 w-4" />}
+              {reporting ? <LoadingDot /> : <Flag className="h-4 w-4" />}
               Submit Report
             </button>
           </motion.div>

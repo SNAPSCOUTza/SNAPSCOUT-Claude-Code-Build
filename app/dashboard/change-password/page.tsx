@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Lock, Eye, EyeOff, Check, X, Loader2, Shield } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -283,7 +284,7 @@ export default function ChangePasswordPage() {
                 >
                   {saving ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <LoadingDot className="mr-2" />
                       Updating Password...
                     </>
                   ) : (

@@ -50,6 +50,7 @@ import {
   Megaphone,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -1710,7 +1711,7 @@ export default function DashboardPage() {
       <AnimatePresence mode="wait">
         {saveStatus === "saving" && (
           <motion.div key="saving" {...statusMotionProps} className="flex items-center gap-2 text-blue-600">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <LoadingDot />
             <span className="text-sm">Saving...</span>
           </motion.div>
         )}
@@ -1773,7 +1774,7 @@ export default function DashboardPage() {
               >
                 {saveStatus === "saving" ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <LoadingDot className="mr-2" />
                     Saving...
                   </>
                 ) : (
@@ -1811,7 +1812,7 @@ export default function DashboardPage() {
                     </Avatar>
                     {avatarUploading && (
                       <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
-                        <Loader2 className="h-6 w-6 animate-spin text-white" />
+                        <LoadingDot size={12} className="text-white" />
                       </div>
                     )}
                     <label className="absolute bottom-0 right-0 p-1 bg-red-500 rounded-full cursor-pointer hover:bg-red-600">
@@ -1922,7 +1923,7 @@ export default function DashboardPage() {
                   >
                     {saveStatus === "saving" ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <LoadingDot className="mr-2" />
                         Saving...
                       </>
                     ) : (
@@ -2373,7 +2374,7 @@ export default function DashboardPage() {
                           >
                             {instagramImportStatus === "importing" ? (
                               <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <LoadingDot className="mr-2" />
                                 Importing
                               </>
                             ) : (
@@ -2534,7 +2535,7 @@ export default function DashboardPage() {
                       >
                         {passwordResetLoading ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <LoadingDot className="mr-2" />
                             Sending...
                           </>
                         ) : passwordResetSent ? (

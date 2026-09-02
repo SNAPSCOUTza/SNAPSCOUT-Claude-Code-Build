@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { Check, Loader2, Send, Star, Trash2, X } from "lucide-react"
+import { Check, Send, Star, Trash2, X } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -212,7 +213,7 @@ export function ReviewSheet({ open, onOpenChange, profileId, profileName, existi
                   disabled={submitting || deleting}
                   className="h-[52px] rounded-full border-[#f3d3d3] bg-white px-4 text-[#d92d20] hover:bg-[#fff5f5]"
                 >
-                  {deleting ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Trash2 className="h-4.5 w-4.5" />}
+                  {deleting ? <LoadingDot size={9} /> : <Trash2 className="h-4.5 w-4.5" />}
                 </Button>
               )}
               <Button
@@ -223,7 +224,7 @@ export function ReviewSheet({ open, onOpenChange, profileId, profileName, existi
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                    <LoadingDot size={9} />
                     Saving
                   </>
                 ) : (

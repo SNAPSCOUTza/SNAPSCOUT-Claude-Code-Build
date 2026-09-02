@@ -5,7 +5,6 @@ import {
   Search,
   MapPin,
   Star,
-  Calendar,
   Award,
   Loader2,
   ImageIcon,
@@ -14,13 +13,13 @@ import {
   Camera,
   Video,
   Sparkles,
-  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
@@ -66,6 +65,7 @@ export default function CreatorsPage() {
   const [categoryFilter, setCategoryFilter] = useState("")
   const [locationFilter, setLocationFilter] = useState("")
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const [tabletFiltersOpen, setTabletFiltersOpen] = useState(false)
   const [showMobileSearchFilters, setShowMobileSearchFilters] = useState(true)
   const [creators, setCreators] = useState<any[]>([])
   const [hireRequestCreator, setHireRequestCreator] = useState<any | null>(null)
@@ -193,6 +193,83 @@ export default function CreatorsPage() {
       </div>
     )
   }
+
+  const hasDesktopFilters = Boolean(filterType || categoryFilter || locationFilter)
+  const clearDesktopFilters = () => {
+    setFilterType("")
+    setCategoryFilter("")
+    setLocationFilter("")
+  }
+
+  // Desktop/tablet filter sidebar - mirrors Find Crew's FilterSidebar layout.
+  const CreatorFilterSidebar = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-foreground">Filters</h3>
+        {hasDesktopFilters && (
+          <Button variant="ghost" size="sm" onClick={clearDesktopFilters} className="text-primary hover:text-primary/80">
+            Clear all
+          </Button>
+        )}
+      </div>
+
+      <div>
+        <h4 className="text-sm font-medium text-foreground mb-3">Type</h4>
+        <div className="space-y-2">
+          {[
+            { label: "All", value: "" },
+            { label: "Photographers", value: "photographer" },
+            { label: "Videographers", value: "videographer" },
+          ].map((option) => (
+            <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="creator-type"
+                checked={filterType === option.value}
+                onChange={() => setFilterType(option.value)}
+                className="text-primary"
+              />
+              <span className="text-sm text-muted-foreground">{option.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h4 className="text-sm font-medium text-foreground mb-3">Category</h4>
+        <Select value={categoryFilter || "All categories"} onValueChange={(value) => setCategoryFilter(value === "All categories" ? "" : value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="All categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All categories">All categories</SelectItem>
+            {CREATOR_SPECIALIZATION_OPTIONS.map((category) => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <h4 className="text-sm font-medium text-foreground mb-3">Location</h4>
+        <Select value={locationFilter || "All locations"} onValueChange={(value) => setLocationFilter(value === "All locations" ? "" : value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="All locations" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All locations">All locations</SelectItem>
+            {LOCATION_OPTIONS.map((location) => (
+              <SelectItem key={location} value={location}>
+                {location}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-background">
@@ -652,113 +729,43 @@ export default function CreatorsPage() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters + Results */}
       <div className="container mx-auto px-4 py-8">
-        <div className="bg-card rounded-lg shadow-sm p-6 mb-8">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center space-x-2">
-              <Calendar className="w-5 h-5 text-muted-foreground" />
-              <span className="font-medium text-foreground">Filters:</span>
-            </div>
+        <div className="flex gap-8">
+          {/* Desktop Filters Sidebar */}
+          <aside className="hidden lg:block w-72 flex-shrink-0">
+            <Card className="p-6 bg-card border-border sticky top-4">
+              <CreatorFilterSidebar />
+            </Card>
+          </aside>
 
-            <div className="flex items-center space-x-2">
-              <Button
-                variant={filterType === "" ? "default" : "outline"}
-                onClick={() => setFilterType("")}
-                className={`transition-all duration-200 ${
-                  filterType === ""
-                    ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                    : "border-primary/20 text-primary hover:bg-primary/10"
-                }`}
-              >
-                All
-              </Button>
-              <Button
-                variant={filterType === "photographer" ? "default" : "outline"}
-                onClick={() => setFilterType("photographer")}
-                className={`transition-all duration-200 ${
-                  filterType === "photographer"
-                    ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                    : "border-primary/20 text-primary hover:bg-primary/10"
-                }`}
-              >
-                Photographers
-              </Button>
-              <Button
-                variant={filterType === "videographer" ? "default" : "outline"}
-                onClick={() => setFilterType("videographer")}
-                className={`transition-all duration-200 ${
-                  filterType === "videographer"
-                    ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                    : "border-primary/20 text-primary hover:bg-primary/10"
-                }`}
-              >
-                Videographers
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-foreground">Category:</span>
-              <div className="relative">
-                <select
-                  value={categoryFilter}
-                  onChange={(event) => setCategoryFilter(event.target.value)}
-                  className="h-10 appearance-none rounded-full border border-primary/20 bg-background pl-4 pr-9 text-sm text-foreground transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                >
-                  <option value="">All categories</option>
-                  {CREATOR_SPECIALIZATION_OPTIONS.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              </div>
-              {categoryFilter && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCategoryFilter("")}
-                  className="h-10 rounded-full text-muted-foreground hover:text-foreground"
-                >
-                  <X className="mr-1 h-3.5 w-3.5" />
-                  Clear
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-foreground">Location:</span>
-              <div className="relative">
-                <select
-                  value={locationFilter}
-                  onChange={(event) => setLocationFilter(event.target.value)}
-                  className="h-10 appearance-none rounded-full border border-primary/20 bg-background pl-4 pr-9 text-sm text-foreground transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                >
-                  <option value="">All locations</option>
-                  {LOCATION_OPTIONS.map((location) => (
-                    <option key={location} value={location}>
-                      {location}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              </div>
-              {locationFilter && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setLocationFilter("")}
-                  className="h-10 rounded-full text-muted-foreground hover:text-foreground"
-                >
-                  <X className="mr-1 h-3.5 w-3.5" />
-                  Clear
-                </Button>
-              )}
-            </div>
+          {/* Tablet Filter Button */}
+          <div className="lg:hidden fixed bottom-4 left-4 right-4 z-40">
+            <Button
+              onClick={() => setTabletFiltersOpen(true)}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+            >
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
+              Filters{" "}
+              {hasDesktopFilters &&
+                `(${[filterType, categoryFilter, locationFilter].filter(Boolean).length})`}
+            </Button>
           </div>
-        </div>
 
+          {/* Tablet Filters Modal */}
+          <Dialog open={tabletFiltersOpen} onOpenChange={setTabletFiltersOpen}>
+            <DialogContent className="no-scrollbar max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Filters</DialogTitle>
+              </DialogHeader>
+              <CreatorFilterSidebar />
+              <Button onClick={() => setTabletFiltersOpen(false)} className="mt-4">
+                Apply Filters
+              </Button>
+            </DialogContent>
+          </Dialog>
+
+          <div className="flex-1">
         {/* Results Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-foreground">
@@ -782,42 +789,29 @@ export default function CreatorsPage() {
             <StickyScrollCard key={creator.id} top="116px" delay={0.08 + index * 0.06}>
             <DemoCardWrap isDemo={!creator.isLiveProfile} borderRadius={12}>
             <Card className="relative hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-              {!creator.isLiveProfile && <DemoProfileBadge className="absolute right-3 top-3 z-10 bg-white/95 shadow-md" />}
-              {creator.portfolioImages && creator.portfolioImages.length > 0 && (
-                <div className="grid grid-cols-4 gap-0.5 h-24">
-                  {creator.portfolioImages.slice(0, 4).map((img: string, idx: number) => (
-                    <div key={idx} className="relative overflow-hidden">
-                      <Image
-                        src={img || "/placeholder.svg"}
-                        alt={`Portfolio ${idx + 1}`}
-                        fill
-                        className="object-cover hover:scale-110 transition-transform duration-300"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="relative h-48 w-full bg-muted">
+                <Image
+                  src={
+                    (creator.portfolioImages && creator.portfolioImages[0]) ||
+                    creator.profile_picture ||
+                    "/placeholder.svg?height=192&width=384"
+                  }
+                  alt={creator.display_name || creator.full_name}
+                  fill
+                  className="object-cover"
+                />
+                {!creator.isLiveProfile && (
+                  <DemoProfileBadge className="absolute right-3 top-3 z-10 bg-white/95 shadow-md" />
+                )}
+                {creator.is_public && (
+                  <div className="absolute bottom-3 right-3 bg-success rounded-full p-1.5 shadow-md">
+                    <Award className="w-4 h-4 text-success-foreground" />
+                  </div>
+                )}
+              </div>
 
               <CardContent className="p-6">
-                <div className="flex items-start space-x-4">
-                  {/* Profile Image */}
-                  <div className="relative flex-shrink-0 w-20 h-20">
-                    <Image
-                      src={creator.profile_picture || "/placeholder.svg?height=80&width=80"}
-                      alt={creator.display_name || creator.full_name}
-                      width={80}
-                      height={80}
-                      className="rounded-full object-cover w-full h-full"
-                    />
-                    {creator.is_public && (
-                      <div className="absolute -bottom-1 -right-1 bg-success rounded-full p-1">
-                        <Award className="w-4 h-4 text-success-foreground" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Creator Info */}
-                  <div className="flex-1 min-w-0">
+                <div className="min-w-0">
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="font-semibold text-lg truncate text-foreground">
@@ -907,7 +901,6 @@ export default function CreatorsPage() {
                         className="h-11 w-11 shrink-0 rounded-full"
                       />
                     </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -932,6 +925,8 @@ export default function CreatorsPage() {
             </SnapScoutStateArt>
           </div>
         )}
+          </div>
+        </div>
       </div>
       </div>
       {hireRequestCreator && (

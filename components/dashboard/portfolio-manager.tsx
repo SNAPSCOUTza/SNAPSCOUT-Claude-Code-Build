@@ -14,7 +14,6 @@ import {
   ImageIcon,
   Instagram,
   Link2,
-  Loader2,
   Play,
   RefreshCw,
   Star,
@@ -22,6 +21,7 @@ import {
   Upload,
   Youtube,
 } from "lucide-react"
+import { LoadingDot } from "@/components/ui/loading-dot"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -501,7 +501,7 @@ export function PortfolioManager({
             onClick={handleUpload}
             className="mt-4 h-[52px] w-full rounded-full bg-[#f20d14] text-white hover:bg-[#d9070d]"
           >
-            {uploadStatus === "loading" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+            {uploadStatus === "loading" ? <LoadingDot className="mr-2" /> : <Upload className="mr-2 h-4 w-4" />}
             {visibleItems.length >= maxItems ? `${maxItems} portfolio image${maxItems === 1 ? "" : "s"} added` : "Upload Image"}
           </Button>
         </motion.section>
@@ -568,7 +568,7 @@ export function PortfolioManager({
             {connection ? (
               <>
                 <Button type="button" onClick={handleSync} disabled={instagramStatus === "loading"} className="h-12 rounded-full bg-[#f20d14] text-white hover:bg-[#d9070d]">
-                  {instagramStatus === "loading" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                  {instagramStatus === "loading" ? <LoadingDot className="mr-2" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                   Sync Now
                 </Button>
                 <Button type="button" variant="outline" onClick={handleDisconnect} className="h-12 rounded-full bg-white">
@@ -639,7 +639,7 @@ export function PortfolioManager({
           onClick={handleAddProject}
           className="mt-4 h-[52px] w-full rounded-full bg-[#f20d14] text-white hover:bg-[#d9070d]"
         >
-          {projectStatus === "loading" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+          {projectStatus === "loading" ? <LoadingDot className="mr-2" /> : <Play className="mr-2 h-4 w-4" />}
           {visibleItems.length >= maxItems ? `${maxItems} portfolio item${maxItems === 1 ? "" : "s"} added` : "Add Project"}
         </Button>
 
@@ -672,7 +672,7 @@ export function PortfolioManager({
                 disabled={instagramStatus === "loading" || selectedDraftIds.length === 0}
                 className="h-11 rounded-full bg-[#f20d14] px-5 text-white hover:bg-[#d9070d]"
               >
-                {instagramStatus === "loading" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                {instagramStatus === "loading" ? <LoadingDot className="mr-2" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                 Publish
               </Button>
             </div>
