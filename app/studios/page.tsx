@@ -229,7 +229,7 @@ export default function StudiosPage() {
                           <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#111318]">
                             {studio.type === "studio" ? "Studio" : "Equipment Store"}
                           </span>
-                          {useMockData && <DemoProfileBadge className="absolute right-3 top-3 bg-white/95 shadow-md" />}
+                          {useMockData && <DemoProfileBadge variant="white" className="absolute right-3 top-3" />}
                         </motion.div>
                         <div className="p-3">
                           <div className="flex items-start justify-between gap-2">
@@ -450,7 +450,7 @@ export default function StudiosPage() {
               <StickyScrollCard key={studio.id} top="116px" delay={0.08 + index * 0.06}>
                 <DemoCardWrap isDemo={useMockData} borderRadius={12}>
                 <Card className="relative overflow-hidden">
-                  {useMockData && <DemoProfileBadge className="absolute right-3 top-3 z-10 bg-white/95 shadow-md" />}
+                  {useMockData && <DemoProfileBadge variant="white" className="absolute right-3 top-3 z-10" />}
                   <CardContent className="p-0">
                     <div className="flex flex-col md:flex-row">
                       <div className="relative h-52 w-full shrink-0 md:w-80">

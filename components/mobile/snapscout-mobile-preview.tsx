@@ -321,7 +321,7 @@ export default function SnapScoutMobilePreview({ entry = "explore" }: SnapScoutM
         className="absolute inset-0 bg-[#fffaf6] will-change-[clip-path]"
       >
         <Image
-          src="/images/snapscout-splash-illustration.png"
+          src="/images/snapscout-splash-illustration-v2.png"
           alt="SnapScout mobile splash screen"
           fill
           priority

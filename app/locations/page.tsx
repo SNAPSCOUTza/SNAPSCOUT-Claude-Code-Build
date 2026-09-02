@@ -5,10 +5,12 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Bookmark, Heart, MapPin, Plus, Search, ShieldCheck, Star } from "lucide-react"
+import { Bookmark, Crown, Heart, MapPin, Plus, Search, ShieldCheck, Star, X } from "lucide-react"
 import { LoadingDot } from "@/components/ui/loading-dot"
 import MobileShell from "@/components/mobile/mobile-shell"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SnapScoutStateArt } from "@/components/mobile/snapscout-state-art"
@@ -17,9 +19,51 @@ import { createBrowserClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import { LOCATION_TYPE_OPTIONS, type ShootLocation } from "@/lib/locations/types"
 
+type BlockReason = "signed_out" | "no_subscription" | "scout" | null
+
 export default function LocationsBrowsePage() {
-  const { user } = useAuth()
+  const { user, profile, isLoading: authLoading } = useAuth()
   const router = useRouter()
+  const [blockReason, setBlockReason] = useState<BlockReason>(null)
+  const [checkingAccess, setCheckingAccess] = useState(true)
+
+  useEffect(() => {
+    if (authLoading) return
+
+    if (!user) {
+      setBlockReason("signed_out")
+      setCheckingAccess(false)
+      return
+    }
+
+    const accountType = (profile?.account_type || profile?.user_type || "").toLowerCase()
+    if (accountType === "scout") {
+      setBlockReason("scout")
+      setCheckingAccess(false)
+      return
+    }
+
+    let cancelled = false
+    const supabase = createBrowserClient()
+    supabase
+      .from("user_subscriptions")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return
+        setBlockReason(data ? null : "no_subscription")
+        setCheckingAccess(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [authLoading, user, profile])
+
+  const hasAccess = !checkingAccess && !blockReason
   const [locations, setLocations] = useState<ShootLocation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -168,13 +212,24 @@ export default function LocationsBrowsePage() {
           </MotionRevealItem>
 
           <MotionRevealItem className="flex flex-wrap gap-2">
-            <Link
-              href="/upload-location"
-              className="inline-flex items-center gap-2 rounded-full bg-[#f20d14] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(242,13,20,0.24)] transition-colors hover:bg-[#d80a10]"
-            >
-              <Plus className="h-4 w-4" />
-              Add Location
-            </Link>
+            {hasAccess ? (
+              <Link
+                href="/upload-location"
+                className="inline-flex items-center gap-2 rounded-full bg-[#f20d14] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_10px_24px_rgba(242,13,20,0.24)] transition-colors hover:bg-[#d80a10]"
+              >
+                <Plus className="h-4 w-4" />
+                Add Location
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setBlockReason((current) => current)}
+                className="inline-flex items-center gap-2 rounded-full bg-[#f20d14]/40 px-5 py-2.5 text-[13px] font-semibold text-white"
+              >
+                <Plus className="h-4 w-4" />
+                Add Location
+              </button>
+            )}
             <Link
               href="/locations/saved"
               className="inline-flex items-center gap-2 rounded-full border border-[#e7e0d6] bg-white px-5 py-2.5 text-[13px] font-semibold text-[#111318] transition-colors hover:border-[#f20d14] hover:text-[#f20d14]"
@@ -185,6 +240,7 @@ export default function LocationsBrowsePage() {
           </MotionRevealItem>
         </MotionRevealGroup>
 
+        <div className={!hasAccess ? "pointer-events-none select-none blur-md" : ""}>
         {loading ? (
           <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, index) => (
@@ -282,7 +338,74 @@ export default function LocationsBrowsePage() {
             </p>
           </div>
         )}
+        </div>
       </div>
+
+      <Dialog open={!checkingAccess && !!blockReason} onOpenChange={() => router.push("/explore")}>
+        <DialogContent
+          unstyled
+          showCloseButton={false}
+          overlayClassName="fixed inset-x-0 bottom-0 top-16 z-[169] bg-black/35 backdrop-blur-[6px]"
+          className="fixed inset-x-0 bottom-0 top-auto z-[170] mx-0 w-full max-w-none gap-0 overflow-hidden rounded-b-none rounded-t-[30px] border-x-0 border-b-0 border-t border-[#e8dfd3] bg-white p-0 text-[#111318] shadow-[0_-24px_64px_rgba(15,23,42,0.18)] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        >
+          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-[#d7dce6]" />
+          <div className="flex items-center justify-between border-b border-[#e8dfd3] px-5 pb-4 pt-4">
+            <p className="text-[18px] font-semibold text-[#111318]">Discover Locations</p>
+            <button
+              type="button"
+              onClick={() => router.push("/explore")}
+              aria-label="Close"
+              className="grid h-10 w-10 place-items-center rounded-full border border-[#e7e0d6] bg-white"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
+          </div>
+
+          <div className="px-5 py-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-[#f20d14]">
+              <Crown className="h-8 w-8" />
+            </div>
+            <h2 className="mt-4 text-xl font-black text-black">
+              {blockReason === "signed_out"
+                ? "Sign in to browse locations"
+                : blockReason === "scout"
+                  ? "Scout & Client accounts can't browse locations"
+                  : "Upgrade to browse locations"}
+            </h2>
+            <p className="mt-3 text-[15px] leading-6 text-neutral-600">
+              {blockReason === "signed_out"
+                ? "Locations are shared by SnapScout's creative community. Sign in with a paid subscription to browse the full library."
+                : blockReason === "scout"
+                  ? "Scout & Client accounts are free and built for posting gigs to hire talent. Browsing and posting locations is available with a Creator, Crew, Studio, or Store subscription."
+                  : "Browsing SnapScout's full location library - and posting your own - is available with an active Creator, Crew, Studio, or Store subscription."}
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3">
+              {blockReason === "signed_out" ? (
+                <Button asChild className="h-[52px] rounded-full bg-[#f20d14] text-[15px] font-bold text-white hover:bg-[#d9070d]">
+                  <Link href="/auth/login">Sign In</Link>
+                </Button>
+              ) : blockReason === "scout" ? (
+                <Button asChild className="h-[52px] rounded-full bg-[#f20d14] text-[15px] font-bold text-white hover:bg-[#d9070d]">
+                  <Link href="/marketplace/post-gig">Post a Gig Instead</Link>
+                </Button>
+              ) : (
+                <Button asChild className="h-[52px] rounded-full bg-[#f20d14] text-[15px] font-bold text-white hover:bg-[#d9070d]">
+                  <Link href="/subscribe/plans">View Plans</Link>
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push("/explore")}
+                className="h-[52px] rounded-full border-neutral-200 text-[15px] font-bold"
+              >
+                Not Now
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </MobileShell>
   )
 }

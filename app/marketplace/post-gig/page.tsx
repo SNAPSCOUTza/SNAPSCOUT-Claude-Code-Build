@@ -19,6 +19,15 @@ import { createBrowserClient } from "@supabase/ssr"
 import MobileShell from "@/components/mobile/mobile-shell"
 
 const gigCategories = [
+  "Photography",
+  "Videography",
+  "Editing",
+  "Sound",
+  "Lighting",
+  "Production",
+  "Post-Production",
+  "Hair & Makeup",
+  "Art Direction",
   "Commercial",
   "Wedding",
   "Short Film",
@@ -28,7 +37,33 @@ const gigCategories = [
   "Event",
   "Fashion",
   "Product",
+  "Portrait",
   "Real Estate",
+]
+
+const provinces = [
+  "Western Cape",
+  "Eastern Cape",
+  "Northern Cape",
+  "Free State",
+  "KwaZulu-Natal",
+  "North West",
+  "Gauteng",
+  "Mpumalanga",
+  "Limpopo",
+]
+
+const cities = [
+  "Cape Town",
+  "Johannesburg",
+  "Durban",
+  "Pretoria",
+  "Port Elizabeth",
+  "Bloemfontein",
+  "East London",
+  "Pietermaritzburg",
+  "Kimberley",
+  "Polokwane",
 ]
 
 const gigTypes = [
@@ -49,16 +84,6 @@ const experienceLevels = [
   { label: "Mid Level", value: "mid" },
   { label: "Senior", value: "senior" },
   { label: "Expert", value: "expert" },
-]
-
-const locations = [
-  "Cape Town, Western Cape",
-  "Johannesburg, Gauteng",
-  "Durban, KwaZulu-Natal",
-  "Pretoria, Gauteng",
-  "Port Elizabeth, Eastern Cape",
-  "Bloemfontein, Free State",
-  "Remote/Various",
 ]
 
 const skillOptions = [
@@ -90,7 +115,8 @@ export default function PostGigPage() {
     category: "",
     gig_type: "",
     experience_level: "", // Updated to store values like 'entry', 'mid', etc.
-    location: "",
+    province: "",
+    city: "",
     salary_min: "",
     salary_max: "",
     salary_currency: "ZAR",
@@ -145,7 +171,7 @@ export default function PostGigPage() {
         category: formData.category,
         gig_type: normalizeGigType(formData.gig_type),
         experience_level: formData.experience_level,
-        location: formData.location,
+        location: formData.city && formData.province ? `${formData.city}, ${formData.province}` : formData.city || formData.province,
         salary_min: formData.salary_min ? Number.parseFloat(formData.salary_min) : null,
         salary_max: formData.salary_max ? Number.parseFloat(formData.salary_max) : null,
         salary_currency: formData.salary_currency,
@@ -315,39 +341,59 @@ export default function PostGigPage() {
                 </div>
               </div>
 
-              {/* Experience & Location Row */}
+              {/* Experience Row */}
+              <div>
+                <Label>Experience Level *</Label>
+                <Select
+                  value={formData.experience_level}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, experience_level: value }))}
+                >
+                  <SelectTrigger className="mt-2 h-12 rounded-2xl border-[#e1e7f1] bg-white text-[15px] shadow-none focus:ring-[#d40000]">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {experienceLevels.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>
+                        {level.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Location Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Experience Level *</Label>
+                  <Label>Province *</Label>
                   <Select
-                    value={formData.experience_level}
-                    onValueChange={(value) => setFormData((prev) => ({ ...prev, experience_level: value }))}
+                    value={formData.province}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, province: value }))}
                   >
                     <SelectTrigger className="mt-2 h-12 rounded-2xl border-[#e1e7f1] bg-white text-[15px] shadow-none focus:ring-[#d40000]">
-                      <SelectValue placeholder="Select level" />
+                      <SelectValue placeholder="Select province" />
                     </SelectTrigger>
                     <SelectContent>
-                      {experienceLevels.map((level) => (
-                        <SelectItem key={level.value} value={level.value}>
-                          {level.label}
+                      {provinces.map((province) => (
+                        <SelectItem key={province} value={province}>
+                          {province}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Location *</Label>
+                  <Label>City *</Label>
                   <Select
-                    value={formData.location}
-                    onValueChange={(value) => setFormData((prev) => ({ ...prev, location: value }))}
+                    value={formData.city}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, city: value }))}
                   >
                     <SelectTrigger className="mt-2 h-12 rounded-2xl border-[#e1e7f1] bg-white text-[15px] shadow-none focus:ring-[#d40000]">
-                      <SelectValue placeholder="Select location" />
+                      <SelectValue placeholder="Select city" />
                     </SelectTrigger>
                     <SelectContent>
-                      {locations.map((loc) => (
-                        <SelectItem key={loc} value={loc}>
-                          {loc}
+                      {cities.map((city) => (
+                        <SelectItem key={city} value={city}>
+                          {city}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -488,7 +534,8 @@ export default function PostGigPage() {
                     !formData.category ||
                     !formData.gig_type ||
                     !formData.experience_level ||
-                    !formData.location
+                    !formData.province ||
+                    !formData.city
                   }
                 >
                   {isSubmitting ? (

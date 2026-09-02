@@ -88,8 +88,6 @@ export default function MobileShell({
   const { user, profile } = useAuth()
   const [crewPoolCount, setCrewPoolCount] = useState(0)
   const [notificationCount, setNotificationCount] = useState(0)
-  const accountType = (profile?.account_type || profile?.user_type || "").toLowerCase()
-  const isScout = accountType === "scout"
   const isAdmin = profile?.role === "admin" || profile?.role === "super_admin"
   const gigsHref = "/marketplace/available-gigs"
   const menuItems = useMemo<StaggeredMenuItem[]>(
@@ -108,12 +106,10 @@ export default function MobileShell({
       { label: "Find Crew", link: "/find-crew", ariaLabel: "Find crew members", icon: Users },
       { label: "Creators", link: "/creators", ariaLabel: "Browse creators", icon: Camera },
       { label: "Studios", link: "/studios-stores", ariaLabel: "Browse studios and stores", icon: Building2 },
-      ...(isScout
-        ? []
-        : [{ label: "Locations", link: "/locations", ariaLabel: "Browse shoot locations", icon: MapPin }]),
+      { label: "Locations", link: "/locations", ariaLabel: "Browse shoot locations", icon: MapPin },
       { label: "Gigs", link: gigsHref, ariaLabel: "Open SnapScout gigs", icon: Briefcase },
     ],
-    [isScout, isAdmin, gigsHref],
+    [isAdmin, gigsHref],
   )
 
   useEffect(() => {

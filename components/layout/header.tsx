@@ -11,7 +11,6 @@ import {
   Camera,
   Building2,
   Briefcase,
-  Search,
   Home,
   X,
   MessageCircle,
@@ -130,15 +129,6 @@ export default function Header() {
         { name: "Studios", url: "/studios-stores", icon: Building2 },
         { name: "Locations", url: "/locations", icon: MapPin },
         { name: "Gigs", url: "/marketplace/available-gigs", icon: Briefcase },
-        { name: "Projects", url: "/marketplace/my-projects", icon: Search },
-      ]
-    } else if (accountType === "scout") {
-      return [
-        { name: "Talent", url: "/find-crew", icon: Users },
-        { name: "Creators", url: "/creators", icon: Camera },
-        { name: "Studios", url: "/studios-stores", icon: Building2 },
-        { name: "Gigs", url: "/marketplace/available-gigs", icon: Briefcase },
-        { name: "Database", url: "/marketplace/talent-database", icon: Search },
       ]
     } else {
       return [
@@ -243,24 +233,24 @@ export default function Header() {
   return (
     <div className="hidden md:block">
       <header ref={headerRef} className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-3 lg:px-4">
           <div className="flex items-center justify-between h-16 py-[7px] my-3">
             {/* Desktop Logo */}
-            <Link href="/" className="hidden md:flex items-center space-x-1.5 py-[13px] leading-9">
+            <Link href="/" className="hidden md:flex items-center space-x-1.5 py-[13px] leading-9 shrink-0">
               <div className="relative leading-10">
                 <Image
                   src="/images/snapscout-studio-add-logo.png"
                   alt="SnapScout Logo"
                   width={60}
                   height={60}
-                  className="rounded-full"
+                  className="h-10 w-10 rounded-full lg:h-[60px] lg:w-[60px]"
                 />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900">
+                <h1 className="text-base font-bold text-gray-900 lg:text-lg">
                   <span className="text-red-600">Snap</span>Scout
                 </h1>
-                <p className="text-xs text-gray-500 -mt-0.5">Your Local Companion</p>
+                <p className="hidden text-xs text-gray-500 -mt-0.5 lg:block">Your Local Companion</p>
               </div>
             </Link>
 
@@ -289,13 +279,13 @@ export default function Header() {
               <AnimatedMenuIcon isOpen={isMobileMenuOpen} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
             </div>
 
-            <div className="hidden md:flex items-center justify-center flex-1 px-8">
-              <div className="mt-1.5">
+            <div className="hidden md:flex min-w-0 flex-1 items-center justify-center px-2 lg:px-8">
+              <div className="mt-1.5 min-w-0">
                 <NavBar items={navigationItems} />
               </div>
             </div>
 
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex shrink-0 items-center gap-2">
               {user ? (
                 <HeaderToolbar items={toolbarItems} defaultActiveIndex={3} />
               ) : (

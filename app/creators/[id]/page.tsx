@@ -475,27 +475,24 @@ export default function CreatorProfilePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
               {highlightCards.map(({ title, icon: Icon }) => (
-                <div
-                  key={title}
-                  className="rounded-[22px] bg-[#f5f7fb] px-4 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
-                >
-                  <Icon className="mb-3 h-5 w-5 text-slate-700" />
-                  <p className="text-[14px] font-medium leading-snug text-[#111318]">{title}</p>
+                <div key={title} className="min-w-[148px] rounded-2xl bg-[#f7f9fc] p-3 text-[#111318]">
+                  <Icon className="h-4.5 w-4.5" />
+                  <p className="mt-2 text-[13px] font-medium leading-tight">{title}</p>
                 </div>
               ))}
             </div>
 
             <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
               <div className="min-w-0">
-                <p className="text-[15px] text-slate-500">From</p>
+                <p className="text-[13px] text-[#6c7380]">From</p>
                 <div className="mt-1 flex items-end gap-2">
-                  <span className="text-[42px] font-black leading-none tracking-[-0.04em] text-[#111318]">
+                  <span className="text-[42px] font-semibold leading-none text-[#111318]">
                     {defaults.priceLabel}
                   </span>
                 </div>
-                <p className="mt-1 text-[18px] text-slate-600">{defaults.rateSuffix}</p>
+                <p className="text-[15px] text-[#111318]/80">{defaults.rateSuffix}</p>
               </div>
 
               {mockCreator ? (
@@ -515,7 +512,7 @@ export default function CreatorProfilePage() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-12 rounded-full border-slate-200 bg-white text-[16px] font-medium text-[#111318] hover:bg-slate-50"
+                className="h-12 rounded-full border-[#e6ebf3] bg-white text-[#111318] hover:bg-[#fff7f7] hover:text-[#ff1c1c]"
                 onClick={() =>
                   router.push(`/messages?mock=1&as=brad-test-user&conversation=thread-brad-test-user-${creator.id}-${Date.now()}`)
                 }
@@ -526,7 +523,7 @@ export default function CreatorProfilePage() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-12 rounded-full border-slate-200 bg-white text-[16px] font-medium text-[#111318] hover:bg-slate-50"
+                className="h-12 rounded-full border-[#e6ebf3] bg-white text-[#111318] hover:bg-[#fff7f7] hover:text-[#ff1c1c]"
                 onClick={() => {
                   window.location.href = `tel:${defaults.phone}`
                 }}
@@ -540,10 +537,10 @@ export default function CreatorProfilePage() {
               profileId={creator.id}
               profileName={creator.name}
               onReviewChange={() => setReviewRefreshKey((key) => key + 1)}
-              className="h-12 w-full rounded-full border-slate-200 bg-white text-[16px] font-medium text-[#111318] hover:bg-slate-50"
+              className="mt-3 h-12 w-full rounded-full border-[#e6ebf3] bg-white text-[#111318] hover:bg-[#fff7f7] hover:text-[#ff1c1c]"
             />
 
-            <div className="rounded-[24px] border border-slate-200 bg-[#f7f9fc] px-4 py-3">
+            <div className="rounded-2xl border border-[#e6ebf3] bg-[#f7f9fc] p-4">
               {[
                 { label: "Based in", value: creator.location, icon: MapPin },
                 { label: "Response rate", value: defaults.responseRate, icon: Clock3 },
@@ -554,42 +551,38 @@ export default function CreatorProfilePage() {
                   icon: CalendarDays,
                 },
               ].map(({ label, value, icon: Icon }, index, array) => (
-                <div
-                  key={label}
-                  className={`flex items-start gap-3 px-1 py-4 ${index < array.length - 1 ? "border-b border-slate-200" : ""}`}
-                >
-                  <Icon className="mt-0.5 h-5 w-5 text-slate-500" />
-                  <div>
-                    <p className="text-[13px] font-black uppercase tracking-[0.18em] text-slate-500">{label}</p>
-                    <p className="mt-2 text-[16px] font-medium text-[#111318]">{value}</p>
+                <div key={label}>
+                  <div className="flex items-start gap-3">
+                    <Icon className="mt-0.5 h-4.5 w-4.5 text-[#4f5867]" />
+                    <div>
+                      <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">{label}</p>
+                      <p className="mt-1 text-[14px] font-medium text-[#111318]">{value}</p>
+                    </div>
                   </div>
+                  {index < array.length - 1 && <div className="mt-3 mb-3 h-px bg-[#e3e8f0]" />}
                 </div>
               ))}
             </div>
 
-            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-5">
-              <p className="text-[13px] font-black uppercase tracking-[0.18em] text-slate-500">About this creator</p>
-              <p className="mt-3 text-[17px] leading-8 text-[#28303f]">{creator.bio}</p>
+            <div className="rounded-2xl border border-[#e6ebf3] bg-white p-4">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">About this creator</p>
+              <p className="mt-2 text-[14px] leading-relaxed text-[#2b3340]">{creator.bio}</p>
             </div>
 
-            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-5">
-              <p className="text-[13px] font-black uppercase tracking-[0.18em] text-slate-500">Core services</p>
-              <div className="mt-4 flex flex-wrap gap-3">
+            <div className="rounded-2xl border border-[#e6ebf3] bg-white p-4">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Core services</p>
+              <div className="mt-3 flex flex-wrap gap-2">
                 {defaults.services.map((service) => (
-                  <Badge
-                    key={service}
-                    variant="secondary"
-                    className="rounded-full bg-[#f1f3f7] px-4 py-2 text-[14px] font-medium text-slate-700 hover:bg-[#f1f3f7]"
-                  >
+                  <span key={service} className="rounded-full bg-[#f3f5f8] px-3 py-1.5 text-[12px] font-medium text-[#3e4652]">
                     {service}
-                  </Badge>
+                  </span>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-5">
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-[13px] font-black uppercase tracking-[0.18em] text-slate-500">Portfolio</p>
+            <div className="rounded-2xl border border-[#e6ebf3] bg-white p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Portfolio</p>
               </div>
               <ProfilePortfolioGallery
                 userId={liveCreator?.user_id}
@@ -601,9 +594,9 @@ export default function CreatorProfilePage() {
               />
             </div>
 
-            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-5">
-              <p className="text-[13px] font-black uppercase tracking-[0.18em] text-slate-500">Quick package selection</p>
-              <p className="mt-1 text-[14px] leading-snug text-slate-600">Pick a package and continue into booking.</p>
+            <div className="rounded-2xl border border-[#e6ebf3] bg-white p-4">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Quick package selection</p>
+              <p className="mt-1 text-[13px] leading-snug text-[#5b6371]">Pick a package and continue into booking.</p>
 
               <div className="no-scrollbar -mx-1 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1">
                 {packageCards.map((pkg, index) => {

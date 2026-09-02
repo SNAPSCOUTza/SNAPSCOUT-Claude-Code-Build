@@ -45,8 +45,8 @@ export function NavBar({ items, className }: NavBarProps) {
   }, [])
 
   return (
-    <div className={cn("flex justify-center z-50", className)}>
-      <div className="flex items-center gap-3 bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 backdrop-blur-lg py-1 px-1 rounded-full shadow-lg">
+    <div className={cn("flex min-w-0 max-w-full justify-center z-50", className)}>
+      <div className="no-scrollbar flex max-w-full items-center gap-0.5 overflow-x-auto lg:gap-3 bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 backdrop-blur-lg py-1 px-1 rounded-full shadow-lg">
         {items.map((item) => {
           const Icon = item.icon
           const isActive = activeTab === item.name
@@ -57,13 +57,14 @@ export function NavBar({ items, className }: NavBarProps) {
               href={item.url}
               onClick={() => setActiveTab(item.name)}
               className={cn(
-                "relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors",
+                "relative cursor-pointer whitespace-nowrap text-sm font-semibold px-3 py-2 lg:px-6 rounded-full transition-colors",
                 "text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400",
                 isActive && "bg-gray-100 dark:bg-gray-800 text-red-600 dark:text-red-400",
               )}
+              title={item.name}
             >
-              <span className="hidden md:inline">{item.name}</span>
-              <span className="md:hidden">
+              <span className="hidden lg:inline">{item.name}</span>
+              <span className="lg:hidden">
                 <Icon size={18} strokeWidth={2.5} />
               </span>
               {typeof item.badgeCount === "number" && item.badgeCount > 0 && (

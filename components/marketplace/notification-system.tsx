@@ -8,7 +8,7 @@ import { Bell, Check, X, Briefcase, User, Calendar } from "lucide-react"
 
 interface Notification {
   id: string
-  type: "gig_selected" | "gig_rejected" | "application_received" | "project_update"
+  type: "gig_selected" | "gig_rejected" | "application_received" | "gig_update"
   title: string
   message: string
   gigTitle?: string
@@ -40,17 +40,17 @@ const mockNotifications: Notification[] = [
     clientName: "Michael Chen",
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
     read: false,
-    actionUrl: "/marketplace/my-projects",
+    actionUrl: "/marketplace/my-gigs",
   },
   {
     id: "3",
-    type: "project_update",
-    title: "Project deadline reminder",
-    message: "Your Music Video Production project deadline is approaching in 2 days.",
+    type: "gig_update",
+    title: "Gig deadline reminder",
+    message: "Your Music Video Production gig deadline is approaching in 2 days.",
     gigTitle: "Music Video Production",
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
     read: true,
-    actionUrl: "/marketplace/my-projects",
+    actionUrl: "/marketplace/my-gigs",
   },
 ]
 
@@ -80,7 +80,7 @@ export function NotificationSystem() {
         return <X className="h-4 w-4 text-red-600" />
       case "application_received":
         return <User className="h-4 w-4 text-blue-600" />
-      case "project_update":
+      case "gig_update":
         return <Calendar className="h-4 w-4 text-orange-600" />
       default:
         return <Bell className="h-4 w-4 text-gray-600" />
@@ -95,7 +95,7 @@ export function NotificationSystem() {
         return "bg-red-50 border-red-200"
       case "application_received":
         return "bg-blue-50 border-blue-200"
-      case "project_update":
+      case "gig_update":
         return "bg-orange-50 border-orange-200"
       default:
         return "bg-gray-50 border-gray-200"

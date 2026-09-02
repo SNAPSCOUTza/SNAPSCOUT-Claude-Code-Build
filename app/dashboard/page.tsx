@@ -1771,13 +1771,13 @@ export default function DashboardPage() {
               <SaveStatusIndicator />
             </div>
             <Button asChild variant="outline" size="icon" className="h-10 w-10 rounded-full md:hidden">
-              <Link href="/" aria-label="Return to home page">
+              <Link href="/explore" aria-label="Return to home page">
                 <Home className="h-4 w-4" />
               </Link>
             </Button>
             <div className="hidden items-center gap-4 md:flex">
               <Button asChild variant="outline">
-                <Link href="/">
+                <Link href="/explore">
                   <Home className="mr-2 h-4 w-4" />
                   Return Home
                 </Link>

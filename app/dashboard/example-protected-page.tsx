@@ -5,15 +5,15 @@ import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { User, Mail, Shield, LogOut } from "lucide-react"
-import { useRouter } from "next/navigation"
 
 export default function ExampleProtectedPage() {
   const { user, profile, isLoading, isAuthorized, signOut } = useAuth()
-  const router = useRouter()
 
   const handleSignOut = async () => {
     await signOut()
-    router.push("/")
+    // Hard navigation, not router.push - see the matching comment in
+    // app/dashboard/page.tsx's handleSignOut for why.
+    window.location.href = "/"
   }
 
   if (isLoading) {

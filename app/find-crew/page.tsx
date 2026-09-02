@@ -519,7 +519,7 @@ export default function FindCrewPage() {
                           {member.department || "Crew"}
                         </span>
                         {!member.isLiveProfile && (
-                          <DemoProfileBadge className="absolute right-3 top-3 bg-white/95 shadow-md" />
+                          <DemoProfileBadge variant="white" className="absolute right-3 top-3" />
                         )}
                         </Link>
                       </motion.div>
@@ -967,7 +967,7 @@ export default function FindCrewPage() {
                         className="object-cover"
                       />
                       {!member.isLiveProfile && (
-                        <DemoProfileBadge className="absolute right-3 top-3 z-10 bg-white/95 shadow-md" />
+                        <DemoProfileBadge variant="white" className="absolute right-3 top-3 z-10" />
                       )}
                     </div>
                     <CardContent className="p-6">

@@ -12,6 +12,7 @@ import {
   Camera,
   Car,
   Clock3,
+  Crown,
   Flag,
   Heart,
   Loader2,
@@ -22,14 +23,17 @@ import {
   Sparkles,
   Star,
   Sun,
+  Trash2,
   Users,
   Utensils,
+  X,
   Zap,
 } from "lucide-react"
 import MobileShell from "@/components/mobile/mobile-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { useAuth } from "@/contexts/auth-context"
 import type { ShootLocation, ShootLocationPhoto, ShootLocationReview } from "@/lib/locations/types"
@@ -53,11 +57,53 @@ function formatRelativeDate(value: string) {
   return `${months}mo ago`
 }
 
+type BlockReason = "signed_out" | "no_subscription" | "scout" | null
+
 export default function LocationDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, profile, isLoading: authLoading } = useAuth()
   const supabase = useMemo(() => createBrowserClient(), [])
+
+  const [blockReason, setBlockReason] = useState<BlockReason>(null)
+  const [checkingAccess, setCheckingAccess] = useState(true)
+
+  useEffect(() => {
+    if (authLoading) return
+
+    if (!user) {
+      setBlockReason("signed_out")
+      setCheckingAccess(false)
+      return
+    }
+
+    const accountType = (profile?.account_type || profile?.user_type || "").toLowerCase()
+    if (accountType === "scout") {
+      setBlockReason("scout")
+      setCheckingAccess(false)
+      return
+    }
+
+    let cancelled = false
+    supabase
+      .from("user_subscriptions")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }: { data: { id: string } | null }) => {
+        if (cancelled) return
+        setBlockReason(data ? null : "no_subscription")
+        setCheckingAccess(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [authLoading, user, profile, supabase])
+
+  const hasAccess = !checkingAccess && !blockReason
 
   const [location, setLocation] = useState<ShootLocation | null>(null)
   const [photos, setPhotos] = useState<ShootLocationPhoto[]>([])
@@ -250,6 +296,22 @@ export default function LocationDetailPage() {
     }
   }
 
+  const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null)
+
+  const deleteReview = async (reviewId: string) => {
+    setDeletingReviewId(reviewId)
+    try {
+      const response = await fetch(`/api/locations/${params.id}/reviews/${reviewId}`, { method: "DELETE" })
+      if (!response.ok) throw new Error("Could not remove your note")
+      setReviews((current) => current.filter((r) => r.id !== reviewId))
+      await loadLocation()
+    } catch {
+      window.alert("Could not remove your note. Please try again.")
+    } finally {
+      setDeletingReviewId(null)
+    }
+  }
+
   if (loading) {
     return (
       <MobileShell title="Locations">
@@ -283,7 +345,11 @@ export default function LocationDetailPage() {
 
   return (
     <MobileShell title="Locations">
-      <div className="px-4 pb-10 pt-4 md:mx-auto md:max-w-3xl md:px-8">
+      <div
+        className={`px-4 pb-10 pt-4 md:mx-auto md:max-w-3xl md:px-8 ${
+          !hasAccess ? "pointer-events-none select-none blur-md" : ""
+        }`}
+      >
         <section className="rounded-[32px] border border-[#eee6db] bg-white p-3 shadow-[0_18px_50px_rgba(15,23,42,0.07)]">
           <div className="relative overflow-hidden rounded-[28px]">
             {heroImages.length > 0 ? (
@@ -493,13 +559,26 @@ export default function LocationDetailPage() {
             <div className="mt-4 space-y-3">
               {reviews.map((review) => (
                 <div key={review.id} className="rounded-2xl bg-[#f7f9fc] p-4">
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <Star
-                        key={index}
-                        className={`h-3.5 w-3.5 ${index < review.rating ? "fill-[#111318] text-[#111318]" : "text-[#d7dce6]"}`}
-                      />
-                    ))}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: 5 }).map((_, index) => (
+                        <Star
+                          key={index}
+                          className={`h-3.5 w-3.5 ${index < review.rating ? "fill-[#111318] text-[#111318]" : "text-[#d7dce6]"}`}
+                        />
+                      ))}
+                    </div>
+                    {user?.id === review.user_id && (
+                      <button
+                        type="button"
+                        onClick={() => deleteReview(review.id)}
+                        disabled={deletingReviewId === review.id}
+                        aria-label="Delete your note"
+                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[#9aa0ab] hover:bg-red-50 hover:text-[#f20d14] disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                   <p className="mt-2 text-[14px] leading-relaxed text-[#2b3340]">"{review.body}"</p>
                   <p className="mt-2 text-[12px] font-semibold text-[#6d7480]">
@@ -545,8 +624,9 @@ export default function LocationDetailPage() {
           ) : (
             <Button
               type="button"
-              onClick={() => (user ? setReviewOpen(true) : router.push("/auth/login"))}
-              className="mt-4 h-12 w-full rounded-full bg-[#111318] text-[14px] font-semibold text-white hover:bg-[#20232b]"
+              onClick={() => (!user ? router.push("/auth/login") : hasAccess ? setReviewOpen(true) : null)}
+              disabled={!hasAccess && Boolean(user)}
+              className="mt-4 h-12 w-full rounded-full bg-[#111318] text-[14px] font-semibold text-white hover:bg-[#20232b] disabled:opacity-50"
             >
               Write Your Experience
             </Button>
@@ -593,6 +673,72 @@ export default function LocationDetailPage() {
       {lightboxIndex !== null && (
         <PortfolioLightbox items={photoItems} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
       )}
+
+      <Dialog open={!checkingAccess && !!blockReason} onOpenChange={() => router.push("/locations")}>
+        <DialogContent
+          unstyled
+          showCloseButton={false}
+          overlayClassName="fixed inset-x-0 bottom-0 top-16 z-[169] bg-black/35 backdrop-blur-[6px]"
+          className="fixed inset-x-0 bottom-0 top-auto z-[170] mx-0 w-full max-w-none gap-0 overflow-hidden rounded-b-none rounded-t-[30px] border-x-0 border-b-0 border-t border-[#e8dfd3] bg-white p-0 text-[#111318] shadow-[0_-24px_64px_rgba(15,23,42,0.18)] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        >
+          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-[#d7dce6]" />
+          <div className="flex items-center justify-between border-b border-[#e8dfd3] px-5 pb-4 pt-4">
+            <p className="text-[18px] font-semibold text-[#111318]">This location</p>
+            <button
+              type="button"
+              onClick={() => router.push("/locations")}
+              aria-label="Close"
+              className="grid h-10 w-10 place-items-center rounded-full border border-[#e7e0d6] bg-white"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
+          </div>
+
+          <div className="px-5 py-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-[#f20d14]">
+              <Crown className="h-8 w-8" />
+            </div>
+            <h2 className="mt-4 text-xl font-black text-black">
+              {blockReason === "signed_out"
+                ? "Sign in to view this location"
+                : blockReason === "scout"
+                  ? "Scout & Client accounts can't browse locations"
+                  : "Upgrade to view this location"}
+            </h2>
+            <p className="mt-3 text-[15px] leading-6 text-neutral-600">
+              {blockReason === "signed_out"
+                ? "Locations are shared by SnapScout's creative community. Sign in with a paid subscription to browse the full library."
+                : blockReason === "scout"
+                  ? "Scout & Client accounts are free and built for posting gigs to hire talent. Browsing and reviewing locations is available with a Creator, Crew, Studio, or Store subscription."
+                  : "Browsing SnapScout's full location library - and leaving your own notes - is available with an active Creator, Crew, Studio, or Store subscription."}
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3">
+              {blockReason === "signed_out" ? (
+                <Button asChild className="h-[52px] rounded-full bg-[#f20d14] text-[15px] font-bold text-white hover:bg-[#d9070d]">
+                  <Link href="/auth/login">Sign In</Link>
+                </Button>
+              ) : blockReason === "scout" ? (
+                <Button asChild className="h-[52px] rounded-full bg-[#f20d14] text-[15px] font-bold text-white hover:bg-[#d9070d]">
+                  <Link href="/marketplace/post-gig">Post a Gig Instead</Link>
+                </Button>
+              ) : (
+                <Button asChild className="h-[52px] rounded-full bg-[#f20d14] text-[15px] font-bold text-white hover:bg-[#d9070d]">
+                  <Link href="/subscribe/plans">View Plans</Link>
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push("/locations")}
+                className="h-[52px] rounded-full border-neutral-200 text-[15px] font-bold"
+              >
+                Not Now
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </MobileShell>
   )
 }

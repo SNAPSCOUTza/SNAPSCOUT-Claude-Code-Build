@@ -189,7 +189,7 @@ export default function StudiosStoresPage() {
                           <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#111318]">
                             {item.isUploadedLocation ? "Shoot Location" : studioStoreTypeLabel(item.type)}
                           </span>
-                          {isDemo && <DemoProfileBadge className="absolute right-3 top-3 bg-white/95 shadow-md" />}
+                          {isDemo && <DemoProfileBadge variant="white" className="absolute right-3 top-3" />}
                         </Link>
                       </motion.div>
                       <div className="p-3">
@@ -212,14 +212,18 @@ export default function StudiosStoresPage() {
                         </div>
                           <div className="mt-2 flex items-center justify-between text-[12px]">
                             <div className="flex items-center gap-1">
-                              <Star className="h-3.5 w-3.5 fill-current text-[#0d0f13]" />
-                              {item.rating > 0 ? (
+                              {!isDemo && (
                                 <>
-                                  <span className="font-semibold">{item.rating}</span>
-                                  <span className="text-[#666b75]">(<AnimatedCount value={item.reviews} />)</span>
+                                  <Star className="h-3.5 w-3.5 fill-current text-[#0d0f13]" />
+                                  {item.rating > 0 ? (
+                                    <>
+                                      <span className="font-semibold">{item.rating}</span>
+                                      <span className="text-[#666b75]">(<AnimatedCount value={item.reviews} />)</span>
+                                    </>
+                                  ) : (
+                                    <span className="font-semibold">New</span>
+                                  )}
                                 </>
-                              ) : (
-                                <span className="font-semibold">New</span>
                               )}
                             </div>
                             <span className="font-semibold text-[#0d0f13]">{item.hourlyRate}</span>
@@ -422,16 +426,13 @@ export default function StudiosStoresPage() {
                     <div className="relative h-48 md:h-full">
                       <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
                       <div className="absolute top-4 left-4">
-                        <Badge
-                          variant={item.type === "store" ? "secondary" : "default"}
-                          className="text-white border-none"
-                        >
+                        <Badge className="border-none bg-[#111318] text-white [a&]:hover:bg-[#111318]">
                           {item.isUploadedLocation ? "Shoot Location" : studioStoreTypeLabel(item.type)}
                         </Badge>
                       </div>
                       {isDemo ? (
                         <div className="absolute top-4 right-4">
-                          <DemoProfileBadge />
+                          <DemoProfileBadge variant="white" />
                         </div>
                       ) : item.isUploadedLocation ? (
                         <div className="absolute top-4 right-4">
@@ -456,18 +457,23 @@ export default function StudiosStoresPage() {
                           <span className="text-sm">{item.location}</span>
                         </div>
                         <div className="flex items-center mb-3">
-                          <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
-                          {item.rating > 0 ? (
+                          {!isDemo && (
                             <>
-                              <span className="font-medium">{item.rating}</span>
-                              <span className="text-gray-600 ml-1">({item.reviews} reviews)</span>
+                              <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
+                              {item.rating > 0 ? (
+                                <>
+                                  <span className="font-medium">{item.rating}</span>
+                                  <span className="text-gray-600 ml-1">({item.reviews} reviews)</span>
+                                </>
+                              ) : (
+                                <span className="font-medium">New</span>
+                              )}
                             </>
-                          ) : (
-                            <span className="font-medium">New</span>
                           )}
                           <Badge
-                            variant={item.availability === "Available" ? "success" : "secondary"}
-                            className="ml-3 text-white border-none"
+                            className={`${isDemo ? "" : "ml-3"} border-none text-white ${
+                              item.availability === "Available" ? "bg-emerald-600 [a&]:hover:bg-emerald-600" : "bg-[#111318] [a&]:hover:bg-[#111318]"
+                            }`}
                           >
                             {item.availability}
                           </Badge>

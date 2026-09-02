@@ -379,6 +379,11 @@ export default function AvailableGigsPage() {
                   Post a Gig
                 </Button>
               </Link>
+              <Link href="/marketplace/my-gigs" className="w-full sm:w-auto">
+                <Button variant="secondary" className="h-12 w-full rounded-full bg-white/10 text-white hover:bg-white/20">
+                  My Gigs
+                </Button>
+              </Link>
               <Link href="/find-crew" className="w-full sm:w-auto">
                 <Button variant="secondary" className="h-12 w-full rounded-full bg-white text-black hover:bg-white/90">
                   Find crew

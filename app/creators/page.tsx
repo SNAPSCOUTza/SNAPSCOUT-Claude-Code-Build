@@ -450,7 +450,7 @@ export default function CreatorsPage() {
                             <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[#111318] shadow-[0_8px_18px_rgba(15,23,42,0.12)]">
                               {creator.profession || "Creative"}
                             </span>
-                            {!creator.isLiveProfile && <DemoProfileBadge className="bg-white/95 shadow-[0_8px_18px_rgba(15,23,42,0.12)]" />}
+                            {!creator.isLiveProfile && <DemoProfileBadge variant="white" />}
                           </div>
                           <SaveProfileButton
                             profileId={creator.user_id || creator.id}
@@ -792,13 +792,13 @@ export default function CreatorsPage() {
             {filteredCreators.length} Creator{filteredCreators.length !== 1 ? "s" : ""} Found
           </h2>
           <div className="flex items-center space-x-4">
-            <Link href="/marketplace">
+            <Link href="/marketplace/available-gigs">
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                View Available Projects
+                View Available Gigs
               </Button>
             </Link>
-            <Link href="/marketplace/post-project">
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Post a Project</Button>
+            <Link href="/marketplace/post-gig">
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Post a Gig</Button>
             </Link>
           </div>
         </div>
@@ -821,7 +821,7 @@ export default function CreatorsPage() {
                   className="object-cover"
                 />
                 {!creator.isLiveProfile && (
-                  <DemoProfileBadge className="absolute right-3 top-3 z-10 bg-white/95 shadow-md" />
+                  <DemoProfileBadge variant="white" className="absolute right-3 top-3 z-10" />
                 )}
                 {creator.is_public && (
                   <div className="absolute bottom-3 right-3 bg-success rounded-full p-1.5 shadow-md">
