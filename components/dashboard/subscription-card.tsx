@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -136,6 +137,7 @@ export function SubscriptionCard({
 }: SubscriptionCardProps) {
   const [showRoleModal, setShowRoleModal] = useState(initialShowRoleModal)
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(false)
   const [selectedRole, setSelectedRole] = useState<string | null>(initialSelectedRole)
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(initialBillingCycle)
   const [isLoading, setIsLoading] = useState(false)
@@ -147,6 +149,15 @@ export function SubscriptionCard({
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   )
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const query = window.matchMedia("(min-width: 1024px)")
+    const update = () => setIsDesktop(query.matches)
+    update()
+    query.addEventListener("change", update)
+    return () => query.removeEventListener("change", update)
+  }, [])
 
   useEffect(() => {
     const getUser = async () => {
@@ -486,75 +497,156 @@ export function SubscriptionCard({
                 <BillingCycleToggle cycle={billingCycle} onChange={setBillingCycle} />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {ROLE_PLANS.map((plan) => {
-                  const cyclePlan = plan[billingCycle]
-                  // Shown only in the annual view's "(Rxxx.99/mo)" hint - this is the
-                  // plan's own monthly rate, not the annual price divided by 12 (all
-                  // annual plans share one flat R5,868 total, so that math would be
-                  // wrong for Creator/Crew).
-                  const monthlyEquivalent = plan.monthly.price
+              {isDesktop ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {ROLE_PLANS.map((plan) => {
+                    const cyclePlan = plan[billingCycle]
+                    const monthlyEquivalent = plan.monthly.price
+                    const isSelected = selectedRole === plan.id
 
-                  return (
-                    <div
-                      key={plan.id}
-                      onClick={() => setSelectedRole(plan.id)}
-                      className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md ${
-                        selectedRole === plan.id
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-border/80"
-                      }`}
-                    >
-                      {selectedRole === plan.id && (
-                        <div className="absolute top-3 right-3 h-6 w-6 rounded-full bg-primary flex items-center justify-center">
-                          <Check className="h-4 w-4 text-primary-foreground" />
-                        </div>
-                      )}
+                    return (
+                      <div
+                        key={plan.id}
+                        onClick={() => setSelectedRole(plan.id)}
+                        className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md ${
+                          isSelected ? "border-primary bg-primary/10" : "border-border hover:border-border/80"
+                        }`}
+                      >
+                        {isSelected && (
+                          <div className="absolute top-3 right-3 h-6 w-6 rounded-full bg-primary flex items-center justify-center">
+                            <Check className="h-4 w-4 text-primary-foreground" />
+                          </div>
+                        )}
 
-                      <div className="flex items-center gap-3 mb-3">
-                        <div
-                          className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                            selectedRole === plan.id ? "bg-primary/20" : "bg-muted"
-                          }`}
-                        >
-                          <plan.icon
-                            className={`h-5 w-5 ${selectedRole === plan.id ? "text-primary" : "text-muted-foreground"}`}
-                          />
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${isSelected ? "bg-primary/20" : "bg-muted"}`}>
+                            <plan.icon className={`h-5 w-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-foreground">{plan.name}</h3>
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-primary">
+                                <RollingNumber
+                                  value={cyclePlan.price}
+                                  fontSize={16}
+                                  className="font-bold"
+                                  prefix="R"
+                                  suffix={billingCycle === "annual" ? "/year" : "/month"}
+                                />
+                              </span>
+                              {billingCycle === "annual" && (
+                                <span className="text-muted-foreground">
+                                  (
+                                  <RollingNumber value={monthlyEquivalent} fontSize={12} prefix="R" suffix=".99/mo" />)
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-foreground">{plan.name}</h3>
-                          <div className="flex items-baseline gap-1.5">
+
+                        <ul className="space-y-2">
+                          {plan.features.map((feature, i) => (
+                            <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                              <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {ROLE_PLANS.map((plan) => {
+                    const cyclePlan = plan[billingCycle]
+                    // Shown only in the annual view's "(Rxxx.99/mo)" hint - this is the
+                    // plan's own monthly rate, not the annual price divided by 12 (all
+                    // annual plans share one flat R5,868 total, so that math would be
+                    // wrong for Creator/Crew).
+                    const monthlyEquivalent = plan.monthly.price
+                    const isSelected = selectedRole === plan.id
+
+                    return (
+                      <div
+                        key={plan.id}
+                        onClick={() => setSelectedRole(plan.id)}
+                        className={`cursor-pointer rounded-2xl border-2 p-4 transition-colors ${
+                          isSelected ? "border-primary bg-primary/5" : "border-border hover:border-border/80"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div
+                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                                isSelected ? "border-primary" : "border-muted-foreground/25"
+                              }`}
+                            >
+                              <AnimatePresence>
+                                {isSelected && (
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    exit={{ scale: 0 }}
+                                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                    className="h-3 w-3 rounded-full bg-primary"
+                                  />
+                                )}
+                              </AnimatePresence>
+                            </div>
+                            <div
+                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                                isSelected ? "bg-primary/15" : "bg-muted"
+                              }`}
+                            >
+                              <plan.icon className={`h-[18px] w-[18px] ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                            </div>
+                            <h3 className="min-w-0 flex-1 text-[15px] font-semibold leading-tight text-foreground">{plan.name}</h3>
+                          </div>
+
+                          <div className="shrink-0 text-right">
                             <span className="text-primary">
                               <RollingNumber
                                 value={cyclePlan.price}
                                 fontSize={16}
-                                className="font-bold"
+                                className="justify-end font-bold"
                                 prefix="R"
-                                suffix={billingCycle === "annual" ? "/year" : "/month"}
+                                suffix={billingCycle === "annual" ? "/yr" : "/mo"}
                               />
                             </span>
                             {billingCycle === "annual" && (
-                              <span className="text-muted-foreground">
-                                (
-                                <RollingNumber value={monthlyEquivalent} fontSize={12} prefix="R" suffix=".99/mo" />)
-                              </span>
+                              <p className="text-muted-foreground">
+                                <RollingNumber value={monthlyEquivalent} fontSize={11} className="justify-end" prefix="R" suffix=".99/mo" />
+                              </p>
                             )}
                           </div>
                         </div>
-                      </div>
 
-                      <ul className="space-y-2">
-                        {plan.features.map((feature, i) => (
-                          <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                            <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )
-                })}
-              </div>
+                        <AnimatePresence initial={false}>
+                          {isSelected && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+                              className="overflow-hidden"
+                            >
+                              <ul className="mt-3 space-y-2 pl-[84px]">
+                                {plan.features.map((feature, i) => (
+                                  <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                    {feature}
+                                  </li>
+                                ))}
+                              </ul>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="flex shrink-0 gap-3 border-t bg-gray-50 p-6 pb-[max(24px,calc(env(safe-area-inset-bottom)+12px))] lg:justify-end lg:pb-6">
