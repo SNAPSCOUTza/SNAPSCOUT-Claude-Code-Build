@@ -143,7 +143,8 @@ export default function FindCrewPage() {
           id, user_id, full_name, display_name, username, email, profession, bio, location, city, province,
           profile_image_url, profile_picture, avatar_url, cover_image_url, availability, availability_status, pricing,
           hourly_rate, daily_rate, project_rate, skills, social_links, portfolio_images,
-          is_public, is_profile_visible, subscription_status, created_at, rating, review_count
+          is_public, is_profile_visible, subscription_status, created_at, rating, review_count,
+          years_experience, experience_level
         `)
         .eq("is_profile_visible", true)
         .eq("talent_type", "crew")
@@ -158,6 +159,9 @@ export default function FindCrewPage() {
         const pricing =
           profile.pricing ||
           (profile.hourly_rate ? `R${profile.hourly_rate}/hr` : profile.daily_rate ? `R${profile.daily_rate}/day` : "")
+        // There's no dedicated "recent work" column - use the first real
+        // portfolio upload as the card's preview image/gallery shot instead.
+        const portfolioImages: string[] = Array.isArray(profile.portfolio_images) ? profile.portfolio_images : []
 
         return {
           id: profileId,
@@ -178,6 +182,9 @@ export default function FindCrewPage() {
           is_profile_visible: profile.is_profile_visible ?? profile.is_public ?? true,
           rating: profile.rating || 0,
           reviews: profile.review_count || 0,
+          years_experience: profile.years_experience || "",
+          experience_level: profile.experience_level || "",
+          recent_work: portfolioImages[0] || "",
           isLiveProfile: true, // Flag to identify live profiles
           pricing,
         }
@@ -960,12 +967,10 @@ export default function FindCrewPage() {
                       <div className="min-w-0">
                           <div className="flex items-center justify-between">
                             <h3 className="font-semibold text-foreground truncate">{member.display_name}</h3>
-                            {member.rating && (
-                              <div className="flex items-center gap-1 text-amber-500">
-                                <Star className="h-4 w-4 fill-current" />
-                                <span className="text-sm font-medium">{member.rating}</span>
-                              </div>
-                            )}
+                            <div className="flex items-center gap-1 text-amber-500">
+                              <Star className="h-4 w-4 fill-current" />
+                              <span className="text-sm font-medium">{(member.rating ?? 0) > 0 ? member.rating!.toFixed(1) : "New"}</span>
+                            </div>
                           </div>
                           <p className="text-sm text-muted-foreground">{member.profession}</p>
                           {member.recent_work_caption && (
@@ -1134,10 +1139,10 @@ export default function FindCrewPage() {
                       <p className="text-sm text-muted-foreground mt-1">{selectedMember.recent_work_caption}</p>
                     )}
                     <div className="flex items-center gap-4 mt-3">
-                      {selectedMember.rating && (
+                      {(selectedMember.rating ?? 0) > 0 && (
                         <div className="flex items-center gap-1">
                           <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                          <span className="font-semibold text-foreground">{selectedMember.rating}</span>
+                          <span className="font-semibold text-foreground">{selectedMember.rating!.toFixed(1)}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-1 text-muted-foreground">

@@ -54,6 +54,7 @@ interface CrewProfile {
   reviews: number
   projects: string
   years: string
+  experienceLevel?: string
   responseRate: string
   memberSince: string
   contactNumber: string
@@ -136,7 +137,8 @@ function mapLiveProfileToCrewProfile(profile: any): CrewProfile {
     rating: profile.rating || 0,
     reviews: profile.review_count || 0,
     projects: "New",
-    years: "-",
+    years: profile.years_experience ? String(profile.years_experience).replace(/\D/g, "").slice(0, 2) || String(profile.years_experience) : "-",
+    experienceLevel: profile.experience_level || undefined,
     responseRate: "95%",
     memberSince: "Recently",
     contactNumber: "",
@@ -183,7 +185,7 @@ export default function CrewProfilePage() {
     supabase
       .from("user_profiles")
       .select(
-        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, hourly_rate, daily_rate, skills, portfolio_images, rating, review_count, onboarding_data",
+        "user_id, full_name, display_name, username, profession, bio, location, city, province, profile_image_url, profile_picture, avatar_url, cover_image_url, hourly_rate, daily_rate, skills, portfolio_images, rating, review_count, onboarding_data, years_experience, experience_level",
       )
       .eq("user_id", params.id)
       .maybeSingle()
@@ -462,7 +464,10 @@ export default function CrewProfilePage() {
               <CalendarDays className="mt-0.5 h-4.5 w-4.5 text-[#4f5867]" />
               <div>
                 <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6d7480]">Experience</p>
-                <p className="mt-1 text-[14px] font-medium text-[#111318]">{profile.years} years - Member since {profile.memberSince}</p>
+                <p className="mt-1 text-[14px] font-medium text-[#111318]">
+                  {profile.years !== "-" ? `${profile.years} years` : profile.experienceLevel || "New to SnapScout"} - Member since{" "}
+                  {profile.memberSince}
+                </p>
               </div>
             </div>
           </div>
