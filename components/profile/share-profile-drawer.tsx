@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { motion } from "framer-motion"
 import { MessageSquare, Share2, X } from "lucide-react"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Drawer, DrawerContent, DrawerHandle, DrawerTitle } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import { ProfileShareCard } from "@/components/profile/profile-share-card"
 import { ShareToMessengerModal } from "@/components/profile/share-to-messenger-modal"
@@ -20,9 +21,10 @@ export interface ShareProfileDrawerProps {
   stats?: { label: string; value: string }[]
 }
 
-// Bottom-sheet drawer using the same Dialog-as-bottom-sheet pattern already
-// established across the app (gig-apply blocker, Locations disclaimer,
-// sign-in drawer) rather than pulling in a new drawer dependency.
+// Bottom sheet built on vaul's Drawer - the same mechanism the Quick
+// Hire/Book sheet (hire-request-sheet.tsx) uses on mobile - so it gets the
+// same native drag-to-dismiss physics and smooth downward close animation,
+// rather than the CSS-animate-class approach used elsewhere in the app.
 export function ShareProfileDrawer({
   open,
   onOpenChange,
@@ -36,6 +38,7 @@ export function ShareProfileDrawer({
   stats,
 }: ShareProfileDrawerProps) {
   const [messengerOpen, setMessengerOpen] = useState(false)
+  const [isClosing, setIsClosing] = useState(false)
 
   const url = typeof window !== "undefined" ? `${window.location.origin}${profileHref}` : profileHref
 
@@ -62,61 +65,92 @@ export function ShareProfileDrawer({
     }
   }
 
+  // vaul animates the drawer's own close; isClosing only drives the close
+  // button's own tap/exit micro-animation, mirroring the Quick Hire sheet.
+  const closeSheet = () => {
+    setIsClosing(true)
+    onOpenChange(false)
+  }
+
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
+      <Drawer
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (nextOpen) setIsClosing(false)
+          onOpenChange(nextOpen)
+        }}
+        shouldScaleBackground={false}
+      >
+        <DrawerContent
           unstyled
-          showCloseButton={false}
-          overlayClassName="fixed inset-0 z-[169] bg-black/35 backdrop-blur-[6px]"
-          className="fixed inset-x-0 bottom-0 top-auto z-[170] mx-0 w-full max-w-none gap-0 overflow-hidden rounded-b-none rounded-t-[30px] border-x-0 border-b-0 border-t border-[#e8dfd3] bg-[#f7f7f4] p-0 text-[#111318] shadow-[0_-24px_64px_rgba(15,23,42,0.18)] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+          overlayClassName="z-[169] bg-black/35 backdrop-blur-[6px]"
+          className="fixed inset-x-0 bottom-0 top-auto z-[170] mx-0 flex h-auto max-h-[85dvh] w-full max-w-none flex-col gap-0 overflow-hidden rounded-b-none rounded-t-[30px] border-x-0 border-b-0 border-t border-[#e8dfd3] bg-[#f7f7f4] p-0 text-[#111318] shadow-[0_-24px_64px_rgba(15,23,42,0.18)] outline-none"
         >
-          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-[#d7dce6]" />
-          <div className="flex items-center justify-between px-5 pb-3 pt-4">
-            <DialogTitle className="text-[18px] font-semibold text-[#111318]">Share Profile</DialogTitle>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              aria-label="Close"
-              className="grid h-10 w-10 place-items-center rounded-full border border-[#e7e0d6] bg-white"
-            >
-              <X className="h-4.5 w-4.5" />
-            </button>
-          </div>
+          <DrawerTitle className="sr-only">Share Profile</DrawerTitle>
 
-          <div className="max-h-[80dvh] overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+20px)]">
-            <ProfileShareCard
-              profileName={profileName}
-              profileRole={profileRole}
-              profileLocation={profileLocation}
-              profileImage={profileImage}
-              profileBio={profileBio}
-              stats={stats}
-              url={url}
-            />
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={shareExternally}
-                className="h-12 rounded-full border-[#e6ebf3] bg-white text-[#111318] hover:bg-[#fff7f7] hover:text-[#f20d14]"
-              >
-                <Share2 className="mr-2 h-4 w-4" />
-                Share
-              </Button>
-              <Button
-                type="button"
-                onClick={() => setMessengerOpen(true)}
-                className="h-12 rounded-full bg-[#f20d14] text-white hover:bg-[#d9070d]"
-              >
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Share in SnapScout
-              </Button>
+          <motion.div
+            initial={{ y: 14, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.9 }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <div className="shrink-0">
+              <DrawerHandle className="mx-auto mt-3 h-1.5 w-16 rounded-full bg-[#cfd5df] shadow-[0_1px_0_rgba(255,255,255,0.8)_inset]" />
+              <div className="flex items-center justify-end px-5 pb-3 pt-4">
+                <motion.button
+                  type="button"
+                  onClick={closeSheet}
+                  aria-label="Close"
+                  whileTap={{ scale: 0.9, rotate: -8 }}
+                  animate={isClosing ? { opacity: 0, scale: 0.7, rotate: 45 } : { opacity: 1, scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                  className="grid h-10 w-10 place-items-center rounded-full border border-[#e7e0d6] bg-white"
+                >
+                  <X className="h-4.5 w-4.5" />
+                </motion.button>
+              </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+20px)]">
+              <ProfileShareCard
+                profileName={profileName}
+                profileRole={profileRole}
+                profileLocation={profileLocation}
+                profileImage={profileImage}
+                profileBio={profileBio}
+                stats={stats}
+                url={url}
+              />
+
+              <div className="mt-4 flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={shareExternally}
+                  className="h-12 flex-1 rounded-full border-[#e6ebf3] bg-white text-[#111318] hover:bg-[#fff7f7] hover:text-[#f20d14]"
+                  asChild
+                >
+                  <motion.button whileTap={{ scale: 0.94 }}>
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Share
+                  </motion.button>
+                </Button>
+                <motion.button
+                  type="button"
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setMessengerOpen(true)}
+                  aria-label="Share in SnapScout"
+                  title="Share in SnapScout"
+                  className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#f20d14] text-white shadow-[0_8px_20px_rgba(242,13,20,0.35)] hover:bg-[#d9070d]"
+                >
+                  <MessageSquare className="h-5 w-5" />
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        </DrawerContent>
+      </Drawer>
 
       <ShareToMessengerModal open={messengerOpen} onOpenChange={setMessengerOpen} profileId={profileId} profileHref={profileHref} />
     </>
