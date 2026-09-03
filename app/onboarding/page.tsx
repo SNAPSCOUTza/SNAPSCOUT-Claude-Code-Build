@@ -217,25 +217,29 @@ export default function OnboardingPage() {
   return (
     <main className="min-h-screen bg-[#f5f2ee] text-[#111318]">
       <div className="mx-auto flex min-h-screen w-full max-w-[460px] flex-col px-4 py-5 md:max-w-3xl md:py-8">
-        <div className="mb-4 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => router.push("/")}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#dce3ee] bg-white text-[#111318] shadow-sm"
-            aria-label="Home"
-          >
-            <Home className="h-5 w-5" />
-          </button>
-          <div className="text-center">
-            <p className="text-[20px] font-black leading-none">
-              <span className="text-[#ff111b]">Snap</span>Scout
-            </p>
-            <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#8a94a6]">Onboarding</p>
-          </div>
-          <div className="h-11 w-11" />
-        </div>
+        {screen !== "tour" ? (
+          <>
+            <div className="mb-4 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => router.push("/")}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-[#dce3ee] bg-white text-[#111318] shadow-sm"
+                aria-label="Home"
+              >
+                <Home className="h-5 w-5" />
+              </button>
+              <div className="text-center">
+                <p className="text-[20px] font-black leading-none">
+                  <span className="text-[#ff111b]">Snap</span>Scout
+                </p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#8a94a6]">Onboarding</p>
+              </div>
+              <div className="h-11 w-11" />
+            </div>
 
-        {screen !== "goal" ? <ProgressBar total={totalProgressSteps} current={progressCurrent} /> : null}
+            {screen !== "goal" ? <ProgressBar total={totalProgressSteps} current={progressCurrent} /> : null}
+          </>
+        ) : null}
 
         <AnimatePresence mode="wait">
           <motion.div
