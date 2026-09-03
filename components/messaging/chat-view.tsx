@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send, ArrowLeft } from "lucide-react"
 import { format } from "date-fns"
+import { decodeProfileShareContent } from "@/lib/messaging/profile-share-content"
+import { ProfileShareMessageBubble } from "./profile-share-message-bubble"
 
 interface ChatViewProps {
   onBack?: () => void
@@ -89,6 +91,7 @@ export function ChatView({ onBack }: ChatViewProps) {
         ) : (
           messages.map((message) => {
             const isOwn = message.sender_id === currentUserId
+            const profileShare = decodeProfileShareContent(message.content)
             return (
               <div key={message.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
                 <div className={`flex items-end gap-2 max-w-[70%] ${isOwn ? "flex-row-reverse" : ""}`}>
@@ -101,15 +104,19 @@ export function ChatView({ onBack }: ChatViewProps) {
                     </Avatar>
                   )}
                   <div>
-                    <div
-                      className={`px-4 py-2 rounded-2xl ${
-                        isOwn
-                          ? "bg-primary text-primary-foreground rounded-br-md"
-                          : "bg-muted text-foreground rounded-bl-md"
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-                    </div>
+                    {profileShare ? (
+                      <ProfileShareMessageBubble profileId={profileShare.profileId} profileHref={profileShare.profileHref} />
+                    ) : (
+                      <div
+                        className={`px-4 py-2 rounded-2xl ${
+                          isOwn
+                            ? "bg-primary text-primary-foreground rounded-br-md"
+                            : "bg-muted text-foreground rounded-bl-md"
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                      </div>
+                    )}
                     <p className={`text-xs text-muted-foreground mt-1 ${isOwn ? "text-right" : ""}`}>
                       {format(new Date(message.created_at), "HH:mm")}
                     </p>

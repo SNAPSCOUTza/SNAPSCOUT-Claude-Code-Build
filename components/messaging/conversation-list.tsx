@@ -3,6 +3,7 @@
 import { useMessaging } from "./supabase-messaging-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { formatDistanceToNow } from "date-fns"
+import { decodeProfileShareContent } from "@/lib/messaging/profile-share-content"
 
 interface ConversationListProps {
   onSelect: (conversationId: string) => void
@@ -67,7 +68,9 @@ export function ConversationList({ onSelect, selectedId }: ConversationListProps
                 )}
               </div>
               {convo.last_message && (
-                <p className="text-sm text-muted-foreground truncate">{convo.last_message.content}</p>
+                <p className="text-sm text-muted-foreground truncate">
+                  {decodeProfileShareContent(convo.last_message.content) ? "Shared a profile" : convo.last_message.content}
+                </p>
               )}
             </div>
           </button>

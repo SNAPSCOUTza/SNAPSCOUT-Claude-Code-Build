@@ -28,6 +28,7 @@ import { DemoProfileBadge } from "@/components/ui/demo-profile-badge"
 import { DemoProfileNotice } from "@/components/ui/demo-profile-notice"
 import { LeaveReviewButton } from "@/components/reviews/leave-review-button"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
+import { ShareProfileDrawer } from "@/components/profile/share-profile-drawer"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { mockCrewMembers, type MockCrewMember } from "@/lib/mock-data/crew-data"
 import { parseTalentPackages, normalizeVisiblePackageCount } from "@/lib/mock-data/talent-dashboard-preview"
@@ -175,6 +176,7 @@ export default function CrewProfilePage() {
   const [liveProfile, setLiveProfile] = useState<CrewProfile | null>(null)
   const [loadingLive, setLoadingLive] = useState(!mockProfile)
   const [reviewRefreshKey, setReviewRefreshKey] = useState(0)
+  const [showShareDrawer, setShowShareDrawer] = useState(false)
 
   useEffect(() => {
     if (mockProfile) return
@@ -327,7 +329,12 @@ export default function CrewProfilePage() {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2">
-              <button type="button" className="grid h-11 w-11 place-items-center rounded-full bg-white/95 text-[#111318]" aria-label="Share profile">
+              <button
+                type="button"
+                onClick={() => setShowShareDrawer(true)}
+                className="grid h-11 w-11 place-items-center rounded-full bg-white/95 text-[#111318]"
+                aria-label="Share profile"
+              >
                 <Share2 className="h-5 w-5" />
               </button>
               <button
@@ -633,6 +640,26 @@ export default function CrewProfilePage() {
       {lightboxIndex !== null && (
         <PortfolioLightbox items={heroLightboxItems} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
       )}
+
+      <ShareProfileDrawer
+        open={showShareDrawer}
+        onOpenChange={setShowShareDrawer}
+        profileId={profile.id}
+        profileName={profile.display_name}
+        profileRole={profile.profession}
+        profileLocation={profile.location}
+        profileImage={profile.profile_image_url}
+        profileBio={profile.bio}
+        profileHref={`/crew/${profile.id}`}
+        stats={[
+          { label: "Rating", value: profile.rating > 0 ? profile.rating.toFixed(1) : "New" },
+          { label: "Response", value: profile.responseRate || "-" },
+          {
+            label: "Experience",
+            value: profile.years !== "-" ? `${profile.years} yrs` : profile.experienceLevel || "New",
+          },
+        ]}
+      />
     </MobileShell>
   )
 }

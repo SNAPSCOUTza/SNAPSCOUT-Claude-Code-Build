@@ -38,6 +38,7 @@ interface MessagingContextType {
   messages: Message[]
   loading: boolean
   sendMessage: (content: string) => Promise<void>
+  sendContentToConversation: (conversationId: string, content: string) => Promise<boolean>
   selectConversation: (conversationId: string) => Promise<void>
   createConversation: (participantId: string) => Promise<string | null>
   refreshConversations: () => Promise<void>
@@ -272,6 +273,34 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
     [currentConversation, supabase],
   )
 
+  // Sends pre-built content (e.g. an encoded profile-share payload) to a
+  // specific conversation without requiring it to be the "selected"
+  // conversation first - selectConversation() also loads message history
+  // and opens a realtime subscription, which a fire-and-forget send from a
+  // share sheet doesn't need.
+  const sendContentToConversation = useCallback(
+    async (conversationId: string, content: string): Promise<boolean> => {
+      const userId = userIdRef.current
+      if (!userId || !conversationId || !content.trim()) return false
+
+      const { error } = await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        sender_id: userId,
+        content: content.trim(),
+      })
+      if (error) return false
+
+      supabase
+        .from("conversations")
+        .update({ last_message_at: new Date().toISOString() })
+        .eq("id", conversationId)
+        .then(() => {})
+
+      return true
+    },
+    [supabase],
+  )
+
   const createConversation = useCallback(
     async (participantId: string): Promise<string | null> => {
       const userId = userIdRef.current
@@ -318,6 +347,7 @@ export function MessagingProvider({ children }: { children: React.ReactNode }) {
         messages,
         loading,
         sendMessage,
+        sendContentToConversation,
         selectConversation,
         createConversation,
         refreshConversations,

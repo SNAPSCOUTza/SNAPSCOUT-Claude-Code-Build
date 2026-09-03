@@ -27,6 +27,7 @@ import { DemoProfileBadge } from "@/components/ui/demo-profile-badge"
 import { DemoProfileNotice } from "@/components/ui/demo-profile-notice"
 import { LeaveReviewButton } from "@/components/reviews/leave-review-button"
 import { SaveProfileButton } from "@/components/messaging/save-profile-button"
+import { ShareProfileDrawer } from "@/components/profile/share-profile-drawer"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -180,6 +181,7 @@ export default function CreatorProfilePage() {
   const [requestOrigin, setRequestOrigin] = useState<"booking" | "availability">("booking")
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0)
   const [reviewRefreshKey, setReviewRefreshKey] = useState(0)
+  const [showShareDrawer, setShowShareDrawer] = useState(false)
   const [portfolioGalleryItems, setPortfolioGalleryItems] = useState<LightboxPortfolioItem[]>([])
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [selectedPackageIndex, setSelectedPackageIndex] = useState(0)
@@ -400,7 +402,7 @@ export default function CreatorProfilePage() {
                   variant="ghost"
                   size="icon"
                   className="h-12 w-12 rounded-full bg-white text-slate-900 shadow-[0_12px_24px_rgba(15,23,42,0.12)] hover:bg-white"
-                  onClick={() => navigator.clipboard.writeText(window.location.href)}
+                  onClick={() => setShowShareDrawer(true)}
                 >
                   <Share2 className="h-5 w-5" />
                   <span className="sr-only">Share</span>
@@ -715,6 +717,23 @@ export default function CreatorProfilePage() {
       {lightboxIndex !== null && (
         <PortfolioLightbox items={heroLightboxItems} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
       )}
+
+      <ShareProfileDrawer
+        open={showShareDrawer}
+        onOpenChange={setShowShareDrawer}
+        profileId={creator.id}
+        profileName={creator.name}
+        profileRole={creator.profession}
+        profileLocation={creator.location}
+        profileImage={creator.avatar}
+        profileBio={creator.bio}
+        profileHref={`/creators/${creator.id}`}
+        stats={[
+          { label: "Rating", value: creator.rating > 0 ? creator.rating.toFixed(1) : "New" },
+          { label: "Reviews", value: String(creator.reviews || 0) },
+          { label: "Experience", value: defaults.experienceLabel },
+        ]}
+      />
     </>
   )
 }

@@ -33,6 +33,7 @@ import { HireRequestSheet } from "@/components/booking/hire-request-sheet"
 import { DemoProfileBadge } from "@/components/ui/demo-profile-badge"
 import { DemoProfileNotice } from "@/components/ui/demo-profile-notice"
 import { ProfilePortfolioGallery } from "@/components/portfolio/profile-portfolio-gallery"
+import { ShareProfileDrawer } from "@/components/profile/share-profile-drawer"
 import type { LightboxPortfolioItem } from "@/types/portfolio"
 
 // Client-only overlay with no SSR value - only mounts once a photo is
@@ -79,6 +80,7 @@ export default function StudioStoreDetailPage() {
   const router = useRouter()
   const { profile } = useAuth()
   const [bookingOpen, setBookingOpen] = useState(false)
+  const [showShareDrawer, setShowShareDrawer] = useState(false)
   const [activeSlide, setActiveSlide] = useState(0)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [selectedPackageIndex, setSelectedPackageIndex] = useState(0)
@@ -282,7 +284,12 @@ export default function StudioStoreDetailPage() {
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2">
-              <button type="button" className="grid h-11 w-11 place-items-center rounded-full bg-white/95 text-[#111318]" aria-label="Share listing">
+              <button
+                type="button"
+                onClick={() => setShowShareDrawer(true)}
+                className="grid h-11 w-11 place-items-center rounded-full bg-white/95 text-[#111318]"
+                aria-label="Share listing"
+              >
                 <Share2 className="h-5 w-5" />
               </button>
               <button type="button" className="grid h-11 w-11 place-items-center rounded-full bg-white/95 text-[#f20d14]" aria-label="Save listing">
@@ -583,6 +590,22 @@ export default function StudioStoreDetailPage() {
       {lightboxIndex !== null && (
         <PortfolioLightbox items={heroLightboxItems} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
       )}
+
+      <ShareProfileDrawer
+        open={showShareDrawer}
+        onOpenChange={setShowShareDrawer}
+        profileId={String(item.id)}
+        profileName={item.name}
+        profileRole={item.type === "store" ? "Equipment Store" : "Studio"}
+        profileLocation={item.location}
+        profileImage={item.logo || item.image}
+        profileBio={item.about || item.description}
+        profileHref={`/studios-stores/${item.id}`}
+        stats={[
+          { label: "Rating", value: item.rating > 0 ? item.rating.toFixed(1) : "New" },
+          { label: "Reviews", value: String(item.reviews || 0) },
+        ]}
+      />
     </MobileShell>
   )
 }
